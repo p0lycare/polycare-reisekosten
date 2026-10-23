@@ -488,6 +488,7 @@ export type Database = {
     Functions: {
       darf_genehmigen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_pruefen: { Args: { p_mitarbeiter: string }; Returns: boolean }
+      darf_reise_sehen: { Args: { p_reise: string }; Returns: boolean }
       ist_admin: { Args: never; Returns: boolean }
       ist_buchhaltung: { Args: never; Returns: boolean }
       ist_freigeber: { Args: never; Returns: boolean }
@@ -503,6 +504,7 @@ export type Database = {
           p_art: string
           p_betreff: string
           p_fehler: string
+          p_person?: string
           p_reise: string
           p_status: string
         }

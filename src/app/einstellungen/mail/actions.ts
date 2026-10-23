@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { appUrl } from "@/lib/mail/benachrichtigen";
+import { protokolliereMail } from "@/lib/supabase/admin";
 
 export type TestmailStatus = { fehler?: string; gesendetAn?: string };
 
@@ -25,16 +26,12 @@ export async function testmailSenden(): Promise<TestmailStatus> {
       text: `Der E-Mail-Versand funktioniert.\n\n${link}`,
       html: `<p>Der E-Mail-Versand funktioniert.</p><p><a href="${link}">${link}</a></p>`,
     });
-    await supabase.rpc("mail_protokollieren", {
-      p_reise: null as unknown as string, p_art: "test", p_an: [profil.email], p_betreff: betreff, p_status: "gesendet", p_fehler: "",
-    });
+    await protokolliereMail({ reiseId: null, art: "test", an: [profil.email], betreff, status: "gesendet", personId: user!.id });
     revalidatePath("/einstellungen");
     return { gesendetAn: profil.email };
   } catch (e) {
     const fehler = e instanceof Error ? e.message : String(e);
-    await supabase.rpc("mail_protokollieren", {
-      p_reise: null as unknown as string, p_art: "test", p_an: [profil.email], p_betreff: betreff, p_status: "fehler", p_fehler: fehler,
-    });
+    await protokolliereMail({ reiseId: null, art: "test", an: [profil.email], betreff, status: "fehler", fehler, personId: user!.id });
     revalidatePath("/einstellungen");
     return { fehler };
   }

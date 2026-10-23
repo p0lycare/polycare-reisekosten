@@ -110,10 +110,21 @@ export async function reiseSpeichern(
 export async function reiseLoeschen(formData: FormData) {
   const id = text(formData, "id");
   const supabase = await createClient();
-  // Belegfotos zuerst entfernen – solange die Reise existiert, erlaubt die Storage-Policy das Löschen
-  const { data: belege } = await supabase.from("beleg").select("datei_pfad").eq("reise_id", id);
-  const pfade = (belege ?? []).flatMap((b) => (b.datei_pfad ? [b.datei_pfad] : []));
-  if (pfade.length) await supabase.storage.from("belege").remove(pfade);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Nur eigene Entwürfe – sonst würden Fotos gelöscht, während die Reise bestehen bleibt
+  const { data: reise } = await supabase.from("reise").select("mitarbeiter_id, status").eq("id", id).maybeSingle();
+  if (!user || !reise || reise.mitarbeiter_id !== user.id || reise.status !== "entwurf") redirect(`/reisen/${id}`);
+
+  // Reihenfolge: Belege, dann Fotos (Storage-Regel: nur unbenutzte Fotos löschbar), dann die Reise
+  const { data: belege } = await supabase.from("beleg").delete().eq("reise_id", id).select("datei_pfad");
+  const pfade = [...new Set((belege ?? []).flatMap((b) => (b.datei_pfad ? [b.datei_pfad] : [])))];
+  if (pfade.length) {
+    const { error } = await supabase.storage.from("belege").remove(pfade);
+    if (error) console.error("Belegfotos konnten nicht gelöscht werden", error);
+  }
   await supabase.from("reise").delete().eq("id", id);
   revalidatePath("/");
   redirect("/");

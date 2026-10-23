@@ -5,6 +5,7 @@ import { MAX_ANHANG_BYTES_PRO_MAIL, type Anhang } from "@/lib/mail/anhaenge";
 import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { erzeugePdfMitBelegen } from "@/lib/pdf/abrechnung-pdf";
 import { dateiBasis, ladeDokument } from "@/lib/pdf/dokument-laden";
+import { protokolliereMail } from "@/lib/supabase/admin";
 
 /**
  * Schickt Abrechnung und Belege an die DATEV-Upload-Mail-Adresse. DATEV Unternehmen online legt
@@ -14,8 +15,11 @@ import { dateiBasis, ladeDokument } from "@/lib/pdf/dokument-laden";
 export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: string): Promise<{ fehler?: string }> {
   let an: string[] = [];
   let betreff = "DATEV";
-  const protokoll = (status: string, fehler = "") =>
-    supabase.rpc("mail_protokollieren", { p_reise: reiseId, p_art: "datev", p_an: an, p_betreff: betreff, p_status: status, p_fehler: fehler });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const protokoll = (status: "gesendet" | "fehler" | "nicht_eingerichtet", fehler = "") =>
+    protokolliereMail({ reiseId, art: "datev", an, betreff, status, fehler, personId: user?.id });
 
   try {
     const { data: intern } = await supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle();
@@ -57,10 +61,7 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
   } catch (e) {
     const fehler = e instanceof Error ? e.message : String(e);
     console.error("DATEV-Versand fehlgeschlagen", e);
-    await protokoll("fehler", fehler).then(
-      () => undefined,
-      () => undefined,
-    );
+    await protokoll("fehler", fehler);
     return { fehler };
   }
 }

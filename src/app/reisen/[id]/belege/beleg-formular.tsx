@@ -151,6 +151,7 @@ export function BelegFormular({
     formData.set("datum", datum);
     formData.set("datei_pfad", hochgeladen.pfad);
     formData.set("positionen", JSON.stringify(e.positionen));
+    formData.set("waehrung", e.waehrung);
     startTransition(() => positionenAnlegen(formData));
   }
 
