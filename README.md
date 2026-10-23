@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Polycare Reisekosten
 
-## Getting Started
+Web-App für Reisekostenabrechnungen bei Polycare: Mitarbeitende erfassen Dienstreisen und Belege
+(auch per Handyfoto), das Tool berechnet Verpflegungs- und Kilometerpauschalen, Freigebende
+genehmigen, die Buchhaltung exportiert als PDF bzw. CSV/DATEV.
 
-First, run the development server:
+## Stack
+
+- **Next.js 15** (App Router, TypeScript, Tailwind) – läuft im Browser und mobil
+- **Supabase** – Postgres, Login (Microsoft/E-Mail), Storage für Belegfotos, Row Level Security
+- **Vercel** – Hosting, Deployment automatisch aus `main`, Preview je Pull Request
+
+## Stand
+
+| Bereich | Status |
+| --- | --- |
+| Verpflegungspauschalen Inland (14/28 €, Mahlzeitenkürzung, über Mitternacht) | ✅ `src/lib/reisekosten/verpflegung.ts` |
+| Kilometerpauschale (PKW 0,30 €, Motorrad 0,20 €) | ✅ `src/lib/reisekosten/fahrtkosten.ts` |
+| Datenbankschema + Berechtigungen | ✅ `supabase/migrations/0001_init.sql` |
+| Auslandspauschalen (BMF-Tabelle) | ⏳ |
+| Login, Reise erfassen, Belege hochladen | ⏳ |
+| Freigabe-Workflow | ⏳ |
+| PDF-Abrechnung, CSV/DATEV-Export | ⏳ |
+
+Offene Punkte werden als GitHub-Issues geführt.
+
+## Lokal starten
 
 ```bash
+npm install
+cp .env.example .env.local   # Supabase-Zugangsdaten eintragen
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tests: `npm test` · Typen: `npm run typecheck` · Lint: `npm run lint`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Rechtsgrundlage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pauschalen nach § 9 Abs. 4a EStG (Verpflegung) und § 9 Abs. 1 Satz 3 Nr. 4a EStG (Fahrtkosten).
+Alle Beträge werden intern in Cent gerechnet. Die Berechnung ersetzt keine steuerliche Prüfung.
