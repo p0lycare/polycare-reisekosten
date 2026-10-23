@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ABSCHNITT_TEXT, ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
@@ -25,6 +26,11 @@ export default async function EinstellungenPage() {
         <p className="mt-1 text-sm text-neutral-500">
           Kategorien, MwSt-Sätze und Buchungskonten für die Abrechnung. Leerer MwSt-Satz: wird je Beleg gewählt.
         </p>
+        {profil?.rolle === "admin" && (
+          <Link href="/einstellungen/personen" className="mt-2 inline-block text-sm underline">
+            Personen und Rollen verwalten →
+          </Link>
+        )}
       </div>
 
       <section className="flex flex-col gap-3">

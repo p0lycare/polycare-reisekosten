@@ -9,6 +9,8 @@ import { FahrtenListe } from "./fahrten/fahrten-liste";
 import { LoeschenButton } from "./loeschen-button";
 import { AbrechnungUebersicht } from "./abrechnung-uebersicht";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
+import { WorkflowPanel } from "./workflow/workflow-panel";
+import { Verlauf } from "./workflow/verlauf";
 
 export default async function ReisePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,12 +27,27 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
     ladeAbrechnung(supabase, reise),
     supabase.from("profile").select("rolle").eq("id", user!.id).single(),
   ]);
-  const zeigeKonten = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
+  const istBuchhaltung = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
+  const zeigeKonten = istBuchhaltung;
+
+  const [{ data: darfGenehmigen }, { data: reisender }] = await Promise.all([
+    reise.status === "eingereicht" && !eigene
+      ? supabase.rpc("darf_genehmigen", { p_mitarbeiter: reise.mitarbeiter_id })
+      : Promise.resolve({ data: false }),
+    eigene ? Promise.resolve({ data: null }) : supabase.from("profile").select("name").eq("id", reise.mitarbeiter_id).single(),
+  ]);
+  const rechte = {
+    einreichen: eigene && istBearbeitbar(reise.status),
+    genehmigen: !!darfGenehmigen,
+    pruefen: !eigene && istBuchhaltung && reise.status === "freigegeben",
+    auszahlen: !eigene && istBuchhaltung && reise.status === "geprueft",
+  };
+  const { data: belegNrVorschlag } = rechte.pruefen ? await supabase.rpc("naechste_beleg_nr") : { data: "" };
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
-      <Link href="/" className="text-sm text-neutral-600 underline dark:text-neutral-400">
-        ← Meine Reisen
+      <Link href={eigene ? "/" : "/freigaben"} className="text-sm text-neutral-600 underline dark:text-neutral-400">
+        {eigene ? "← Meine Reisen" : "← Freigaben"}
       </Link>
 
       <div className="flex items-start justify-between gap-4">
@@ -39,6 +56,7 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
           <p className="text-neutral-600 dark:text-neutral-400">
             {reise.reiseweg} ({reise.land})
           </p>
+          {reisender && <p className="mt-1 text-sm font-medium">{reisender.name}</p>}
         </div>
         <StatusBadge status={reise.status} />
       </div>
@@ -80,6 +98,15 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
             <dd>{reise.kostenstelle}</dd>
           </>
         )}
+        {reise.beleg_nr && (
+          <>
+            <dt className="text-neutral-500">Beleg-Nr.</dt>
+            <dd>
+              {reise.beleg_nr}
+              {reise.buchungsmonat && ` · Buchungsmonat ${reise.buchungsmonat.slice(5, 7)}/${reise.buchungsmonat.slice(0, 4)}`}
+            </dd>
+          </>
+        )}
       </dl>
 
       <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
@@ -119,9 +146,18 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
 
       <AbrechnungUebersicht abrechnung={abrechnung} zeigeKonten={zeigeKonten} />
 
+      <WorkflowPanel
+        id={reise.id}
+        rechte={rechte}
+        betrag={formatEuro(abrechnung.auszuzahlen)}
+        belegNrVorschlag={belegNrVorschlag ?? ""}
+      />
+
+      <Verlauf reiseId={reise.id} />
+
       {eigene && istBearbeitbar(reise.status) && (
         <div className="flex items-center gap-4">
-          <Link href={`/reisen/${reise.id}/bearbeiten`} className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+          <Link href={`/reisen/${reise.id}/bearbeiten`} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
             Bearbeiten
           </Link>
           {reise.status === "entwurf" && <LoeschenButton id={reise.id} />}

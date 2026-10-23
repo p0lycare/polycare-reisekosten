@@ -29,7 +29,15 @@ export async function ladeAbrechnung(supabase: SupabaseClient<Database>, reise: 
       mwstProzent: Number(b.mwst_prozent),
     })),
     verpflegung: verpflegungFuer(reise),
-    kmGeld: kmGesamt > 0 ? berechneKmGeld(kmGesamt, einstellungen?.km_satz_cent ?? 0, einstellungen?.km_steuerfrei_cent ?? 0) : null,
+    // Beim Einreichen festgeschriebene Sätze haben Vorrang vor den aktuellen Einstellungen
+    kmGeld:
+      kmGesamt > 0
+        ? berechneKmGeld(
+            kmGesamt,
+            reise.km_satz_cent ?? einstellungen?.km_satz_cent ?? 0,
+            reise.km_steuerfrei_cent ?? einstellungen?.km_steuerfrei_cent ?? 0,
+          )
+        : null,
     kmKategorie: kontierung("km_geld", "Km-Geld"),
     verpflegungKategorie: kontierung("verpflegung", "Verpflegungspauschale"),
     vorschussCent: reise.vorschuss_cent,

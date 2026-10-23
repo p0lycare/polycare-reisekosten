@@ -17,8 +17,9 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
 
   if (!fahrten?.length && !reise.verkehrsmittel.includes("eigener_pkw")) return null;
 
-  const satz = einstellungen?.km_satz_cent ?? 0;
-  const steuerfreiSatz = einstellungen?.km_steuerfrei_cent ?? 0;
+  // Beim Einreichen festgeschriebene Sätze haben Vorrang
+  const satz = reise.km_satz_cent ?? einstellungen?.km_satz_cent ?? 0;
+  const steuerfreiSatz = reise.km_steuerfrei_cent ?? einstellungen?.km_steuerfrei_cent ?? 0;
   const kmGesamt = (fahrten ?? []).reduce((s, f) => s + Number(f.km), 0);
   const kmGeld = berechneKmGeld(kmGesamt, satz, steuerfreiSatz);
   const reiseVon = reise.beginn.slice(0, 10);

@@ -207,6 +207,7 @@ export type Database = {
           kostenstelle: string | null
           name: string
           rolle: Database["public"]["Enums"]["rolle"]
+          vorgesetzter_id: string | null
         }
         Insert: {
           created_at?: string
@@ -216,6 +217,7 @@ export type Database = {
           kostenstelle?: string | null
           name: string
           rolle?: Database["public"]["Enums"]["rolle"]
+          vorgesetzter_id?: string | null
         }
         Update: {
           created_at?: string
@@ -225,21 +227,39 @@ export type Database = {
           kostenstelle?: string | null
           name?: string
           rolle?: Database["public"]["Enums"]["rolle"]
+          vorgesetzter_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profile_vorgesetzter_id_fkey"
+            columns: ["vorgesetzter_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reise: {
         Row: {
           ablehnungsgrund: string | null
+          ausgezahlt_am: string | null
+          ausgezahlt_von: string | null
           beginn: string
           begruendung: string
+          beleg_nr: string | null
           besuchte_stellen: string | null
+          buchungsmonat: string | null
           created_at: string
+          eingereicht_am: string | null
           ende: string
           freigeber_id: string | null
           freigegeben_am: string | null
+          geprueft_am: string | null
+          geprueft_von: string | null
           id: string
           kfz_kennzeichen: string | null
+          km_satz_cent: number | null
+          km_steuerfrei_cent: number | null
           kostenstelle: string | null
           land: string
           mahlzeiten: Json
@@ -254,15 +274,24 @@ export type Database = {
         }
         Insert: {
           ablehnungsgrund?: string | null
+          ausgezahlt_am?: string | null
+          ausgezahlt_von?: string | null
           beginn: string
           begruendung: string
+          beleg_nr?: string | null
           besuchte_stellen?: string | null
+          buchungsmonat?: string | null
           created_at?: string
+          eingereicht_am?: string | null
           ende: string
           freigeber_id?: string | null
           freigegeben_am?: string | null
+          geprueft_am?: string | null
+          geprueft_von?: string | null
           id?: string
           kfz_kennzeichen?: string | null
+          km_satz_cent?: number | null
+          km_steuerfrei_cent?: number | null
           kostenstelle?: string | null
           land?: string
           mahlzeiten?: Json
@@ -277,15 +306,24 @@ export type Database = {
         }
         Update: {
           ablehnungsgrund?: string | null
+          ausgezahlt_am?: string | null
+          ausgezahlt_von?: string | null
           beginn?: string
           begruendung?: string
+          beleg_nr?: string | null
           besuchte_stellen?: string | null
+          buchungsmonat?: string | null
           created_at?: string
+          eingereicht_am?: string | null
           ende?: string
           freigeber_id?: string | null
           freigegeben_am?: string | null
+          geprueft_am?: string | null
+          geprueft_von?: string | null
           id?: string
           kfz_kennzeichen?: string | null
+          km_satz_cent?: number | null
+          km_steuerfrei_cent?: number | null
           kostenstelle?: string | null
           land?: string
           mahlzeiten?: Json
@@ -300,8 +338,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "reise_ausgezahlt_von_fkey"
+            columns: ["ausgezahlt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reise_freigeber_id_fkey"
             columns: ["freigeber_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reise_geprueft_von_fkey"
+            columns: ["geprueft_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -315,16 +367,117 @@ export type Database = {
           },
         ]
       }
+      reise_ereignis: {
+        Row: {
+          aktion: string
+          id: number
+          kommentar: string | null
+          person_id: string
+          person_name: string | null
+          reise_id: string
+          zeit: string
+        }
+        Insert: {
+          aktion: string
+          id?: never
+          kommentar?: string | null
+          person_id: string
+          person_name?: string | null
+          reise_id: string
+          zeit?: string
+        }
+        Update: {
+          aktion?: string
+          id?: never
+          kommentar?: string | null
+          person_id?: string
+          person_name?: string | null
+          reise_id?: string
+          zeit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reise_ereignis_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reise_ereignis_reise_id_fkey"
+            columns: ["reise_id"]
+            isOneToOne: false
+            referencedRelation: "reise"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      darf_genehmigen: { Args: { p_mitarbeiter: string }; Returns: boolean }
+      darf_pruefen: { Args: { p_mitarbeiter: string }; Returns: boolean }
+      ist_admin: { Args: never; Returns: boolean }
       ist_buchhaltung: { Args: never; Returns: boolean }
       ist_freigeber: { Args: never; Returns: boolean }
+      naechste_beleg_nr: { Args: never; Returns: string }
       name_aus_metadaten: {
         Args: { email: string; meta: Json }
         Returns: string
+      }
+      reise_ablehnen: {
+        Args: { p_grund: string; p_id: string }
+        Returns: undefined
+      }
+      reise_auszahlen: { Args: { p_id: string }; Returns: undefined }
+      reise_einreichen: { Args: { p_id: string }; Returns: undefined }
+      reise_genehmigen: { Args: { p_id: string }; Returns: undefined }
+      reise_holen: {
+        Args: { p_id: string }
+        Returns: {
+          ablehnungsgrund: string | null
+          ausgezahlt_am: string | null
+          ausgezahlt_von: string | null
+          beginn: string
+          begruendung: string
+          beleg_nr: string | null
+          besuchte_stellen: string | null
+          buchungsmonat: string | null
+          created_at: string
+          eingereicht_am: string | null
+          ende: string
+          freigeber_id: string | null
+          freigegeben_am: string | null
+          geprueft_am: string | null
+          geprueft_von: string | null
+          id: string
+          kfz_kennzeichen: string | null
+          km_satz_cent: number | null
+          km_steuerfrei_cent: number | null
+          kostenstelle: string | null
+          land: string
+          mahlzeiten: Json
+          mit_uebernachtung: boolean
+          mitarbeiter_id: string
+          mitfahrt_bei: string | null
+          reiseweg: string
+          status: Database["public"]["Enums"]["reise_status"]
+          verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
+          verpflegung_bemerkung: string | null
+          vorschuss_cent: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "reise"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reise_pruefen: {
+        Args: { p_beleg_nr: string; p_buchungsmonat: string; p_id: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -332,6 +485,7 @@ export type Database = {
         | "entwurf"
         | "eingereicht"
         | "freigegeben"
+        | "geprueft"
         | "abgelehnt"
         | "ausgezahlt"
       rolle: "mitarbeiter" | "freigeber" | "buchhaltung" | "admin"
@@ -473,6 +627,7 @@ export const Constants = {
         "entwurf",
         "eingereicht",
         "freigegeben",
+        "geprueft",
         "abgelehnt",
         "ausgezahlt",
       ],
