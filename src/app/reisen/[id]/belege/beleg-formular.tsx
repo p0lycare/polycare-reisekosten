@@ -8,7 +8,9 @@ import { formatEuro } from "@/lib/format";
 import { parseEuro } from "@/lib/geld";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
 import { ABSCHNITT_TEXT, type Abschnitt, type Kategorie } from "@/lib/reisekosten/kategorie";
-import { belegSpeichern, type BelegStatus } from "./actions";
+import { belegPerKiAuslesen, belegPositionenAnlegen, belegSpeichern, type BelegStatus } from "./actions";
+import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
+import { centAlsEingabe } from "@/lib/geld";
 
 export type BelegWerte = {
   id?: string;
@@ -35,6 +37,7 @@ export function BelegFormular({
   kategorien,
   reiseVon,
   reiseBis,
+  kiAktiv,
 }: {
   werte: BelegWerte;
   reiseId: string;
@@ -42,11 +45,16 @@ export function BelegFormular({
   kategorien: Kategorie[];
   reiseVon: string;
   reiseBis: string;
+  kiAktiv: boolean;
 }) {
   const [status, absenden, laeuft] = useActionState<BelegStatus, FormData>(belegSpeichern, {});
   const [kategorieId, setKategorieId] = useState(werte.kategorieId);
   const [mwst, setMwst] = useState(werte.mwstProzent);
   const [betrag, setBetrag] = useState(werte.betrag);
+  const [datum, setDatum] = useState(werte.datum);
+  const [beschreibung, setBeschreibung] = useState(werte.beschreibung);
+  const [ki, setKi] = useState<{ laeuft: boolean; ergebnis?: AusgelesenerBeleg; fehler?: string }>({ laeuft: false });
+  const [positionenStatus, positionenAnlegen, legtAn] = useActionState<BelegStatus, FormData>(belegPositionenAnlegen, {});
   const [datei, setDatei] = useState<File | null>(null);
   const [vorschau, setVorschau] = useState<string | null>(null);
   const [uploadFehler, setUploadFehler] = useState<string | null>(null);
@@ -69,44 +77,86 @@ export function BelegFormular({
     setMwst(k?.mwst_prozent != null ? String(Number(k.mwst_prozent)) : "");
   }
 
-  function dateiWaehlen(f: File | null) {
+  /** Lädt die Datei hoch (einmalig je Datei) und gibt den Speicherpfad zurück; null bei Fehler. */
+  async function hochladen(f: File): Promise<string | null> {
+    if (hochgeladen?.datei === f) return hochgeladen.pfad;
+    setLaedtHoch(true);
+    try {
+      const verkleinert = await verkleinereBild(f);
+      const endung = verkleinert.name.split(".").pop()?.toLowerCase() || "jpg";
+      const pfad = `${userId}/${reiseId}/${crypto.randomUUID()}.${endung}`;
+      const { error } = await createClient().storage.from("belege").upload(pfad, verkleinert, {
+        contentType: verkleinert.type,
+      });
+      if (error) throw error;
+      setHochgeladen({ datei: f, pfad });
+      return pfad;
+    } catch {
+      setUploadFehler("Das Foto konnte nicht hochgeladen werden (max. 10 MB, Bild oder PDF).");
+      return null;
+    } finally {
+      setLaedtHoch(false);
+    }
+  }
+
+  /** Füllt das Formular mit dem KI-Vorschlag (erste Position); weitere Positionen werden angeboten. */
+  function vorschlagUebernehmen(e: AusgelesenerBeleg) {
+    const erste = e.positionen[0];
+    if (erste && kategorien.some((k) => k.id === erste.kategorieId)) {
+      setKategorieId(erste.kategorieId);
+      setMwst(String(erste.mwstProzent));
+      setBetrag(centAlsEingabe(erste.betragCent));
+      setBeschreibung(erste.beschreibung || e.haendler || "");
+    }
+    if (e.datum && e.datum >= reiseVon && e.datum <= reiseBis) setDatum(e.datum);
+  }
+
+  async function dateiWaehlen(f: File | null) {
     setDatei(f);
     setUploadFehler(null);
+    setKi({ laeuft: false });
     if (vorschau) URL.revokeObjectURL(vorschau);
     setVorschau(f && f.type.startsWith("image/") ? URL.createObjectURL(f) : null);
+    if (!f || !kiAktiv) return;
+
+    const pfad = await hochladen(f);
+    if (!pfad) return;
+    setKi({ laeuft: true });
+    try {
+      const antwort = await belegPerKiAuslesen(reiseId, pfad);
+      if (antwort.ergebnis) vorschlagUebernehmen(antwort.ergebnis);
+      setKi({ laeuft: false, ergebnis: antwort.ergebnis, fehler: antwort.fehler });
+    } catch {
+      setKi({ laeuft: false, fehler: "Der Beleg konnte gerade nicht ausgelesen werden." });
+    }
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.delete("datei");
-
-    if (datei && hochgeladen?.datei === datei) {
-      formData.set("datei_pfad", hochgeladen.pfad);
-    } else if (datei) {
-      setLaedtHoch(true);
-      try {
-        const verkleinert = await verkleinereBild(datei);
-        const endung = verkleinert.name.split(".").pop()?.toLowerCase() || "jpg";
-        const pfad = `${userId}/${reiseId}/${crypto.randomUUID()}.${endung}`;
-        const { error } = await createClient().storage.from("belege").upload(pfad, verkleinert, {
-          contentType: verkleinert.type,
-        });
-        if (error) throw error;
-        formData.set("datei_pfad", pfad);
-        setHochgeladen({ datei, pfad });
-      } catch {
-        setUploadFehler("Das Foto konnte nicht hochgeladen werden (max. 10 MB, Bild oder PDF).");
-        setLaedtHoch(false);
-        return;
-      }
-      setLaedtHoch(false);
+    if (datei) {
+      const pfad = await hochladen(datei);
+      if (!pfad) return;
+      formData.set("datei_pfad", pfad);
     }
-
     startTransition(() => absenden(formData));
   }
 
-  const beschaeftigt = laeuft || laedtHoch;
+  function alleAnlegen() {
+    const e = ki.ergebnis;
+    if (!e || !hochgeladen) return;
+    const formData = new FormData();
+    formData.set("reise_id", reiseId);
+    formData.set("datum", datum);
+    formData.set("datei_pfad", hochgeladen.pfad);
+    formData.set("positionen", JSON.stringify(e.positionen));
+    startTransition(() => positionenAnlegen(formData));
+  }
+
+  const beschaeftigt = laeuft || laedtHoch || ki.laeuft || legtAn;
+  const mehrerePositionen = !werte.id && (ki.ergebnis?.positionen.length ?? 0) > 1;
+  const katName = (id: string) => kategorien.find((k) => k.id === id)?.bezeichnung ?? id;
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
@@ -138,7 +188,7 @@ export function BelegFormular({
       <div className="grid gap-5 sm:grid-cols-3">
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Belegdatum</span>
-          <input type="date" name="datum" required defaultValue={werte.datum} min={reiseVon} max={reiseBis} className={feld} />
+          <input type="date" name="datum" required value={datum} onChange={(e) => setDatum(e.target.value)} min={reiseVon} max={reiseBis} className={feld} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Betrag brutto (€)</span>
@@ -166,7 +216,7 @@ export function BelegFormular({
 
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium">Beschreibung</span>
-        <input name="beschreibung" defaultValue={werte.beschreibung} placeholder="optional, z. B. Hotel Name, Strecke" className={feld} />
+        <input name="beschreibung" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="optional, z. B. Hotel Name, Strecke" className={feld} />
       </label>
 
       {kategorie?.abschnitt === "E" && (
@@ -195,7 +245,9 @@ export function BelegFormular({
           ) : (
             <>
               <span className="font-medium">Foto aufnehmen oder Datei wählen</span>
-              <span className="text-xs text-neutral-500">Bild oder PDF, max. 10 MB</span>
+              <span className="text-xs text-neutral-500">
+                Bild oder PDF, max. 10 MB{kiAktiv && " – Betrag, Datum und MwSt werden automatisch ausgelesen"}
+              </span>
             </>
           )}
           <input
@@ -215,6 +267,45 @@ export function BelegFormular({
           <p className="text-xs text-neutral-500">Ohne Beleg nur, wenn es keinen gibt (z. B. Trinkgeld).</p>
         )}
       </div>
+
+      {ki.laeuft && (
+        <p role="status" className="rounded-md bg-neutral-100 p-3 text-sm dark:bg-neutral-800">Beleg wird ausgelesen …</p>
+      )}
+      {ki.fehler && <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{ki.fehler} Bitte die Angaben von Hand eintragen.</p>}
+      {ki.ergebnis && (
+        <div className="flex flex-col gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-950 dark:bg-blue-950 dark:text-blue-50">
+          {!ki.ergebnis.istBeleg ? (
+            <p>Das sieht nicht nach einem Beleg aus. Bitte prüfen.</p>
+          ) : (
+            <p>
+              Vorschlag aus dem Beleg{ki.ergebnis.haendler ? ` (${ki.ergebnis.haendler})` : ""} übernommen – bitte prüfen.
+              {ki.ergebnis.waehrung !== "EUR" && ` Achtung: Betrag in ${ki.ergebnis.waehrung}, bitte in Euro umrechnen.`}
+            </p>
+          )}
+          {ki.ergebnis.hinweis && <p>Hinweis: {ki.ergebnis.hinweis}</p>}
+          {ki.ergebnis.fruehstueckEnthalten && (
+            <p>Die Rechnung enthält Frühstück. Markiere es bei der Reise als gestellt – das kürzt die Verpflegungspauschale.</p>
+          )}
+          {mehrerePositionen && (
+            <>
+              <p className="font-medium">Der Beleg enthält {ki.ergebnis.positionen.length} Positionen:</p>
+              <ul className="list-disc pl-5">
+                {ki.ergebnis.positionen.map((p, i) => (
+                  <li key={i} className="tabular-nums">
+                    {katName(p.kategorieId)}: {formatEuro(p.betragCent)} ({String(p.mwstProzent).replace(".", ",")} %)
+                  </li>
+                ))}
+              </ul>
+              <div>
+                <button type="button" onClick={alleAnlegen} disabled={beschaeftigt} className="rounded-md bg-blue-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-blue-100 dark:text-blue-950">
+                  {legtAn ? "Legt an …" : `Alle ${ki.ergebnis.positionen.length} Positionen als Belege anlegen`}
+                </button>
+              </div>
+              {positionenStatus.fehler && <p role="alert">{positionenStatus.fehler}</p>}
+            </>
+          )}
+        </div>
+      )}
 
       {(uploadFehler || status.fehler) && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">

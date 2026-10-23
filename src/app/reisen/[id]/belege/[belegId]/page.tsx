@@ -3,6 +3,7 @@ import { centAlsEingabe } from "@/lib/geld";
 import { BelegFormular } from "../beleg-formular";
 import { BelegLoeschenButton } from "../beleg-loeschen-button";
 import { ladeFuerBeleg } from "../laden";
+import { kiVerfuegbar } from "@/lib/ki/beleg-auslesen";
 
 export default async function BelegBearbeitenPage({ params }: { params: Promise<{ id: string; belegId: string }> }) {
   const { id, belegId } = await params;
@@ -28,6 +29,7 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
         kategorien={kategorien.filter((k) => k.aktiv || k.id === beleg.kategorie_id)}
         reiseVon={reise.beginn.slice(0, 10)}
         reiseBis={reise.ende.slice(0, 10)}
+        kiAktiv={kiVerfuegbar()}
         werte={{
           id: beleg.id,
           kategorieId: beleg.kategorie_id,
