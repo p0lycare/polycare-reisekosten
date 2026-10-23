@@ -632,6 +632,7 @@ export type Database = {
         Returns: string
       }
       reise_zurueckziehen: { Args: { p_id: string }; Returns: undefined }
+      reisen_einreichen: { Args: { p_ids: string[] }; Returns: number }
     }
     Enums: {
       reise_status:

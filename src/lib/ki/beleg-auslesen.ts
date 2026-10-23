@@ -10,6 +10,8 @@ export type AusgelesenerBeleg = {
   haendler: string | null;
   ort: string | null;
   datum: string | null;
+  /** Anreisedatum bei Hotelrechnungen */
+  anreise?: string | null;
   waehrung: string;
   positionen: { kategorieId: string; beschreibung: string; betragCent: number; mwstProzent: number }[];
   fruehstueckEnthalten: boolean;
@@ -73,6 +75,7 @@ export async function belegAuslesen(
       haendler: r.haendler,
       ort: r.ort,
       datum: r.datum && /^\d{4}-\d{2}-\d{2}$/.test(r.datum) ? r.datum : null,
+      anreise: r.anreise && /^\d{4}-\d{2}-\d{2}$/.test(r.anreise) ? r.anreise : null,
       waehrung: r.waehrung,
       positionen: r.positionen
         .filter((p) => p.betrag_brutto > 0)

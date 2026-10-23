@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { formatDatum, formatEuro } from "@/lib/format";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
-import { passendeReise, summeAusErgebnis, type ReiseKurz } from "@/lib/reisekosten/eingang";
+import { belegDatumFuerZuordnung, passendeReise, summeAusErgebnis, type ReiseKurz } from "@/lib/reisekosten/eingang";
 import { eingangLoeschen, eingangNeuAuslesen, eingangZuordnen, type EingangStatus } from "./actions";
 
 export type EingangEintrag = {
@@ -27,7 +27,7 @@ export function EingangKarte({
   kategorieName: Record<string, string>;
 }) {
   const e = eintrag.ergebnis;
-  const vorschlag = passendeReise(e?.datum, reisen);
+  const vorschlag = passendeReise(belegDatumFuerZuordnung(e), reisen) ?? passendeReise(e?.datum, reisen);
   const [reiseId, setReiseId] = useState(vorschlag?.id ?? "");
   const [status, setStatus] = useState<EingangStatus>({});
   const [laeuft, starten] = useTransition();

@@ -38,5 +38,6 @@ describe("Vorschläge aus dem Beleg", () => {
     expect(summeAusErgebnis(ergebnis)).toBe(12200);
     expect(reiseVorschlagAusBeleg(ergebnis)).toEqual({ beginn: "2026-10-22T08:00", ende: "2026-10-22T18:00", reiseweg: "Berlin" });
     expect(reiseVorschlagAusBeleg({ ...ergebnis, datum: null })).toBeNull();
+    expect(reiseVorschlagAusBeleg({ ...ergebnis, anreise: "2026-10-20" })?.beginn).toBe("2026-10-20T08:00");
   });
 });

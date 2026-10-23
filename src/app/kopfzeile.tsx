@@ -11,6 +11,11 @@ export type KopfzeileDaten = {
 
 const link = "text-neutral-600 hover:underline dark:text-neutral-400";
 
+/** "2026-10" in deutscher Zeit */
+function aktuellerMonat(): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit" }).format(new Date());
+}
+
 function Zaehler({ anzahl }: { anzahl: number }) {
   return anzahl > 0 ? (
     <span className="ml-1 rounded-full bg-neutral-900 px-1.5 py-0.5 text-xs text-white dark:bg-white dark:text-neutral-900">{anzahl}</span>
@@ -23,6 +28,9 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
     <>
       <Link href="/" className={link}>
         Meine Reisen
+      </Link>
+      <Link href={`/monat/${aktuellerMonat()}`} className={link}>
+        Monat abrechnen
       </Link>
       <Link href="/belege" className={link}>
         Belege
