@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { benachrichtige } from "@/lib/mail/benachrichtigen";
+import { sendeAnDatev } from "@/lib/datev/senden";
 
 export type WorkflowStatus = { fehler?: string };
 
@@ -65,7 +66,11 @@ export async function pruefen(_vorher: WorkflowStatus, formData: FormData): Prom
     p_beleg_nr: belegNr,
     p_buchungsmonat: `${monat}-01`,
   });
-  if (!error) await benachrichtige(supabase, id, "geprueft");
+  if (!error) {
+    await benachrichtige(supabase, id, "geprueft");
+    // Abrechnung und Belege automatisch an DATEV; ein Fehler blockiert die Prüfung nicht
+    await sendeAnDatev(supabase, id);
+  }
   aktualisieren(id);
   if (error?.message.includes("beleg_nr")) return { fehler: "Diese Beleg-Nr. ist bereits vergeben." };
   return meldung(error);
@@ -78,4 +83,12 @@ export async function auszahlen(_vorher: WorkflowStatus, formData: FormData): Pr
   if (!error) await benachrichtige(supabase, id, "ausgezahlt");
   aktualisieren(id);
   return meldung(error);
+}
+
+export async function erneutAnDatev(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus & { gesendet?: boolean }> {
+  const id = text(formData, "id");
+  const supabase = await createClient();
+  const ergebnis = await sendeAnDatev(supabase, id);
+  aktualisieren(id);
+  return ergebnis.fehler ? { fehler: ergebnis.fehler } : { gesendet: true };
 }

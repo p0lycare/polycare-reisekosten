@@ -39,3 +39,20 @@ export async function testmailSenden(): Promise<TestmailStatus> {
     return { fehler };
   }
 }
+
+export type DatevAdresseStatus = { fehler?: string; gespeichert?: boolean };
+
+export async function datevAdresseSpeichern(_vorher: DatevAdresseStatus, formData: FormData): Promise<DatevAdresseStatus> {
+  const adresse = String(formData.get("datev_upload_mail") ?? "").trim() || null;
+  if (adresse && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adresse)) return { fehler: "Bitte eine gültige E-Mail-Adresse angeben." };
+  const supabase = await createClient();
+  // RLS: nur Buchhaltung/Admin
+  const { data, error } = await supabase
+    .from("einstellungen_intern")
+    .update({ datev_upload_mail: adresse, updated_at: new Date().toISOString() })
+    .eq("id", true)
+    .select("id");
+  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+  revalidatePath("/einstellungen");
+  return { gespeichert: true };
+}
