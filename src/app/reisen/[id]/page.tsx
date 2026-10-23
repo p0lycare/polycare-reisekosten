@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { istBearbeitbar, verpflegungFuer } from "@/lib/reisekosten/reise";
 import { formatDatum, formatDatumZeit, formatEuro, wochentag } from "@/lib/format";
-import { reiseLoeschen } from "../actions";
 import { StatusBadge } from "../status-badge";
+import { LoeschenButton } from "./loeschen-button";
 
 export default async function ReisePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -82,14 +82,7 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
           <Link href={`/reisen/${reise.id}/bearbeiten`} className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
             Bearbeiten
           </Link>
-          {reise.status === "entwurf" && (
-            <form action={reiseLoeschen}>
-              <input type="hidden" name="id" value={reise.id} />
-              <button type="submit" className="text-sm text-red-700 underline dark:text-red-400">
-                Entwurf löschen
-              </button>
-            </form>
-          )}
+          {reise.status === "entwurf" && <LoeschenButton id={reise.id} />}
         </div>
       )}
     </main>
