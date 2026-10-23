@@ -30,6 +30,7 @@ export default async function NeueReisePage() {
           mitfahrtBei: "",
           kostenstelle: profil?.kostenstelle ?? "",
           verpflegungBemerkung: "",
+          vorschuss: "",
         }}
       />
     </main>

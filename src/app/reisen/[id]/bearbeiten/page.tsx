@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { alsLokal } from "@/lib/format";
+import { centAlsEingabe } from "@/lib/geld";
 import { ReiseFormular } from "../../reise-formular";
 
 export default async function ReiseBearbeitenPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +36,7 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
           mitfahrtBei: reise.mitfahrt_bei ?? "",
           kostenstelle: reise.kostenstelle ?? "",
           verpflegungBemerkung: reise.verpflegung_bemerkung ?? "",
+          vorschuss: reise.vorschuss_cent ? centAlsEingabe(reise.vorschuss_cent) : "",
         }}
       />
     </main>

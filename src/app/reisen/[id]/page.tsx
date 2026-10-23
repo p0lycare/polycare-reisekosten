@@ -7,6 +7,8 @@ import { StatusBadge } from "../status-badge";
 import { BelegListe } from "./beleg-liste";
 import { FahrtenListe } from "./fahrten/fahrten-liste";
 import { LoeschenButton } from "./loeschen-button";
+import { AbrechnungUebersicht } from "./abrechnung-uebersicht";
+import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 
 export default async function ReisePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,6 +21,11 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
   } = await supabase.auth.getUser();
   const eigene = reise.mitarbeiter_id === user?.id;
   const verpflegung = verpflegungFuer(reise);
+  const [abrechnung, { data: profil }] = await Promise.all([
+    ladeAbrechnung(supabase, reise),
+    supabase.from("profile").select("rolle").eq("id", user!.id).single(),
+  ]);
+  const zeigeKonten = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
@@ -109,6 +116,8 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
       <FahrtenListe reise={reise} bearbeitbar={eigene && istBearbeitbar(reise.status)} />
 
       <BelegListe reiseId={reise.id} bearbeitbar={eigene && istBearbeitbar(reise.status)} />
+
+      <AbrechnungUebersicht abrechnung={abrechnung} zeigeKonten={zeigeKonten} />
 
       {eigene && istBearbeitbar(reise.status) && (
         <div className="flex items-center gap-4">

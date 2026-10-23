@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { VERKEHRSMITTEL, type Verkehrsmittel } from "@/lib/reisekosten/reise";
+import { parseEuro } from "@/lib/geld";
 
 export type FormularStatus = { fehler?: string };
 
@@ -41,6 +42,9 @@ export async function reiseSpeichern(
   if (verkehrsmittel.includes("eigener_pkw") && !kfzKennzeichen) {
     return { fehler: "Bitte das Kennzeichen des eigenen PKW angeben." };
   }
+  const vorschussEingabe = text(formData, "vorschuss");
+  const vorschuss = vorschussEingabe ? parseEuro(vorschussEingabe) : 0;
+  if (vorschuss === null) return { fehler: "Bitte den Vorschuss als Betrag angeben, z. B. 100,00." };
 
   let mahlzeiten: Record<string, Mahlzeiten>;
   try {
@@ -80,6 +84,7 @@ export async function reiseSpeichern(
     mitfahrt_bei: mitfahrtBei,
     kostenstelle: text(formData, "kostenstelle") || null,
     verpflegung_bemerkung: text(formData, "verpflegung_bemerkung") || null,
+    vorschuss_cent: vorschuss,
   };
 
   if (id) {

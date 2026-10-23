@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { verpflegungFuer } from "@/lib/reisekosten/reise";
+import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { StatusBadge } from "./reisen/status-badge";
 
@@ -15,6 +15,7 @@ export default async function Home() {
     .select("*")
     .eq("mitarbeiter_id", user!.id)
     .order("beginn", { ascending: false });
+  const abrechnungen = await Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r)));
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
@@ -31,8 +32,8 @@ export default async function Home() {
         </p>
       ) : (
         <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-          {reisen.map((r) => {
-            const verpflegung = verpflegungFuer(r);
+          {reisen.map((r, i) => {
+            const abrechnung = abrechnungen[i];
             return (
               <li key={r.id}>
                 <Link href={`/reisen/${r.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900">
@@ -44,7 +45,7 @@ export default async function Home() {
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="tabular-nums">{verpflegung ? formatEuro(verpflegung.summe) : "–"}</span>
+                    <span className="tabular-nums">{formatEuro(abrechnung.auszuzahlen)}</span>
                     <StatusBadge status={r.status} />
                   </div>
                 </Link>
