@@ -55,7 +55,14 @@ export default async function FreigabenPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-6 font-sans">
-      <h1 className="text-xl font-semibold">Freigaben</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold">Freigaben</h1>
+        {buchhaltung && (
+          <Link href="/lohnliste" className="text-sm underline">
+            Lohnliste
+          </Link>
+        )}
+      </div>
       {(freigebend || aufgaben.genehmigen.length > 0) && <Liste titel="Zur Genehmigung" leer="Keine Reisen zu genehmigen." reisen={aufgaben.genehmigen} />}
       {buchhaltung && <Liste titel="Zur Belegprüfung" leer="Keine Reisen zu prüfen." reisen={aufgaben.pruefen} />}
       {buchhaltung && <Liste titel="Zur Auszahlung" leer="Keine Reisen auszuzahlen." reisen={aufgaben.auszahlen} />}
