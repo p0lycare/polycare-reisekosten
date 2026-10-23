@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { VERKEHRSMITTEL, type Verkehrsmittel } from "@/lib/reisekosten/reise";
 import { parseEuro } from "@/lib/geld";
+import { eingangZuordnen } from "@/app/belege/actions";
 import { z } from "zod";
 
 // Nur Tage (YYYY-MM-DD) mit optionalen Ja/Nein-Werten – alles andere würde Seiten zum Absturz bringen
@@ -109,6 +110,10 @@ export async function reiseSpeichern(
     .select("id")
     .single();
   if (error || !data) return { fehler: "Speichern fehlgeschlagen." };
+
+  // Neue Reise aus einem Eingangsbeleg: Beleg gleich zuordnen (klappt das nicht, bleibt er im Eingang)
+  const eingangId = text(formData, "eingang_id");
+  if (eingangId) await eingangZuordnen(eingangId, data.id);
 
   revalidatePath("/");
   redirect(`/reisen/${data.id}`);

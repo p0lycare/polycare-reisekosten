@@ -38,7 +38,7 @@ const MAHLZEITEN: { key: keyof Mahlzeiten; label: string }[] = [
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900";
 
-export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
+export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingangId?: string }) {
   const [status, absenden, laeuft] = useActionState<FormularStatus, FormData>(reiseSpeichern, {});
   const [land, setLand] = useState(werte.land);
   const [beginn, setBeginn] = useState(werte.beginn);
@@ -67,6 +67,7 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-5">
       {werte.id && <input type="hidden" name="id" value={werte.id} />}
+      {eingangId && <input type="hidden" name="eingang_id" value={eingangId} />}
       <input type="hidden" name="mahlzeiten" value={JSON.stringify(mahlzeiten)} />
 
       <label className="flex flex-col gap-1">

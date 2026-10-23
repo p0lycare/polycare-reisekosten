@@ -74,6 +74,41 @@ export type Database = {
           },
         ]
       }
+      beleg_eingang: {
+        Row: {
+          created_at: string
+          datei_pfad: string
+          id: string
+          ki_ergebnis: Json | null
+          ki_fehler: string | null
+          mitarbeiter_id: string
+        }
+        Insert: {
+          created_at?: string
+          datei_pfad: string
+          id?: string
+          ki_ergebnis?: Json | null
+          ki_fehler?: string | null
+          mitarbeiter_id?: string
+        }
+        Update: {
+          created_at?: string
+          datei_pfad?: string
+          id?: string
+          ki_ergebnis?: Json | null
+          ki_fehler?: string | null
+          mitarbeiter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beleg_eingang_mitarbeiter_id_fkey"
+            columns: ["mitarbeiter_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       einstellungen: {
         Row: {
           id: boolean

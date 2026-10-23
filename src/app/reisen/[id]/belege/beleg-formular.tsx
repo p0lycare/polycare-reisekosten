@@ -40,6 +40,8 @@ export function BelegFormular({
   reiseVon,
   reiseBis,
   kiAktiv,
+  eingangId,
+  kiStart,
 }: {
   werte: BelegWerte;
   reiseId: string;
@@ -48,6 +50,8 @@ export function BelegFormular({
   reiseVon: string;
   reiseBis: string;
   kiAktiv: boolean;
+  eingangId?: string;
+  kiStart?: AusgelesenerBeleg;
 }) {
   const [status, absenden, laeuft] = useActionState<BelegStatus, FormData>(belegSpeichern, {});
   const [kategorieId, setKategorieId] = useState(werte.kategorieId);
@@ -55,7 +59,7 @@ export function BelegFormular({
   const [betrag, setBetrag] = useState(werte.betrag);
   const [datum, setDatum] = useState(werte.datum);
   const [beschreibung, setBeschreibung] = useState(werte.beschreibung);
-  const [ki, setKi] = useState<{ laeuft: boolean; ergebnis?: AusgelesenerBeleg; fehler?: string }>({ laeuft: false });
+  const [ki, setKi] = useState<{ laeuft: boolean; ergebnis?: AusgelesenerBeleg; fehler?: string }>({ laeuft: false, ergebnis: kiStart });
   const [positionenStatus, positionenAnlegen, legtAn] = useActionState<BelegStatus, FormData>(belegPositionenAnlegen, {});
   const [datei, setDatei] = useState<File | null>(null);
   const [vorschau, setVorschau] = useState<string | null>(null);
@@ -155,11 +159,13 @@ export function BelegFormular({
 
   function alleAnlegen() {
     const e = ki.ergebnis;
-    if (!e || !hochgeladen) return;
+    const pfad = hochgeladen?.pfad ?? (werte.dateiPfad || null);
+    if (!e || !pfad) return;
     const formData = new FormData();
     formData.set("reise_id", reiseId);
     formData.set("datum", datum);
-    formData.set("datei_pfad", hochgeladen.pfad);
+    formData.set("datei_pfad", pfad);
+    if (eingangId) formData.set("eingang_id", eingangId);
     formData.set("positionen", JSON.stringify(e.positionen));
     formData.set("waehrung", e.waehrung);
     startTransition(() => positionenAnlegen(formData));
@@ -175,6 +181,7 @@ export function BelegFormular({
       <input type="hidden" name="reise_id" value={reiseId} />
       <input type="hidden" name="datei_pfad" value={werte.dateiPfad} />
       <input type="hidden" name="datei_alt" value={werte.dateiPfad} />
+      {eingangId && <input type="hidden" name="eingang_id" value={eingangId} />}
 
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium">Kategorie</span>
