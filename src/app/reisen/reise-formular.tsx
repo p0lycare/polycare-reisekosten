@@ -24,6 +24,7 @@ export type ReiseWerte = {
   mitfahrtBei: string;
   kostenstelle: string;
   verpflegungBemerkung: string;
+  vorschuss: string;
 };
 
 const LAND_NAMEN: Record<string, string> = { DE: "Deutschland" };
@@ -130,10 +131,16 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
         )}
       </fieldset>
 
-      <label className="flex flex-col gap-1 sm:w-64">
-        <span className="text-sm font-medium">Kostenstelle</span>
-        <input name="kostenstelle" defaultValue={werte.kostenstelle} className={feld} />
-      </label>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">Kostenstelle</span>
+          <input name="kostenstelle" defaultValue={werte.kostenstelle} className={feld} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">Erhaltener Vorschuss (€)</span>
+          <input name="vorschuss" inputMode="decimal" defaultValue={werte.vorschuss} placeholder="0,00" className={`${feld} tabular-nums`} />
+        </label>
+      </div>
 
       <label className="flex items-center gap-2">
         <input type="checkbox" name="mit_uebernachtung" checked={mitUebernachtung} onChange={(e) => setMitUebernachtung(e.target.checked)} className="size-4" />

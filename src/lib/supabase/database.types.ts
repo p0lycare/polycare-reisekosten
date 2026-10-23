@@ -250,6 +250,7 @@ export type Database = {
           status: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung: string | null
+          vorschuss_cent: number
         }
         Insert: {
           ablehnungsgrund?: string | null
@@ -272,6 +273,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung?: string | null
+          vorschuss_cent?: number
         }
         Update: {
           ablehnungsgrund?: string | null
@@ -294,6 +296,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung?: string | null
+          vorschuss_cent?: number
         }
         Relationships: [
           {
