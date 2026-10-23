@@ -140,11 +140,13 @@ export function WorkflowPanel({
   rechte,
   betrag,
   belegNrVorschlag,
+  hinweise,
 }: {
   id: string;
   rechte: WorkflowRechte;
   betrag: string;
   belegNrVorschlag: string;
+  hinweise: string[];
 }) {
   if (!rechte.einreichen && !rechte.genehmigen && !rechte.pruefen && !rechte.auszahlen) return null;
 
@@ -156,6 +158,16 @@ export function WorkflowPanel({
         {rechte.pruefen && "Belegprüfung"}
         {rechte.auszahlen && "Auszahlung"}
       </h2>
+      {hinweise.length > 0 && !rechte.auszahlen && (
+        <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <p className="font-medium">{rechte.einreichen ? "Bitte vor dem Einreichen prüfen:" : "Hinweise zur Prüfung:"}</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5">
+            {hinweise.map((h) => (
+              <li key={h}>{h}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {rechte.einreichen && <Einreichen id={id} betrag={betrag} />}
       {rechte.genehmigen && <Genehmigen id={id} />}
       {rechte.pruefen && <Pruefen id={id} belegNrVorschlag={belegNrVorschlag} />}

@@ -11,6 +11,8 @@ import { AbrechnungUebersicht } from "./abrechnung-uebersicht";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { WorkflowPanel } from "./workflow/workflow-panel";
 import { Verlauf } from "./workflow/verlauf";
+import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
+import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 
 export default async function ReisePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,6 +45,33 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
     auszahlen: !eigene && istBuchhaltung && reise.status === "geprueft",
   };
   const { data: belegNrVorschlag } = rechte.pruefen ? await supabase.rpc("naechste_beleg_nr") : { data: "" };
+
+  const zeigeHinweise = rechte.einreichen || rechte.genehmigen || rechte.pruefen;
+  const [{ data: plausiBelege }, { data: plausiFahrten }] = zeigeHinweise
+    ? await Promise.all([
+        supabase.from("beleg").select("kategorie_id, datum, betrag_cent, datei_pfad, kategorie(bezeichnung)").eq("reise_id", reise.id),
+        supabase.from("fahrt").select("datum").eq("reise_id", reise.id),
+      ])
+    : [{ data: null }, { data: null }];
+  const hinweise = zeigeHinweise
+    ? pruefePlausibilitaet(
+        {
+          beginn: reise.beginn,
+          ende: reise.ende,
+          mitUebernachtung: reise.mit_uebernachtung,
+          verkehrsmittel: reise.verkehrsmittel,
+          mahlzeiten: (reise.mahlzeiten ?? {}) as Record<string, Mahlzeiten>,
+        },
+        (plausiBelege ?? []).map((b) => ({
+          kategorieId: b.kategorie_id,
+          bezeichnung: b.kategorie?.bezeichnung ?? b.kategorie_id,
+          datum: b.datum,
+          betragCent: b.betrag_cent,
+          hatDatei: !!b.datei_pfad,
+        })),
+        plausiFahrten ?? [],
+      )
+    : [];
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
@@ -151,6 +180,7 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
         rechte={rechte}
         betrag={formatEuro(abrechnung.auszuzahlen)}
         belegNrVorschlag={belegNrVorschlag ?? ""}
+        hinweise={hinweise}
       />
 
       <Verlauf reiseId={reise.id} />
