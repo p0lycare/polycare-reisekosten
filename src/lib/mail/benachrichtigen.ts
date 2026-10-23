@@ -6,6 +6,7 @@ import { formatDatum, formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { mailKonfiguration, sendeMail } from "./graph";
 import { alsMail, type Benachrichtigung } from "./vorlagen";
+import { mailEmpfaenger, protokolliereMail } from "@/lib/supabase/admin";
 
 export async function appUrl(): Promise<string> {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
@@ -26,13 +27,12 @@ export async function benachrichtige(
   let an: string[] = [];
   let betreff: string | null = null;
   try {
-    const { data: empfaenger } = await supabase.rpc("mail_empfaenger", { p_reise: reiseId, p_art: art });
-    an = (empfaenger ?? []).map((e) => e.email).filter(Boolean);
-    if (!an.length) return;
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    an = await mailEmpfaenger(reiseId, art);
+    if (!an.length) return;
+
     const { data: reise } = await supabase.from("reise").select("*").eq("id", reiseId).single();
     if (!reise || !user) return;
 
@@ -57,30 +57,21 @@ export async function benachrichtige(
     betreff = mail.betreff;
 
     if (!mailKonfiguration()) {
-      await supabase.rpc("mail_protokollieren", {
-        p_reise: reiseId, p_art: art, p_an: an, p_betreff: betreff, p_status: "nicht_eingerichtet", p_fehler: "",
-      });
+      await protokolliereMail({ reiseId, art, an, betreff, status: "nicht_eingerichtet", personId: user.id });
       return;
     }
 
     await sendeMail({ an, betreff: mail.betreff, text: mail.text, html: mail.html });
-    await supabase.rpc("mail_protokollieren", {
-      p_reise: reiseId, p_art: art, p_an: an, p_betreff: betreff, p_status: "gesendet", p_fehler: "",
-    });
+    await protokolliereMail({ reiseId, art, an, betreff, status: "gesendet", personId: user.id });
   } catch (e) {
     console.error("Benachrichtigung fehlgeschlagen", e);
-    await supabase
-      .rpc("mail_protokollieren", {
-        p_reise: reiseId,
-        p_art: art,
-        p_an: an,
-        p_betreff: betreff ?? art,
-        p_status: "fehler",
-        p_fehler: e instanceof Error ? e.message : String(e),
-      })
-      .then(
-        () => undefined,
-        () => undefined,
-      );
+    await protokolliereMail({
+      reiseId,
+      art,
+      an,
+      betreff: betreff ?? art,
+      status: "fehler",
+      fehler: e instanceof Error ? e.message : String(e),
+    });
   }
 }
