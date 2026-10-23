@@ -22,7 +22,15 @@ genehmigen, die Buchhaltung exportiert als PDF bzw. CSV/DATEV.
 | Freigabe-Workflow | ⏳ |
 | PDF-Abrechnung, CSV/DATEV-Export | ⏳ |
 
-Offene Punkte werden als GitHub-Issues geführt.
+Offene Punkte werden als GitHub-Issues geführt. Ziel ist die vollständige Abbildung des bisherigen
+Formblatts FB 06 – siehe [docs/formblatt-fb06.md](docs/formblatt-fb06.md).
+
+## Öffentliches Repo – keine sensiblen Daten
+
+Dieses Repo ist public. Nie committen: personenbezogene Daten (Namen, IBAN, Kennzeichen,
+Personalnummern, echte Reisen), Polycare-interne Einstellungen (Kontenzuordnung, Kostenstellen),
+Zugangsdaten. Solche Werte liegen nur in Supabase bzw. in lokalen, git-ignorierten `.env*`-Dateien.
+Testdaten sind erfunden.
 
 ## Lokal starten
 
