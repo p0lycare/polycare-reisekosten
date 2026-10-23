@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Erneuert bei jedem Request die Supabase-Session im Cookie. */
+/** Erneuert bei jedem Request die Supabase-Session und leitet Unangemeldete zum Login. */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -24,7 +24,19 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  const oeffentlich = pathname === "/login" || pathname.startsWith("/auth/");
+  if (!user && !oeffentlich) {
+    const ziel = request.nextUrl.clone();
+    ziel.pathname = "/login";
+    ziel.search = "";
+    return NextResponse.redirect(ziel);
+  }
+
   return response;
 }
 
