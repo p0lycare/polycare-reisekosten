@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ABSCHNITT_TEXT, ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
 import { KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
 import { TestmailKnopf } from "./mail/mail-bereich";
+import { DatevAdresse } from "./mail/datev-adresse";
 import { mailKonfiguration } from "@/lib/mail/graph";
 
 export default async function EinstellungenPage() {
@@ -14,10 +15,11 @@ export default async function EinstellungenPage() {
   const { data: profil } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (profil?.rolle !== "admin" && profil?.rolle !== "buchhaltung") redirect("/");
 
-  const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }] = await Promise.all([
+  const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }, { data: intern }] = await Promise.all([
     supabase.from("kategorie").select("*").order("abschnitt").order("sortierung").order("bezeichnung"),
     supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent").single(),
     supabase.from("mail_protokoll").select("id, zeit, art, an, betreff, status, fehler").order("zeit", { ascending: false }).limit(10),
+    supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
   ]);
   const absender = mailKonfiguration() ? process.env.MAIL_ABSENDER : null;
   const zeit = new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
@@ -44,6 +46,11 @@ export default async function EinstellungenPage() {
           {absender ? `Benachrichtigungen werden von ${absender} gesendet.` : "Noch nicht eingerichtet – Benachrichtigungen werden nur protokolliert."}
         </p>
         <TestmailKnopf />
+        <DatevAdresse adresse={intern?.datev_upload_mail ?? ""} />
+        <p className="text-xs text-neutral-500">
+          Nach der Belegprüfung gehen Abrechnung und Belege als PDF automatisch an diese Adresse. Falls DATEV nur bestimmte Absender
+          zulässt, dort {absender ?? "die Absenderadresse"} freigeben.
+        </p>
         {!!protokoll?.length && (
           <ul className="divide-y divide-neutral-100 text-sm dark:divide-neutral-800">
             {protokoll.map((p) => (

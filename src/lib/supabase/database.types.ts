@@ -95,6 +95,24 @@ export type Database = {
         }
         Relationships: []
       }
+      einstellungen_intern: {
+        Row: {
+          datev_upload_mail: string | null
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          datev_upload_mail?: string | null
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          datev_upload_mail?: string | null
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fahrt: {
         Row: {
           created_at: string

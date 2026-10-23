@@ -11,6 +11,7 @@ import { AbrechnungUebersicht } from "./abrechnung-uebersicht";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { WorkflowPanel } from "./workflow/workflow-panel";
 import { Verlauf } from "./workflow/verlauf";
+import { DatevPanel } from "./workflow/datev-panel";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 
@@ -45,6 +46,18 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
     auszahlen: !eigene && istBuchhaltung && reise.status === "geprueft",
   };
   const { data: belegNrVorschlag } = rechte.pruefen ? await supabase.rpc("naechste_beleg_nr") : { data: "" };
+
+  const zeigeDatev = istBuchhaltung && (reise.status === "geprueft" || reise.status === "ausgezahlt");
+  const { data: datevLetzter } = zeigeDatev
+    ? await supabase
+        .from("mail_protokoll")
+        .select("zeit, status, fehler")
+        .eq("reise_id", reise.id)
+        .eq("art", "datev")
+        .order("zeit", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
 
   const zeigeHinweise = rechte.einreichen || rechte.genehmigen || rechte.pruefen;
   const [{ data: plausiBelege }, { data: plausiFahrten }] = zeigeHinweise
@@ -183,7 +196,26 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
         hinweise={hinweise}
       />
 
+      {zeigeDatev && (
+        <DatevPanel
+          id={reise.id}
+          letzter={
+            datevLetzter
+              ? {
+                  zeit: new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(datevLetzter.zeit)),
+                  status: datevLetzter.status,
+                  fehler: datevLetzter.fehler,
+                }
+              : null
+          }
+        />
+      )}
+
       <Verlauf reiseId={reise.id} />
+
+      <a href={`/reisen/${reise.id}/pdf`} target="_blank" rel="noreferrer" className="text-sm text-neutral-600 underline dark:text-neutral-400">
+        Abrechnung als PDF ansehen
+      </a>
 
       {eigene && istBearbeitbar(reise.status) && (
         <div className="flex items-center gap-4">
