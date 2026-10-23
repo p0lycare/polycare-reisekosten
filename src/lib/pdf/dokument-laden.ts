@@ -98,8 +98,11 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
   };
 
   const dateien: BelegDatei[] = [];
+  const gesehen = new Set<string>();
   for (const b of nummeriert) {
-    if (!b.datei_pfad) continue;
+    // Mehrere Positionen derselben Rechnung teilen sich ein Foto – nur einmal anhängen
+    if (!b.datei_pfad || gesehen.has(b.datei_pfad)) continue;
+    gesehen.add(b.datei_pfad);
     const { data: blob } = await supabase.storage.from("belege").download(b.datei_pfad);
     if (!blob) continue;
     const endung = b.datei_pfad.split(".").pop();
