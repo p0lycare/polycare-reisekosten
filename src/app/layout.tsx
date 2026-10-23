@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { istFreigebend, ladeAufgaben } from "@/lib/reisekosten/freigaben";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,6 +32,8 @@ export default async function RootLayout({
   const { data: profil } = user
     ? await supabase.from("profile").select("name, rolle").eq("id", user.id).single()
     : { data: null };
+  const aufgaben = user ? await ladeAufgaben(supabase, user.id, profil?.rolle) : null;
+  const offen = aufgaben ? aufgaben.genehmigen.length + aufgaben.pruefen.length + aufgaben.auszahlen.length : 0;
 
   return (
     <html lang="de">
@@ -42,6 +45,16 @@ export default async function RootLayout({
                 Polycare Reisekosten
               </Link>
               <div className="flex items-center gap-3 text-sm">
+                {istFreigebend(profil?.rolle) && (
+                  <Link href="/freigaben" className="text-neutral-600 hover:underline dark:text-neutral-400">
+                    Freigaben
+                    {offen > 0 && (
+                      <span className="ml-1 rounded-full bg-neutral-900 px-1.5 py-0.5 text-xs text-white dark:bg-white dark:text-neutral-900">
+                        {offen}
+                      </span>
+                    )}
+                  </Link>
+                )}
                 {(profil?.rolle === "admin" || profil?.rolle === "buchhaltung") && (
                   <Link href="/einstellungen" className="text-neutral-600 hover:underline dark:text-neutral-400">
                     Einstellungen

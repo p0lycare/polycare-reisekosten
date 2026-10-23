@@ -20,7 +20,8 @@ export const VERKEHRSMITTEL = Object.keys(VERKEHRSMITTEL_TEXT) as Verkehrsmittel
 export const STATUS_TEXT: Record<ReiseStatus, string> = {
   entwurf: "Entwurf",
   eingereicht: "Eingereicht",
-  freigegeben: "Freigegeben",
+  freigegeben: "Genehmigt",
+  geprueft: "Geprüft",
   abgelehnt: "Abgelehnt",
   ausgezahlt: "Ausgezahlt",
 };
