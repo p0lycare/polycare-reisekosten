@@ -240,10 +240,10 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
     farbe: GRAU,
   });
 
-  // Seitenzahlen
+  // Seitenzahlen der Abrechnung; angehängte Belege tragen "Beleg n"
   const seiten = doc.getPages();
   seiten.forEach((s, i) =>
-    s.drawText(winAnsi(`${d.belegNr ?? ""}  Seite ${i + 1}/${seiten.length}`.trim()), {
+    s.drawText(winAnsi(`${d.belegNr ?? ""}  Abrechnung, Seite ${i + 1}/${seiten.length}`.trim()), {
       x: RAND,
       y: 24,
       size: 7,
