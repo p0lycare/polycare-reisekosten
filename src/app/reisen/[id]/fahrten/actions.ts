@@ -1,0 +1,39 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+
+export type FahrtStatus = { fehler?: string; gespeichert?: boolean };
+
+function text(formData: FormData, feld: string): string {
+  return String(formData.get(feld) ?? "").trim();
+}
+
+export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): Promise<FahrtStatus> {
+  const id = text(formData, "id") || null;
+  const reiseId = text(formData, "reise_id");
+  const datum = text(formData, "datum");
+  const strecke = text(formData, "strecke");
+  const km = Number(text(formData, "km").replace(",", "."));
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { fehler: "Datum fehlt." };
+  if (!strecke) return { fehler: "Fahrstrecke fehlt." };
+  if (!Number.isFinite(km) || km <= 0 || km >= 10000) return { fehler: "Kilometer müssen größer als 0 sein." };
+
+  const daten = { reise_id: reiseId, datum, strecke, zweck: text(formData, "zweck") || null, km: Math.round(km * 10) / 10 };
+  const supabase = await createClient();
+  // RLS erlaubt Änderungen nur in eigenen, bearbeitbaren Reisen
+  const { data, error } = id
+    ? await supabase.from("fahrt").update(daten).eq("id", id).select("id")
+    : await supabase.from("fahrt").insert(daten).select("id");
+  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+
+  revalidatePath(`/reisen/${reiseId}`);
+  return { gespeichert: true };
+}
+
+export async function fahrtLoeschen(formData: FormData) {
+  const supabase = await createClient();
+  await supabase.from("fahrt").delete().eq("id", text(formData, "id"));
+  revalidatePath(`/reisen/${text(formData, "reise_id")}`);
+}

@@ -95,6 +95,44 @@ export type Database = {
         }
         Relationships: []
       }
+      fahrt: {
+        Row: {
+          created_at: string
+          datum: string
+          id: string
+          km: number
+          reise_id: string
+          strecke: string
+          zweck: string | null
+        }
+        Insert: {
+          created_at?: string
+          datum: string
+          id?: string
+          km: number
+          reise_id: string
+          strecke: string
+          zweck?: string | null
+        }
+        Update: {
+          created_at?: string
+          datum?: string
+          id?: string
+          km?: number
+          reise_id?: string
+          strecke?: string
+          zweck?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fahrt_reise_id_fkey"
+            columns: ["reise_id"]
+            isOneToOne: false
+            referencedRelation: "reise"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kategorie: {
         Row: {
           abschnitt: string
