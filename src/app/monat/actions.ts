@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { benachrichtigeSammel } from "@/lib/mail/benachrichtigen";
 
-export type MonatStatus = { fehler?: string; eingereicht?: number };
+export type MonatStatus = { fehler?: string; eingereicht?: number; benachrichtigt?: number };
 
 const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -23,10 +23,10 @@ export async function monatEinreichen(_vorher: MonatStatus, formData: FormData):
   }
 
   const zeitraum = /^\d{4}-\d{2}$/.test(monat) ? MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`)) : "";
-  await benachrichtigeSammel(supabase, ids, zeitraum);
+  const benachrichtigt = await benachrichtigeSammel(supabase, ids, zeitraum);
 
   revalidatePath(`/monat/${monat}`);
   revalidatePath("/");
   revalidatePath("/freigaben");
-  return { eingereicht: anzahl ?? ids.length };
+  return { eingereicht: anzahl ?? ids.length, benachrichtigt };
 }

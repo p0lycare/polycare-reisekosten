@@ -126,7 +126,8 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
       )}
       {status.eingereicht && (
         <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
-          {status.eingereicht} {status.eingereicht === 1 ? "Reise" : "Reisen"} eingereicht – die genehmigende Person wurde benachrichtigt.
+          {status.eingereicht} {status.eingereicht === 1 ? "Reise" : "Reisen"} eingereicht
+          {status.benachrichtigt ? " – die genehmigende Person wurde per Mail benachrichtigt." : "."}
         </p>
       )}
     </form>
