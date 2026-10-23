@@ -6,6 +6,7 @@ import { LAENDER } from "@/lib/reisekosten/laender";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { formatDatum, formatEuro, wochentag } from "@/lib/format";
 import { VERKEHRSMITTEL, VERKEHRSMITTEL_TEXT, type Verkehrsmittel } from "@/lib/reisekosten/reise";
+import { ohneZuruecksetzen } from "@/lib/formular";
 import { reiseSpeichern, type FormularStatus } from "./actions";
 
 export type ReiseWerte = {
@@ -63,7 +64,7 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
   }
 
   return (
-    <form action={absenden} className="flex flex-col gap-5">
+    <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-5">
       {werte.id && <input type="hidden" name="id" value={werte.id} />}
       <input type="hidden" name="mahlzeiten" value={JSON.stringify(mahlzeiten)} />
 

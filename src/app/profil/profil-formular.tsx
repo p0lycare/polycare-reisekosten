@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { ohneZuruecksetzen } from "@/lib/formular";
 import { profilSpeichern, type ProfilStatus } from "./actions";
 
 export type ProfilWerte = {
@@ -28,7 +29,7 @@ export function ProfilFormular({ werte }: { werte: ProfilWerte }) {
   const [status, absenden, laeuft] = useActionState<ProfilStatus, FormData>(profilSpeichern, {});
 
   return (
-    <form action={absenden} className="flex flex-col gap-5">
+    <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
         <legend className="px-1 text-sm font-medium">Vertraulich – nur für dich und die Buchhaltung</legend>
         <div className="grid gap-4 sm:grid-cols-2">
