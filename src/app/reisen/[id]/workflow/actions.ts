@@ -43,8 +43,17 @@ export async function einreichen(_vorher: WorkflowStatus, formData: FormData): P
 export async function genehmigen(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus> {
   const id = text(formData, "id");
   const supabase = await createClient();
-  const { error } = await supabase.rpc("reise_genehmigen", { p_id: id });
-  if (!error) await benachrichtige(supabase, id, "genehmigt");
+  const kommentar = text(formData, "kommentar").slice(0, 500);
+  const { error } = await supabase.rpc("reise_genehmigen", { p_id: id, p_kommentar: kommentar || undefined });
+  if (!error) await benachrichtige(supabase, id, "genehmigt", { grund: kommentar || undefined });
+  aktualisieren(id);
+  return meldung(error);
+}
+
+export async function zurueckziehen(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus> {
+  const id = text(formData, "id");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reise_zurueckziehen", { p_id: id });
   aktualisieren(id);
   return meldung(error);
 }

@@ -28,7 +28,10 @@ export function vorlage(art: Benachrichtigung, d: VorlageDaten): { betreff: stri
     case "genehmigt":
       return {
         betreff: `Reisekosten zur Belegprüfung: ${d.reisende} – ${d.begruendung}`,
-        zeilen: [`${d.handelnde} hat die Reisekostenabrechnung ${reise} von ${d.reisende} genehmigt. Bitte Belege prüfen.`],
+        zeilen: [
+          `${d.handelnde} hat die Reisekostenabrechnung ${reise} von ${d.reisende} genehmigt. Bitte Belege prüfen.`,
+          ...(d.grund ? [`Kommentar: ${d.grund}`] : []),
+        ],
         knopf: "Belege prüfen",
       };
     case "abgelehnt":
