@@ -27,7 +27,7 @@ type Protokoll = {
 /** Schreibt einen Eintrag ins Versandprotokoll; scheitert nie laut. */
 export async function protokolliereMail(p: Protokoll): Promise<void> {
   try {
-    await createAdminClient().rpc("mail_protokollieren", {
+    const { error } = await createAdminClient().rpc("mail_protokollieren", {
       p_reise: p.reiseId as string,
       p_art: p.art,
       p_an: p.an,
@@ -36,6 +36,7 @@ export async function protokolliereMail(p: Protokoll): Promise<void> {
       p_fehler: p.fehler ?? "",
       p_person: p.personId ?? undefined,
     });
+    if (error) console.error("Mailprotokoll konnte nicht geschrieben werden", error.message);
   } catch (e) {
     console.error("Mailprotokoll konnte nicht geschrieben werden", e);
   }
@@ -43,6 +44,20 @@ export async function protokolliereMail(p: Protokoll): Promise<void> {
 
 /** Empfänger der Benachrichtigung zu einem Workflow-Schritt */
 export async function mailEmpfaenger(reiseId: string, art: string): Promise<string[]> {
-  const { data } = await createAdminClient().rpc("mail_empfaenger", { p_reise: reiseId, p_art: art });
+  const { data, error } = await createAdminClient().rpc("mail_empfaenger", { p_reise: reiseId, p_art: art });
+  if (error) console.error("Mail-Empfänger konnten nicht ermittelt werden", error.message);
   return (data ?? []).map((e) => e.email).filter(Boolean);
+}
+
+/** Prüft, ob der serverseitige Zugang (Service-Rolle) funktioniert – für die Anzeige in den Einstellungen */
+export async function adminZugangOk(): Promise<boolean> {
+  try {
+    const { error } = await createAdminClient().rpc("mail_empfaenger", {
+      p_reise: "00000000-0000-0000-0000-000000000000",
+      p_art: "eingereicht",
+    });
+    return !error;
+  } catch {
+    return false;
+  }
 }

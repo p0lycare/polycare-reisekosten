@@ -42,6 +42,11 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
           <Zaehler anzahl={daten.offen} />
         </Link>
       )}
+      {daten.zeigeFreigaben && (
+        <Link href="/uebersicht" className={link}>
+          {daten.zeigeEinstellungen ? "Übersicht" : "Team"}
+        </Link>
+      )}
       {daten.zeigeEinstellungen && (
         <Link href="/einstellungen" className={link}>
           Einstellungen

@@ -6,6 +6,7 @@ import { KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
 import { TestmailKnopf } from "./mail/mail-bereich";
 import { DatevAdresse } from "./mail/datev-adresse";
 import { mailKonfiguration } from "@/lib/mail/graph";
+import { adminZugangOk } from "@/lib/supabase/admin";
 
 export default async function EinstellungenPage() {
   const supabase = await createClient();
@@ -22,6 +23,7 @@ export default async function EinstellungenPage() {
     supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
   ]);
   const absender = mailKonfiguration() ? process.env.MAIL_ABSENDER : null;
+  const serverOk = await adminZugangOk();
   const zeit = new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
 
   const abschnitte = [...new Set((kategorien ?? []).map((k) => k.abschnitt as Abschnitt))];
@@ -42,6 +44,11 @@ export default async function EinstellungenPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">E-Mail-Versand</h2>
+        {!serverOk && (
+          <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+            Der Serverzugang zur Datenbank (SUPABASE_SECRET_KEY) funktioniert nicht – Benachrichtigungen und Versandprotokoll fallen aus.
+          </p>
+        )}
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {absender ? `Benachrichtigungen werden von ${absender} gesendet.` : "Noch nicht eingerichtet – Benachrichtigungen werden nur protokolliert."}
         </p>
