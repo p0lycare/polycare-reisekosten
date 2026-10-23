@@ -5,17 +5,24 @@ import { useActionState, useMemo, useState } from "react";
 import { LAENDER } from "@/lib/reisekosten/laender";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { formatDatum, formatEuro, wochentag } from "@/lib/format";
+import { VERKEHRSMITTEL, VERKEHRSMITTEL_TEXT, type Verkehrsmittel } from "@/lib/reisekosten/reise";
 import { reiseSpeichern, type FormularStatus } from "./actions";
 
 export type ReiseWerte = {
   id?: string;
-  anlass: string;
-  ziel: string;
+  begruendung: string;
+  reiseweg: string;
+  besuchteStellen: string;
   land: string;
   beginn: string;
   ende: string;
   mitUebernachtung: boolean;
   mahlzeiten: Record<string, Mahlzeiten>;
+  verkehrsmittel: Verkehrsmittel[];
+  kfzKennzeichen: string;
+  mitfahrtBei: string;
+  kostenstelle: string;
+  verpflegungBemerkung: string;
 };
 
 const LAND_NAMEN: Record<string, string> = { DE: "Deutschland" };
@@ -36,6 +43,11 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
   const [ende, setEnde] = useState(werte.ende);
   const [mitUebernachtung, setMitUebernachtung] = useState(werte.mitUebernachtung);
   const [mahlzeiten, setMahlzeiten] = useState(werte.mahlzeiten);
+  const [verkehrsmittel, setVerkehrsmittel] = useState(werte.verkehrsmittel);
+
+  function verkehrsmittelUmschalten(v: Verkehrsmittel) {
+    setVerkehrsmittel((alt) => (alt.includes(v) ? alt.filter((x) => x !== v) : [...alt, v]));
+  }
 
   const berechnung = useMemo(() => {
     if (!beginn || !ende) return null;
@@ -56,14 +68,19 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
       <input type="hidden" name="mahlzeiten" value={JSON.stringify(mahlzeiten)} />
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Anlass</span>
-        <input name="anlass" required defaultValue={werte.anlass} placeholder="z. B. Kundentermin, Messe" className={feld} />
+        <span className="text-sm font-medium">Begründung</span>
+        <input name="begruendung" required defaultValue={werte.begruendung} placeholder="z. B. Projektbesprechung, Messe" className={feld} />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Besuchte Stellen</span>
+        <input name="besuchte_stellen" defaultValue={werte.besuchteStellen} placeholder="Firma, Institution" className={feld} />
       </label>
 
       <div className="grid gap-5 sm:grid-cols-[1fr_12rem]">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Ziel</span>
-          <input name="ziel" required defaultValue={werte.ziel} placeholder="Ort" className={feld} />
+          <span className="text-sm font-medium">Reiseweg</span>
+          <input name="reiseweg" required defaultValue={werte.reiseweg} placeholder="z. B. Köln – Essen – Köln" className={feld} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Land</span>
@@ -87,6 +104,35 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
           <input type="datetime-local" name="ende" required value={ende} min={beginn} onChange={(e) => setEnde(e.target.value)} className={feld} />
         </label>
       </div>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="mb-1 text-sm font-medium">Benutzte Verkehrsmittel</legend>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {VERKEHRSMITTEL.map((v) => (
+            <label key={v} className="flex items-center gap-2">
+              <input type="checkbox" name="verkehrsmittel" value={v} checked={verkehrsmittel.includes(v)} onChange={() => verkehrsmittelUmschalten(v)} className="size-4" />
+              <span>{VERKEHRSMITTEL_TEXT[v]}</span>
+            </label>
+          ))}
+        </div>
+        {verkehrsmittel.includes("eigener_pkw") && (
+          <label className="flex flex-col gap-1 sm:w-64">
+            <span className="text-sm font-medium">Kennzeichen eigener PKW</span>
+            <input name="kfz_kennzeichen" required defaultValue={werte.kfzKennzeichen} placeholder="z. B. K-AB 123" className={`${feld} uppercase`} />
+          </label>
+        )}
+        {verkehrsmittel.includes("mitfahrt") && (
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Mitfahrt von/bei</span>
+            <input name="mitfahrt_bei" defaultValue={werte.mitfahrtBei} className={feld} />
+          </label>
+        )}
+      </fieldset>
+
+      <label className="flex flex-col gap-1 sm:w-64">
+        <span className="text-sm font-medium">Kostenstelle</span>
+        <input name="kostenstelle" defaultValue={werte.kostenstelle} className={feld} />
+      </label>
 
       <label className="flex items-center gap-2">
         <input type="checkbox" name="mit_uebernachtung" checked={mitUebernachtung} onChange={(e) => setMitUebernachtung(e.target.checked)} className="size-4" />
@@ -146,6 +192,10 @@ export function ReiseFormular({ werte }: { werte: ReiseWerte }) {
             </div>
           </>
         )}
+        <label className="mt-4 flex flex-col gap-1">
+          <span className="text-sm font-medium">Bemerkung / Hinweis</span>
+          <input name="verpflegung_bemerkung" defaultValue={werte.verpflegungBemerkung} className={feld} />
+        </label>
       </section>
 
       {status.fehler && (

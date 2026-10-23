@@ -22,13 +22,19 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
       <ReiseFormular
         werte={{
           id: reise.id,
-          anlass: reise.anlass,
-          ziel: reise.ziel,
+          begruendung: reise.begruendung,
+          reiseweg: reise.reiseweg,
+          besuchteStellen: reise.besuchte_stellen ?? "",
           land: reise.land,
           beginn: alsLokal(reise.beginn),
           ende: alsLokal(reise.ende),
           mitUebernachtung: reise.mit_uebernachtung,
           mahlzeiten: (reise.mahlzeiten ?? {}) as Record<string, Mahlzeiten>,
+          verkehrsmittel: reise.verkehrsmittel,
+          kfzKennzeichen: reise.kfz_kennzeichen ?? "",
+          mitfahrtBei: reise.mitfahrt_bei ?? "",
+          kostenstelle: reise.kostenstelle ?? "",
+          verpflegungBemerkung: reise.verpflegung_bemerkung ?? "",
         }}
       />
     </main>
