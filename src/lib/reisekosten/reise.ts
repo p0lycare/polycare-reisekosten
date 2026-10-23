@@ -3,6 +3,19 @@ import { berechneVerpflegung, type Mahlzeiten, type VerpflegungErgebnis } from "
 
 export type Reise = Database["public"]["Tables"]["reise"]["Row"];
 export type ReiseStatus = Database["public"]["Enums"]["reise_status"];
+export type Verkehrsmittel = Database["public"]["Enums"]["verkehrsmittel"];
+
+/** Reihenfolge und Beschriftung wie im Formblatt FB 06 */
+export const VERKEHRSMITTEL_TEXT: Record<Verkehrsmittel, string> = {
+  flugzeug: "Flugzeug",
+  eisenbahn: "Eisenbahn",
+  firmenwagen: "Firmenwagen",
+  eigener_pkw: "Eigener PKW",
+  mitfahrt: "Mitfahrt",
+  mietwagen: "Mietwagen",
+};
+
+export const VERKEHRSMITTEL = Object.keys(VERKEHRSMITTEL_TEXT) as Verkehrsmittel[];
 
 export const STATUS_TEXT: Record<ReiseStatus, string> = {
   entwurf: "Entwurf",

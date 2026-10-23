@@ -37,9 +37,9 @@ export default async function Home() {
               <li key={r.id}>
                 <Link href={`/reisen/${r.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900">
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{r.anlass}</p>
+                    <p className="truncate font-medium">{r.begruendung}</p>
                     <p className="text-sm text-neutral-500">
-                      {r.ziel} · {formatDatum(r.beginn)}
+                      {r.reiseweg} · {formatDatum(r.beginn)}
                       {r.beginn.slice(0, 10) !== r.ende.slice(0, 10) && ` – ${formatDatum(r.ende)}`}
                     </p>
                   </div>

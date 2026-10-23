@@ -42,12 +42,13 @@ export default async function RootLayout({
                 Polycare Reisekosten
               </Link>
               <div className="flex items-center gap-3 text-sm">
-                <span className="hidden text-neutral-600 sm:inline dark:text-neutral-400">
-                  {profil?.name ?? user.email}
+                <Link href="/profil" className="text-neutral-600 hover:underline dark:text-neutral-400">
+                  <span className="hidden sm:inline">{profil?.name ?? user.email}</span>
+                  <span className="sm:hidden">Profil</span>
                   {profil?.rolle && profil.rolle !== "mitarbeiter" && (
-                    <span className="ml-2 rounded bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">{profil.rolle}</span>
+                    <span className="ml-2 hidden rounded bg-neutral-100 px-2 py-0.5 sm:inline dark:bg-neutral-800">{profil.rolle}</span>
                   )}
-                </span>
+                </Link>
                 <form action="/auth/logout" method="post">
                   <button type="submit" className="text-neutral-600 underline dark:text-neutral-400">
                     Abmelden

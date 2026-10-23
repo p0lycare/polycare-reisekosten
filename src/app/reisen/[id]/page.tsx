@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { istBearbeitbar, verpflegungFuer } from "@/lib/reisekosten/reise";
+import { istBearbeitbar, verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
 import { formatDatum, formatDatumZeit, formatEuro, wochentag } from "@/lib/format";
 import { StatusBadge } from "../status-badge";
 import { LoeschenButton } from "./loeschen-button";
@@ -26,9 +26,9 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">{reise.anlass}</h1>
+          <h1 className="text-xl font-semibold">{reise.begruendung}</h1>
           <p className="text-neutral-600 dark:text-neutral-400">
-            {reise.ziel} ({reise.land})
+            {reise.reiseweg} ({reise.land})
           </p>
         </div>
         <StatusBadge status={reise.status} />
@@ -47,6 +47,30 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
         <dd>{formatDatumZeit(reise.ende)}</dd>
         <dt className="text-neutral-500">Übernachtung</dt>
         <dd>{reise.mit_uebernachtung ? "Ja" : "Nein"}</dd>
+        {reise.besuchte_stellen && (
+          <>
+            <dt className="text-neutral-500">Besuchte Stellen</dt>
+            <dd>{reise.besuchte_stellen}</dd>
+          </>
+        )}
+        <dt className="text-neutral-500">Verkehrsmittel</dt>
+        <dd>
+          {reise.verkehrsmittel
+            .map((v) =>
+              v === "eigener_pkw" && reise.kfz_kennzeichen
+                ? `${VERKEHRSMITTEL_TEXT[v]} (${reise.kfz_kennzeichen})`
+                : v === "mitfahrt" && reise.mitfahrt_bei
+                  ? `${VERKEHRSMITTEL_TEXT[v]} bei ${reise.mitfahrt_bei}`
+                  : VERKEHRSMITTEL_TEXT[v],
+            )
+            .join(", ") || "–"}
+        </dd>
+        {reise.kostenstelle && (
+          <>
+            <dt className="text-neutral-500">Kostenstelle</dt>
+            <dd>{reise.kostenstelle}</dd>
+          </>
+        )}
       </dl>
 
       <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
@@ -74,6 +98,9 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
           </table>
         ) : (
           <p className="mt-2 text-sm text-neutral-500">Für dieses Land ist noch keine Pauschale hinterlegt.</p>
+        )}
+        {reise.verpflegung_bemerkung && (
+          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Bemerkung: {reise.verpflegung_bemerkung}</p>
         )}
       </section>
 

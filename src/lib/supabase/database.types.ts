@@ -64,32 +64,64 @@ export type Database = {
           },
         ]
       }
+      profil_privat: {
+        Row: {
+          iban: string | null
+          id: string
+          personalnummer: string | null
+          updated_at: string
+          wohnort: string | null
+        }
+        Insert: {
+          iban?: string | null
+          id: string
+          personalnummer?: string | null
+          updated_at?: string
+          wohnort?: string | null
+        }
+        Update: {
+          iban?: string | null
+          id?: string
+          personalnummer?: string | null
+          updated_at?: string
+          wohnort?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profil_privat_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile: {
         Row: {
           created_at: string
           email: string
           id: string
+          kfz_kennzeichen: string | null
           kostenstelle: string | null
           name: string
-          personalnummer: string | null
           rolle: Database["public"]["Enums"]["rolle"]
         }
         Insert: {
           created_at?: string
           email: string
           id: string
+          kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           name: string
-          personalnummer?: string | null
           rolle?: Database["public"]["Enums"]["rolle"]
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
+          kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           name?: string
-          personalnummer?: string | null
           rolle?: Database["public"]["Enums"]["rolle"]
         }
         Relationships: []
@@ -97,51 +129,69 @@ export type Database = {
       reise: {
         Row: {
           ablehnungsgrund: string | null
-          anlass: string
           beginn: string
+          begruendung: string
+          besuchte_stellen: string | null
           created_at: string
           ende: string
           freigeber_id: string | null
           freigegeben_am: string | null
           id: string
+          kfz_kennzeichen: string | null
+          kostenstelle: string | null
           land: string
           mahlzeiten: Json
           mit_uebernachtung: boolean
           mitarbeiter_id: string
+          mitfahrt_bei: string | null
+          reiseweg: string
           status: Database["public"]["Enums"]["reise_status"]
-          ziel: string
+          verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
+          verpflegung_bemerkung: string | null
         }
         Insert: {
           ablehnungsgrund?: string | null
-          anlass: string
           beginn: string
+          begruendung: string
+          besuchte_stellen?: string | null
           created_at?: string
           ende: string
           freigeber_id?: string | null
           freigegeben_am?: string | null
           id?: string
+          kfz_kennzeichen?: string | null
+          kostenstelle?: string | null
           land?: string
           mahlzeiten?: Json
           mit_uebernachtung?: boolean
           mitarbeiter_id: string
+          mitfahrt_bei?: string | null
+          reiseweg: string
           status?: Database["public"]["Enums"]["reise_status"]
-          ziel: string
+          verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
+          verpflegung_bemerkung?: string | null
         }
         Update: {
           ablehnungsgrund?: string | null
-          anlass?: string
           beginn?: string
+          begruendung?: string
+          besuchte_stellen?: string | null
           created_at?: string
           ende?: string
           freigeber_id?: string | null
           freigegeben_am?: string | null
           id?: string
+          kfz_kennzeichen?: string | null
+          kostenstelle?: string | null
           land?: string
           mahlzeiten?: Json
           mit_uebernachtung?: boolean
           mitarbeiter_id?: string
+          mitfahrt_bei?: string | null
+          reiseweg?: string
           status?: Database["public"]["Enums"]["reise_status"]
-          ziel?: string
+          verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
+          verpflegung_bemerkung?: string | null
         }
         Relationships: [
           {
@@ -165,6 +215,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ist_buchhaltung: { Args: never; Returns: boolean }
       ist_freigeber: { Args: never; Returns: boolean }
       name_aus_metadaten: {
         Args: { email: string; meta: Json }
@@ -186,7 +237,14 @@ export type Database = {
         | "freigegeben"
         | "abgelehnt"
         | "ausgezahlt"
-      rolle: "mitarbeiter" | "freigeber" | "admin"
+      rolle: "mitarbeiter" | "freigeber" | "buchhaltung" | "admin"
+      verkehrsmittel:
+        | "flugzeug"
+        | "eisenbahn"
+        | "firmenwagen"
+        | "eigener_pkw"
+        | "mitfahrt"
+        | "mietwagen"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -330,7 +388,15 @@ export const Constants = {
         "abgelehnt",
         "ausgezahlt",
       ],
-      rolle: ["mitarbeiter", "freigeber", "admin"],
+      rolle: ["mitarbeiter", "freigeber", "buchhaltung", "admin"],
+      verkehrsmittel: [
+        "flugzeug",
+        "eisenbahn",
+        "firmenwagen",
+        "eigener_pkw",
+        "mitfahrt",
+        "mietwagen",
+      ],
     },
   },
 } as const
