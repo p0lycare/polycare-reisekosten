@@ -2,10 +2,11 @@
 
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
-import { ablehnen, auszahlen, einreichen, genehmigen, pruefen, type WorkflowStatus } from "./actions";
+import { ablehnen, auszahlen, einreichen, genehmigen, pruefen, zurueckziehen, type WorkflowStatus } from "./actions";
 
 export type WorkflowRechte = {
   einreichen: boolean;
+  zurueckziehen: boolean;
   genehmigen: boolean;
   pruefen: boolean;
   auszahlen: boolean;
@@ -77,6 +78,10 @@ function Genehmigen({ id }: { id: string }) {
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Kommentar (optional)</span>
+        <textarea name="kommentar" rows={2} maxLength={500} className={feld} placeholder="z. B. Hinweis für die Buchhaltung" />
+      </label>
       <Fehler status={status} />
       <div className="flex gap-3">
         <button type="submit" disabled={laeuft} className={knopf}>
@@ -119,6 +124,33 @@ function Pruefen({ id }: { id: string }) {
   );
 }
 
+function Zurueckziehen({ id }: { id: string }) {
+  const [status, absenden, laeuft] = useActionState(zurueckziehen, {});
+  return (
+    <form
+      onSubmit={(e) => {
+        if (!confirm("Einreichung zurückziehen? Die Reise wird wieder zum Entwurf und kann bearbeitet werden.")) {
+          e.preventDefault();
+          return;
+        }
+        ohneZuruecksetzen(absenden)(e);
+      }}
+      className="flex flex-col gap-3"
+    >
+      <input type="hidden" name="id" value={id} />
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        Die Reise wartet auf die Genehmigung. Solange sie noch nicht genehmigt ist, kannst du sie zurückziehen und korrigieren.
+      </p>
+      <Fehler status={status} />
+      <div>
+        <button type="submit" disabled={laeuft} className={knopfSekundaer}>
+          {laeuft ? "…" : "Einreichung zurückziehen"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Auszahlen({ id, betrag }: { id: string; betrag: string }) {
   const [status, absenden, laeuft] = useActionState(auszahlen, {});
   return (
@@ -145,12 +177,13 @@ export function WorkflowPanel({
   betrag: string;
   hinweise: string[];
 }) {
-  if (!rechte.einreichen && !rechte.genehmigen && !rechte.pruefen && !rechte.auszahlen) return null;
+  if (!rechte.einreichen && !rechte.zurueckziehen && !rechte.genehmigen && !rechte.pruefen && !rechte.auszahlen) return null;
 
   return (
     <section className="rounded-lg border-2 border-neutral-900 p-4 dark:border-neutral-100">
       <h2 className="mb-3 font-medium">
         {rechte.einreichen && "Einreichen"}
+        {rechte.zurueckziehen && "Eingereicht"}
         {rechte.genehmigen && "Genehmigung"}
         {rechte.pruefen && "Belegprüfung"}
         {rechte.auszahlen && "Auszahlung"}
@@ -166,6 +199,7 @@ export function WorkflowPanel({
         </div>
       )}
       {rechte.einreichen && <Einreichen id={id} betrag={betrag} />}
+      {rechte.zurueckziehen && <Zurueckziehen id={id} />}
       {rechte.genehmigen && <Genehmigen id={id} />}
       {rechte.pruefen && <Pruefen id={id} />}
       {rechte.auszahlen && <Auszahlen id={id} betrag={betrag} />}

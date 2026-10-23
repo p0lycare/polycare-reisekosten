@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const AKTION_TEXT: Record<string, string> = {
   eingereicht: "Eingereicht – für die Richtigkeit bestätigt",
+  zurueckgezogen: "Einreichung zurückgezogen",
   genehmigt: "Genehmigt",
   abgelehnt: "Abgelehnt",
   geprueft: "Belege geprüft",

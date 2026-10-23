@@ -27,9 +27,26 @@ export default async function Home() {
       </div>
 
       {!reisen?.length ? (
-        <p className="rounded-lg border border-dashed border-neutral-300 p-8 text-center text-neutral-500 dark:border-neutral-700">
-          Noch keine Reisen erfasst.
-        </p>
+        <section className="rounded-lg border border-dashed border-neutral-300 p-6 dark:border-neutral-700">
+          <h2 className="font-medium">So funktioniert&apos;s</h2>
+          <ol className="mt-3 flex flex-col gap-3 text-sm text-neutral-700 dark:text-neutral-300">
+            <li>
+              <span className="font-medium">1. Reise anlegen</span> – Begründung, Reiseweg, Beginn und Ende. Die
+              Verpflegungspauschale wird automatisch berechnet.
+            </li>
+            <li>
+              <span className="font-medium">2. Belege fotografieren</span> – Betrag, Datum und MwSt werden aus dem Foto
+              ausgelesen. Bei eigenem PKW die gefahrenen Kilometer eintragen.
+            </li>
+            <li>
+              <span className="font-medium">3. Einreichen</span> – Genehmigung, Belegprüfung und Übergabe an DATEV laufen
+              automatisch, du bekommst bei jedem Schritt eine Mail.
+            </li>
+          </ol>
+          <Link href="/reisen/neu" className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+            Erste Reise anlegen
+          </Link>
+        </section>
       ) : (
         <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
           {reisen.map((r, i) => {

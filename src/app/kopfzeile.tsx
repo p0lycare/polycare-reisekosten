@@ -1,0 +1,70 @@
+import Link from "next/link";
+
+export type KopfzeileDaten = {
+  name: string;
+  rolle: string | null;
+  offen: number;
+  zeigeFreigaben: boolean;
+  zeigeEinstellungen: boolean;
+};
+
+const link = "text-neutral-600 hover:underline dark:text-neutral-400";
+
+function Zaehler({ anzahl }: { anzahl: number }) {
+  return anzahl > 0 ? (
+    <span className="ml-1 rounded-full bg-neutral-900 px-1.5 py-0.5 text-xs text-white dark:bg-white dark:text-neutral-900">{anzahl}</span>
+  ) : null;
+}
+
+/** Kopfzeile: am Desktop alle Links nebeneinander, am Handy ein aufklappbares Menü */
+export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
+  const links = (
+    <>
+      <Link href="/" className={link}>
+        Meine Reisen
+      </Link>
+      {daten.zeigeFreigaben && (
+        <Link href="/freigaben" className={link}>
+          Freigaben
+          <Zaehler anzahl={daten.offen} />
+        </Link>
+      )}
+      {daten.zeigeEinstellungen && (
+        <Link href="/einstellungen" className={link}>
+          Einstellungen
+        </Link>
+      )}
+      <Link href="/profil" className={link}>
+        {daten.name}
+        {daten.rolle && daten.rolle !== "mitarbeiter" && (
+          <span className="ml-2 rounded bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">{daten.rolle}</span>
+        )}
+      </Link>
+      <form action="/auth/logout" method="post">
+        <button type="submit" className="text-neutral-600 underline dark:text-neutral-400">
+          Abmelden
+        </button>
+      </form>
+    </>
+  );
+
+  return (
+    <header className="border-b border-neutral-200 dark:border-neutral-800">
+      <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3 font-sans sm:px-6">
+        <Link href="/" className="shrink-0 font-semibold">
+          Polycare Reisekosten
+        </Link>
+        <nav className="hidden items-center gap-4 text-sm sm:flex">{links}</nav>
+        <details className="relative sm:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
+            Menü
+            <Zaehler anzahl={daten.offen} />
+          </summary>
+          <nav className="absolute right-0 z-10 mt-2 flex w-56 flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm shadow-lg dark:border-neutral-800 dark:bg-neutral-950">
+            {links}
+          </nav>
+        </details>
+      </div>
+    </header>
+  );
+}

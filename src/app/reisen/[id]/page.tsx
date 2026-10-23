@@ -41,6 +41,7 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
   ]);
   const rechte = {
     einreichen: eigene && istBearbeitbar(reise.status),
+    zurueckziehen: eigene && reise.status === "eingereicht",
     genehmigen: !!darfGenehmigen,
     // Vier-Augen-Prinzip: wer genehmigt hat, prüft nicht – außer bei Reisen der Geschäftsführung
     pruefen:

@@ -9,6 +9,7 @@ import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
 
 const AKTION: Record<string, string> = {
   eingereicht: "Für die Richtigkeit (eingereicht)",
+  zurueckgezogen: "Zurückgezogen",
   genehmigt: "Genehmigung",
   abgelehnt: "Abgelehnt",
   geprueft: "Belegprüfung",
