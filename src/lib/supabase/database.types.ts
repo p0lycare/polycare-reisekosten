@@ -16,45 +16,49 @@ export type Database = {
     Tables: {
       beleg: {
         Row: {
-          art: Database["public"]["Enums"]["beleg_art"]
           beschreibung: string | null
           betrag_cent: number
           created_at: string
           datei_pfad: string | null
           datum: string
           id: string
-          km: number | null
-          mwst_cent: number | null
+          kategorie_id: string
+          mwst_prozent: number
           reise_id: string
           waehrung: string
         }
         Insert: {
-          art: Database["public"]["Enums"]["beleg_art"]
           beschreibung?: string | null
           betrag_cent: number
           created_at?: string
           datei_pfad?: string | null
           datum: string
           id?: string
-          km?: number | null
-          mwst_cent?: number | null
+          kategorie_id: string
+          mwst_prozent: number
           reise_id: string
           waehrung?: string
         }
         Update: {
-          art?: Database["public"]["Enums"]["beleg_art"]
           beschreibung?: string | null
           betrag_cent?: number
           created_at?: string
           datei_pfad?: string | null
           datum?: string
           id?: string
-          km?: number | null
-          mwst_cent?: number | null
+          kategorie_id?: string
+          mwst_prozent?: number
           reise_id?: string
           waehrung?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "beleg_kategorie_id_fkey"
+            columns: ["kategorie_id"]
+            isOneToOne: false
+            referencedRelation: "kategorie"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "beleg_reise_id_fkey"
             columns: ["reise_id"]
@@ -63,6 +67,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      einstellungen: {
+        Row: {
+          id: boolean
+          km_satz_cent: number
+          km_steuerfrei_cent: number
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          km_satz_cent?: number
+          km_steuerfrei_cent?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          km_satz_cent?: number
+          km_steuerfrei_cent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kategorie: {
+        Row: {
+          abschnitt: string
+          aktiv: boolean
+          beleg_erfassbar: boolean
+          bezeichnung: string
+          id: string
+          konto: string | null
+          mwst_prozent: number | null
+          sortierung: number
+        }
+        Insert: {
+          abschnitt: string
+          aktiv?: boolean
+          beleg_erfassbar?: boolean
+          bezeichnung: string
+          id: string
+          konto?: string | null
+          mwst_prozent?: number | null
+          sortierung?: number
+        }
+        Update: {
+          abschnitt?: string
+          aktiv?: boolean
+          beleg_erfassbar?: boolean
+          bezeichnung?: string
+          id?: string
+          konto?: string | null
+          mwst_prozent?: number | null
+          sortierung?: number
+        }
+        Relationships: []
       }
       profil_privat: {
         Row: {
@@ -223,14 +281,6 @@ export type Database = {
       }
     }
     Enums: {
-      beleg_art:
-        | "fahrt"
-        | "uebernachtung"
-        | "bewirtung"
-        | "oepnv"
-        | "flug"
-        | "bahn"
-        | "sonstiges"
       reise_status:
         | "entwurf"
         | "eingereicht"
@@ -372,15 +422,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      beleg_art: [
-        "fahrt",
-        "uebernachtung",
-        "bewirtung",
-        "oepnv",
-        "flug",
-        "bahn",
-        "sonstiges",
-      ],
       reise_status: [
         "entwurf",
         "eingereicht",

@@ -1,15 +1,19 @@
 /**
- * Pauschale Kilometersätze für Fahrten mit privatem Fahrzeug in Cent je km
- * (§ 9 Abs. 1 Satz 3 Nr. 4a EStG i. V. m. BRKG).
+ * Km-Geld für Dienstfahrten mit dem privaten PKW (Beträge in Cent).
+ *
+ * Steuerfrei erstattbar ist der Satz nach § 9 Abs. 1 Satz 3 Nr. 4a EStG (0,30 €/km).
+ * Zahlt der Arbeitgeber mehr, ist die Differenz steuerpflichtiger Arbeitslohn.
+ * Beide Sätze kommen aus den Einstellungen.
  */
-export const KM_SAETZE = {
-  pkw: 30,
-  motorrad: 20,
-} as const;
+export type KmGeld = {
+  betrag: number;
+  steuerfrei: number;
+  steuerpflichtig: number;
+};
 
-export type Fahrzeug = keyof typeof KM_SAETZE;
-
-export function berechneFahrtkosten(km: number, fahrzeug: Fahrzeug = "pkw"): number {
+export function berechneKmGeld(km: number, satzCent: number, steuerfreiCent: number): KmGeld {
   if (!Number.isFinite(km) || km < 0) throw new Error("Kilometer müssen eine positive Zahl sein");
-  return Math.round(km * KM_SAETZE[fahrzeug]);
+  const betrag = Math.round(km * satzCent);
+  const steuerfrei = Math.min(betrag, Math.round(km * steuerfreiCent));
+  return { betrag, steuerfrei, steuerpflichtig: betrag - steuerfrei };
 }

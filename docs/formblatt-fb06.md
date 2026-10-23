@@ -2,7 +2,11 @@
 
 Das Tool ersetzt das Excel-Formblatt FB 06 (Blätter „Reisekostenabr“ und „Fahrten“) vollständig.
 Niemand muss für den Prozess Dateien herunterladen, ausfüllen oder hochladen; Belege werden in der
-App fotografiert. Einzige Datei ist der optionale DATEV-Export für die Buchhaltung.
+App fotografiert und nach der Belegprüfung automatisch per Upload-Mail an DATEV Unternehmen online
+übertragen (#8). DATEV ist damit das Belegarchiv.
+
+Im Tool landen nur privat ausgelegte Kosten. Zahlungen mit der Firmenkreditkarte laufen weiter über
+Agicap und werden hier nicht erfasst.
 
 > Dieses Repo ist öffentlich. Persönliche Daten (Name, IBAN, Kennzeichen, Personalnummer …) und
 > Polycare-interne Einstellungen (Kontenzuordnung, Kostenstellen) liegen ausschließlich in der
@@ -41,7 +45,8 @@ Jede Position mit Bruttobetrag und MwSt-Satz; Netto = Brutto / (1 + MwSt) wird b
 | Km-Geld Privatwagen (km aus Fahrtenliste × Satz) | – | #5 |
 
 Km-Geld: Polycare erstattet 0,38 €/km. Steuerfrei sind bei Dienstreisen 0,30 €/km; die Differenz
-wird als steuerpflichtiger Anteil separat ausgewiesen. Der Satz ist eine Admin-Einstellung.
+wird als steuerpflichtiger Anteil separat ausgewiesen und monatlich an die Lohnabrechnung gemeldet (#19).
+Beide Sätze sind unter „Einstellungen“ pflegbar (#16 ✅).
 
 **Blatt „Fahrten“**: mehrere Fahrten je Abrechnung mit Datum, Fahrstrecke, Zweck, km; Summe fließt
 ins Km-Geld (#5).
@@ -82,8 +87,8 @@ ins Km-Geld (#5).
 | --- | --- | --- |
 | Vorschuss (abzüglich) | Feld je Reise | #15 |
 | Auszuzahlender Betrag | Summe aller Positionen − Vorschuss | #15 |
-| Konto je Position | Kontenzuordnung je Kategorie, in der Datenbank pflegbar | #16 |
+| Konto je Position | Kontenzuordnung je Kategorie, unter „Einstellungen“ pflegbar | #16 ✅ |
 | Unterschrift „Für die Richtigkeit“ (Reisender) | Einreichen mit Bestätigung, Zeitstempel | #7 |
 | „Genehmigung“ (Vorgesetzter) | Stufe 1: Freigabe, Zeitstempel | #7 |
 | „Belegprüfung“ (Prüfer) | Stufe 2: Buchhaltung prüft, vergibt Beleg-Nr. | #7 |
-| Ausdruck / Ablage | Abrechnungsansicht im Tool; DATEV-Export für die Buchhaltung | #8 |
+| Ausdruck / Ablage | Abrechnungsansicht im Tool; Abrechnung und Belege automatisch an DATEV (Upload-Mail) | #8 |

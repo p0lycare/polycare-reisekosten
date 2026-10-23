@@ -42,6 +42,11 @@ export default async function RootLayout({
                 Polycare Reisekosten
               </Link>
               <div className="flex items-center gap-3 text-sm">
+                {(profil?.rolle === "admin" || profil?.rolle === "buchhaltung") && (
+                  <Link href="/einstellungen" className="text-neutral-600 hover:underline dark:text-neutral-400">
+                    Einstellungen
+                  </Link>
+                )}
                 <Link href="/profil" className="text-neutral-600 hover:underline dark:text-neutral-400">
                   <span className="hidden sm:inline">{profil?.name ?? user.email}</span>
                   <span className="sm:hidden">Profil</span>
