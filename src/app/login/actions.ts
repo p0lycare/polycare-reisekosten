@@ -11,8 +11,8 @@ export async function mitMicrosoftAnmelden() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
     options: {
-      // Supabase benötigt "email", sonst fehlt die E-Mail-Adresse im Profil
-      scopes: "email",
+      // "email" für die Adresse, "profile" für den vollen Namen
+      scopes: "openid email profile",
       redirectTo: `${origin}/auth/callback`,
     },
   });
