@@ -166,6 +166,57 @@ export type Database = {
         }
         Relationships: []
       }
+      mail_protokoll: {
+        Row: {
+          an: string[]
+          art: string
+          ausgeloest_von: string | null
+          betreff: string | null
+          fehler: string | null
+          id: number
+          reise_id: string | null
+          status: string
+          zeit: string
+        }
+        Insert: {
+          an?: string[]
+          art: string
+          ausgeloest_von?: string | null
+          betreff?: string | null
+          fehler?: string | null
+          id?: never
+          reise_id?: string | null
+          status: string
+          zeit?: string
+        }
+        Update: {
+          an?: string[]
+          art?: string
+          ausgeloest_von?: string | null
+          betreff?: string | null
+          fehler?: string | null
+          id?: never
+          reise_id?: string | null
+          status?: string
+          zeit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_protokoll_ausgeloest_von_fkey"
+            columns: ["ausgeloest_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_protokoll_reise_id_fkey"
+            columns: ["reise_id"]
+            isOneToOne: false
+            referencedRelation: "reise"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profil_privat: {
         Row: {
           iban: string | null
@@ -422,6 +473,23 @@ export type Database = {
       ist_admin: { Args: never; Returns: boolean }
       ist_buchhaltung: { Args: never; Returns: boolean }
       ist_freigeber: { Args: never; Returns: boolean }
+      mail_empfaenger: {
+        Args: { p_art: string; p_reise: string }
+        Returns: {
+          email: string
+        }[]
+      }
+      mail_protokollieren: {
+        Args: {
+          p_an: string[]
+          p_art: string
+          p_betreff: string
+          p_fehler: string
+          p_reise: string
+          p_status: string
+        }
+        Returns: undefined
+      }
       naechste_beleg_nr: { Args: never; Returns: string }
       name_aus_metadaten: {
         Args: { email: string; meta: Json }

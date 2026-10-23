@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { benachrichtige } from "@/lib/mail/benachrichtigen";
 
 export type WorkflowStatus = { fehler?: string };
 
@@ -27,6 +28,7 @@ export async function einreichen(_vorher: WorkflowStatus, formData: FormData): P
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_einreichen", { p_id: id });
+  if (!error) await benachrichtige(supabase, id, "eingereicht");
   aktualisieren(id);
   return meldung(error);
 }
@@ -35,6 +37,7 @@ export async function genehmigen(_vorher: WorkflowStatus, formData: FormData): P
   const id = text(formData, "id");
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_genehmigen", { p_id: id });
+  if (!error) await benachrichtige(supabase, id, "genehmigt");
   aktualisieren(id);
   return meldung(error);
 }
@@ -45,6 +48,7 @@ export async function ablehnen(_vorher: WorkflowStatus, formData: FormData): Pro
   if (!grund) return { fehler: "Bitte einen Grund für die Ablehnung angeben." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_ablehnen", { p_id: id, p_grund: grund });
+  if (!error) await benachrichtige(supabase, id, "abgelehnt", { grund });
   aktualisieren(id);
   return meldung(error);
 }
@@ -61,6 +65,7 @@ export async function pruefen(_vorher: WorkflowStatus, formData: FormData): Prom
     p_beleg_nr: belegNr,
     p_buchungsmonat: `${monat}-01`,
   });
+  if (!error) await benachrichtige(supabase, id, "geprueft");
   aktualisieren(id);
   if (error?.message.includes("beleg_nr")) return { fehler: "Diese Beleg-Nr. ist bereits vergeben." };
   return meldung(error);
@@ -70,6 +75,7 @@ export async function auszahlen(_vorher: WorkflowStatus, formData: FormData): Pr
   const id = text(formData, "id");
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_auszahlen", { p_id: id });
+  if (!error) await benachrichtige(supabase, id, "ausgezahlt");
   aktualisieren(id);
   return meldung(error);
 }
