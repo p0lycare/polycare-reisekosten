@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { teileAnhaenge, type Anhang } from "./anhaenge";
-import { alsMail } from "./vorlagen";
+import { alsMail, alsSammelMail } from "./vorlagen";
 
 const datei = (name: string, bytes: number): Anhang => ({ name, contentType: "image/jpeg", inhalt: new Uint8Array(bytes) });
 
@@ -44,5 +44,23 @@ describe("alsMail", () => {
   it("HTML ist escaped", () => {
     expect(alsMail("eingereicht", daten).html).toContain("Messe &lt;BAU&gt;");
     expect(alsMail("eingereicht", daten).html).not.toContain("<BAU>");
+  });
+});
+
+describe("alsSammelMail", () => {
+  it("fasst mehrere Reisen in einer Mail zusammen", () => {
+    const m = alsSammelMail({
+      reisende: "Erika Muster",
+      zeitraum: "Oktober 2026",
+      reisen: [
+        { begruendung: "Messe <A>", zeitraum: "14.10.", betrag: "120,00 €" },
+        { begruendung: "Kunde", zeitraum: "21.10.", betrag: "30,00 €" },
+      ],
+      gesamt: "150,00 €",
+      link: "https://example.invalid/freigaben",
+    });
+    expect(m.betreff).toBe("Reisekosten zur Genehmigung: Erika Muster – Oktober 2026 (2 Reisen, 150,00 €)");
+    expect(m.text).toContain("• 21.10. – Kunde: 30,00 €");
+    expect(m.html).toContain("Messe &lt;A&gt;");
   });
 });

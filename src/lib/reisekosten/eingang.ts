@@ -23,8 +23,17 @@ export function summeAusErgebnis(e: AusgelesenerBeleg | null | undefined): numbe
   return e.positionen.reduce((s, p) => s + p.betragCent, 0);
 }
 
-/** Vorschlag für eine neue Reise aus einem Beleg: Tag des Belegs 08:00–18:00, Ort als Ziel */
+/**
+ * Vorschlag für eine neue Reise aus einem Beleg: vom Anreisetag (Hotel) bzw. Belegdatum 08:00
+ * bis Belegdatum 18:00, Ort als Ziel.
+ */
 export function reiseVorschlagAusBeleg(e: AusgelesenerBeleg | null | undefined): { beginn: string; ende: string; reiseweg: string } | null {
   if (!e?.datum) return null;
-  return { beginn: `${e.datum}T08:00`, ende: `${e.datum}T18:00`, reiseweg: e.ort ?? "" };
+  const von = e.anreise && e.anreise <= e.datum ? e.anreise : e.datum;
+  return { beginn: `${von}T08:00`, ende: `${e.datum}T18:00`, reiseweg: e.ort ?? "" };
+}
+
+/** Passt ein Beleg zu einer Reise, auch wenn eine Hotelrechnung erst am Abreisetag ausgestellt wurde */
+export function belegDatumFuerZuordnung(e: AusgelesenerBeleg | null | undefined): string | null {
+  return e?.anreise ?? e?.datum ?? null;
 }

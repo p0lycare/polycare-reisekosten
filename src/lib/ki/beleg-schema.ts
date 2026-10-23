@@ -9,6 +9,7 @@ export function belegSchema(kategorien: KategorieAuswahl[]) {
     haendler: z.string().nullable().describe("Name des Hotels, Restaurants, Tankstelle usw."),
     ort: z.string().nullable().describe("Stadt, in der die Leistung erbracht wurde, z. B. 'Berlin'"),
     datum: z.string().nullable().describe("Leistungs- bzw. Belegdatum im Format YYYY-MM-DD"),
+    anreise: z.string().nullable().describe("Nur bei Hotelrechnungen: Anreisedatum im Format YYYY-MM-DD, sonst null"),
     waehrung: z.string().describe("ISO-Währungscode, meist EUR"),
     positionen: z
       .array(

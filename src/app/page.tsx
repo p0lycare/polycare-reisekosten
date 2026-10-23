@@ -4,6 +4,8 @@ import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { StatusBadge } from "./reisen/status-badge";
 
+const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+
 export default async function Home() {
   const supabase = await createClient();
   const {
@@ -16,6 +18,15 @@ export default async function Home() {
     .eq("mitarbeiter_id", user!.id)
     .order("beginn", { ascending: false });
   const abrechnungen = await Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r)));
+  // Nach Monat des Reisebeginns gruppieren – so wird am Monatsende abgerechnet
+  const monate: { monat: string; eintraege: { reise: NonNullable<typeof reisen>[number]; abrechnung: (typeof abrechnungen)[number] }[] }[] = [];
+  (reisen ?? []).forEach((reise, i) => {
+    const monat = reise.beginn.slice(0, 7);
+    let gruppe = monate.find((m) => m.monat === monat);
+    if (!gruppe) monate.push((gruppe = { monat, eintraege: [] }));
+    gruppe.eintraege.push({ reise, abrechnung: abrechnungen[i] });
+  });
+
   const { count: imEingang } = await supabase
     .from("beleg_eingang")
     .select("id", { count: "exact", head: true })
@@ -69,28 +80,44 @@ export default async function Home() {
           </Link>
         </section>
       ) : (
-        <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-          {reisen.map((r, i) => {
-            const abrechnung = abrechnungen[i];
+        <div className="flex flex-col gap-6">
+          {monate.map(({ monat, eintraege }) => {
+            const summe = eintraege.reduce((s, e) => s + e.abrechnung.auszuzahlen, 0);
+            const offen = eintraege.filter((e) => e.reise.status === "entwurf" || e.reise.status === "abgelehnt").length;
             return (
-              <li key={r.id}>
-                <Link href={`/reisen/${r.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{r.begruendung}</p>
-                    <p className="text-sm text-neutral-500">
-                      {r.reiseweg} · {formatDatum(r.beginn)}
-                      {r.beginn.slice(0, 10) !== r.ende.slice(0, 10) && ` – ${formatDatum(r.ende)}`}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="tabular-nums">{formatEuro(abrechnung.auszuzahlen)}</span>
-                    <StatusBadge status={r.status} />
-                  </div>
-                </Link>
-              </li>
+              <section key={monat} className="flex flex-col gap-2">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="font-medium">
+                    {MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`))}{" "}
+                    <span className="text-sm font-normal text-neutral-500 tabular-nums">{formatEuro(summe)}</span>
+                  </h2>
+                  <Link href={`/monat/${monat}`} className="text-sm underline">
+                    {offen ? `Monat abrechnen (${offen} offen) →` : "Monat ansehen →"}
+                  </Link>
+                </div>
+                <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+                  {eintraege.map(({ reise: r, abrechnung }) => (
+                    <li key={r.id}>
+                      <Link href={`/reisen/${r.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{r.begruendung}</p>
+                          <p className="text-sm text-neutral-500">
+                            {r.reiseweg} · {formatDatum(r.beginn)}
+                            {r.beginn.slice(0, 10) !== r.ende.slice(0, 10) && ` – ${formatDatum(r.ende)}`}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="tabular-nums">{formatEuro(abrechnung.auszuzahlen)}</span>
+                          <StatusBadge status={r.status} />
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             );
           })}
-        </ul>
+        </div>
       )}
     </main>
   );
