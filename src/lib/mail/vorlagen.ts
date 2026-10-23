@@ -71,24 +71,52 @@ ${zeilen.map((z) => `<p>${escape(z)}</p>`).join("\n")}
 }
 
 export type SammelDaten = {
+  art?: "eingereicht" | "genehmigt" | "geprueft" | "ausgezahlt";
   reisende: string;
+  handelnde?: string;
   zeitraum: string;
   reisen: { begruendung: string; zeitraum: string; betrag: string }[];
   gesamt: string;
   link: string;
+  kommentar?: string;
 };
 
-/** Eine Mail für mehrere gleichzeitig eingereichte Reisen (Monatsabrechnung) */
+/** Eine Mail für mehrere Reisen derselben Person, die gemeinsam einen Workflow-Schritt durchlaufen haben */
 export function alsSammelMail(d: SammelDaten): { betreff: string; text: string; html: string } {
-  const betreff = `Reisekosten zur Genehmigung: ${d.reisende} – ${d.zeitraum} (${d.reisen.length} Reisen, ${d.gesamt})`;
-  const kopf = `${d.reisende} hat ${d.reisen.length} Reisekostenabrechnungen für ${d.zeitraum} zur Genehmigung eingereicht, zusammen ${d.gesamt}:`;
+  const art = d.art ?? "eingereicht";
+  const n = d.reisen.length;
+  const was = `${n} Reisekostenabrechnungen${d.zeitraum ? ` für ${d.zeitraum}` : ""}`;
+  const texte = {
+    eingereicht: {
+      betreff: `Reisekosten zur Genehmigung: ${d.reisende} – ${d.zeitraum} (${n} Reisen, ${d.gesamt})`,
+      kopf: `${d.reisende} hat ${was} zur Genehmigung eingereicht, zusammen ${d.gesamt}:`,
+      knopf: "Freigaben öffnen",
+    },
+    genehmigt: {
+      betreff: `Reisekosten zur Belegprüfung: ${d.reisende} (${n} Reisen, ${d.gesamt})`,
+      kopf: `${d.handelnde} hat ${n} Reisekostenabrechnungen von ${d.reisende} genehmigt, zusammen ${d.gesamt}. Bitte Belege prüfen:`,
+      knopf: "Freigaben öffnen",
+    },
+    geprueft: {
+      betreff: `Reisekosten geprüft: ${n} Reisen, ${d.gesamt}`,
+      kopf: `Deine ${n} Reisekostenabrechnungen sind geprüft und werden ausgezahlt, zusammen ${d.gesamt}:`,
+      knopf: "Meine Reisen öffnen",
+    },
+    ausgezahlt: {
+      betreff: `Reisekosten ausgezahlt: ${n} Reisen, ${d.gesamt}`,
+      kopf: `Deine ${n} Reisekostenabrechnungen wurden ausgezahlt, zusammen ${d.gesamt}:`,
+      knopf: "Meine Reisen öffnen",
+    },
+  }[art];
   const zeilen = d.reisen.map((r) => `${r.zeitraum} – ${r.begruendung}: ${r.betrag}`);
-  const text = [kopf, "", ...zeilen.map((z) => `• ${z}`), "", `Freigaben öffnen: ${d.link}`, "", "– Polycare Reisekosten"].join("\n");
+  const kommentar = d.kommentar ? [`Kommentar: ${d.kommentar}`] : [];
+  const text = [texte.kopf, "", ...zeilen.map((z) => `• ${z}`), ...(kommentar.length ? ["", ...kommentar] : []), "", `${texte.knopf}: ${d.link}`, "", "– Polycare Reisekosten"].join("\n");
   const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;font-size:15px;color:#171717;line-height:1.5">
-<p>${escape(kopf)}</p>
+<p>${escape(texte.kopf)}</p>
 <ul>${zeilen.map((z) => `<li>${escape(z)}</li>`).join("")}</ul>
-<p><a href="${escape(d.link)}" style="display:inline-block;background:#171717;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">Freigaben öffnen</a></p>
+${kommentar.map((k) => `<p>${escape(k)}</p>`).join("")}
+<p><a href="${escape(d.link)}" style="display:inline-block;background:#171717;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(texte.knopf)}</a></p>
 <p style="color:#737373;font-size:13px">Polycare Reisekosten</p>
 </body></html>`;
-  return { betreff, text, html };
+  return { betreff: texte.betreff, text, html };
 }

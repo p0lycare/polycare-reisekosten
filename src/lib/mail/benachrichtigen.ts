@@ -77,53 +77,69 @@ export async function benachrichtige(
 }
 
 /** Benachrichtigt die genehmigende(n) Person(en) einmal für mehrere eingereichte Reisen. */
-/** Gibt die Zahl der benachrichtigten Personen zurück (0, wenn niemand hinterlegt ist oder der Versand scheiterte). */
-export async function benachrichtigeSammel(supabase: SupabaseClient<Database>, reiseIds: string[], zeitraum: string): Promise<number> {
-  if (reiseIds.length === 1) {
-    await benachrichtige(supabase, reiseIds[0], "eingereicht");
-    return (await mailEmpfaenger(reiseIds[0], "eingereicht")).length;
-  }
-  let an: string[] = [];
-  let betreff = "Sammeleinreichung";
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return 0;
-    // Alle Reisen gehören derselben Person, die Empfänger sind daher gleich
-    an = await mailEmpfaenger(reiseIds[0], "eingereicht");
-    if (!an.length) return 0;
+/**
+ * Benachrichtigt nach einem Sammel-Schritt einmal je reisender Person statt einmal je Reise.
+ * Gibt die Zahl der verschickten Mails zurück.
+ */
+export async function benachrichtigeSammel(
+  supabase: SupabaseClient<Database>,
+  reiseIds: string[],
+  zeitraum: string,
+  art: Benachrichtigung = "eingereicht",
+  extra: { kommentar?: string } = {},
+): Promise<number> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !reiseIds.length) return 0;
 
-    const [{ data: reisen }, { data: ich }] = await Promise.all([
-      supabase.from("reise").select("*").in("id", reiseIds).order("beginn"),
-      supabase.from("profile").select("name").eq("id", user.id).single(),
-    ]);
-    const abrechnungen = await Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r)));
-    const gesamt = abrechnungen.reduce((s, a) => s + a.auszuzahlen, 0);
+  const [{ data: reisen }, { data: ich }] = await Promise.all([
+    supabase.from("reise").select("*").in("id", reiseIds).order("beginn"),
+    supabase.from("profile").select("name").eq("id", user.id).single(),
+  ]);
+  const gruppen = new Map<string, NonNullable<typeof reisen>>();
+  for (const r of reisen ?? []) gruppen.set(r.mitarbeiter_id, [...(gruppen.get(r.mitarbeiter_id) ?? []), r]);
 
-    const mail = alsSammelMail({
-      reisende: ich?.name ?? "",
-      zeitraum,
-      reisen: (reisen ?? []).map((r, i) => {
-        const von = formatDatum(r.beginn);
-        const bis = formatDatum(r.ende);
-        return { begruendung: r.begruendung, zeitraum: von === bis ? von : `${von} – ${bis}`, betrag: formatEuro(abrechnungen[i].auszuzahlen) };
-      }),
-      gesamt: formatEuro(gesamt),
-      link: `${await appUrl()}/freigaben`,
-    });
-    betreff = mail.betreff;
-
-    if (!mailKonfiguration()) {
-      await protokolliereMail({ reiseId: reiseIds[0], art: "eingereicht", an, betreff, status: "nicht_eingerichtet", personId: user.id });
-      return 0;
+  let gesendet = 0;
+  for (const [mitarbeiterId, gruppe] of gruppen) {
+    if (gruppe.length === 1) {
+      await benachrichtige(supabase, gruppe[0].id, art, { grund: extra.kommentar });
+      if ((await mailEmpfaenger(gruppe[0].id, art)).length && mailKonfiguration()) gesendet += 1;
+      continue;
     }
-    await sendeMail({ an, betreff: mail.betreff, text: mail.text, html: mail.html });
-    await protokolliereMail({ reiseId: reiseIds[0], art: "eingereicht", an, betreff, status: "gesendet", personId: user.id });
-    return an.length;
-  } catch (e) {
-    console.error("Sammelbenachrichtigung fehlgeschlagen", e);
-    await protokolliereMail({ reiseId: reiseIds[0], art: "eingereicht", an, betreff, status: "fehler", fehler: e instanceof Error ? e.message : String(e) });
-    return 0;
+    let an: string[] = [];
+    let betreff = `Sammelbenachrichtigung ${art}`;
+    try {
+      an = await mailEmpfaenger(gruppe[0].id, art);
+      if (!an.length) continue;
+      const { data: person } = await supabase.from("profile").select("name").eq("id", mitarbeiterId).maybeSingle();
+      const abrechnungen = await Promise.all(gruppe.map((r) => ladeAbrechnung(supabase, r)));
+      const mail = alsSammelMail({
+        art: art === "abgelehnt" ? "eingereicht" : art,
+        reisende: person?.name ?? "",
+        handelnde: ich?.name ?? "",
+        zeitraum,
+        reisen: gruppe.map((r, i) => {
+          const von = formatDatum(r.beginn);
+          const bis = formatDatum(r.ende);
+          return { begruendung: r.begruendung, zeitraum: von === bis ? von : `${von} – ${bis}`, betrag: formatEuro(abrechnungen[i].auszuzahlen) };
+        }),
+        gesamt: formatEuro(abrechnungen.reduce((s, a) => s + a.auszuzahlen, 0)),
+        link: `${await appUrl()}${art === "eingereicht" || art === "genehmigt" ? "/freigaben" : "/"}`,
+        kommentar: extra.kommentar,
+      });
+      betreff = mail.betreff;
+      if (!mailKonfiguration()) {
+        await protokolliereMail({ reiseId: gruppe[0].id, art, an, betreff, status: "nicht_eingerichtet", personId: user.id });
+        continue;
+      }
+      await sendeMail({ an, betreff: mail.betreff, text: mail.text, html: mail.html });
+      await protokolliereMail({ reiseId: gruppe[0].id, art, an, betreff, status: "gesendet", personId: user.id });
+      gesendet += 1;
+    } catch (e) {
+      console.error("Sammelbenachrichtigung fehlgeschlagen", e);
+      await protokolliereMail({ reiseId: gruppe[0].id, art, an, betreff, status: "fehler", fehler: e instanceof Error ? e.message : String(e) });
+    }
   }
+  return gesendet;
 }
