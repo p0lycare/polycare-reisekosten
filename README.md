@@ -28,9 +28,15 @@ Offene Punkte werden als GitHub-Issues geführt.
 
 ```bash
 npm install
-cp .env.example .env.local   # Supabase-Zugangsdaten eintragen
+vercel env pull .env.local   # Supabase-URL und Publishable Key aus Vercel holen
 npm run dev
 ```
+
+## Infrastruktur
+
+- Supabase-Projekt `polycare-reisekosten` (Ref `xddhklgaayjfukrednso`, Region Frankfurt `eu-central-1`)
+- Vercel-Projekt `polycare-reisekosten`, Env-Variablen für Production, Preview und Development gesetzt
+- Neue Migrationen unter `supabase/migrations/` anlegen und mit `npx supabase db push --linked` einspielen
 
 Tests: `npm test` · Typen: `npm run typecheck` · Lint: `npm run lint`
 
