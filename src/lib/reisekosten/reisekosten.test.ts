@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { berechneVerpflegung } from "./verpflegung";
-import { berechneFahrtkosten } from "./fahrtkosten";
+import { berechneKmGeld } from "./fahrtkosten";
+import { nettoAusBrutto } from "./mwst";
 
 describe("berechneVerpflegung", () => {
   it("eintägig unter 8 Stunden: keine Pauschale", () => {
@@ -54,12 +55,32 @@ describe("berechneVerpflegung", () => {
   });
 });
 
-describe("berechneFahrtkosten", () => {
-  it("PKW 0,30 €/km", () => {
-    expect(berechneFahrtkosten(123)).toBe(3690);
+describe("berechneKmGeld", () => {
+  it("126 km zu 0,38 € mit 0,30 € steuerfrei", () => {
+    expect(berechneKmGeld(126, 38, 30)).toEqual({ betrag: 4788, steuerfrei: 3780, steuerpflichtig: 1008 });
   });
 
-  it("Motorrad 0,20 €/km", () => {
-    expect(berechneFahrtkosten(50, "motorrad")).toBe(1000);
+  it("Satz unter dem steuerfreien Satz ist voll steuerfrei", () => {
+    expect(berechneKmGeld(100, 25, 30)).toEqual({ betrag: 2500, steuerfrei: 2500, steuerpflichtig: 0 });
+  });
+
+  it("negative Kilometer werfen einen Fehler", () => {
+    expect(() => berechneKmGeld(-1, 38, 30)).toThrow();
+  });
+});
+
+describe("nettoAusBrutto", () => {
+  it("19 %: 119,00 € → 100,00 € netto", () => {
+    expect(nettoAusBrutto(11900, 19)).toEqual({ netto: 10000, mwst: 1900 });
+  });
+
+  it("7 %: rundet auf Cent, Summe bleibt Brutto", () => {
+    const r = nettoAusBrutto(8990, 7);
+    expect(r.netto).toBe(8402);
+    expect(r.netto + r.mwst).toBe(8990);
+  });
+
+  it("0 %: Netto = Brutto", () => {
+    expect(nettoAusBrutto(1250, 0)).toEqual({ netto: 1250, mwst: 0 });
   });
 });
