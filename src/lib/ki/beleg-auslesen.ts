@@ -8,6 +8,7 @@ export type { KategorieAuswahl };
 export type AusgelesenerBeleg = {
   istBeleg: boolean;
   haendler: string | null;
+  ort: string | null;
   datum: string | null;
   waehrung: string;
   positionen: { kategorieId: string; beschreibung: string; betragCent: number; mwstProzent: number }[];
@@ -70,6 +71,7 @@ export async function belegAuslesen(
     return {
       istBeleg: r.ist_beleg,
       haendler: r.haendler,
+      ort: r.ort,
       datum: r.datum && /^\d{4}-\d{2}-\d{2}$/.test(r.datum) ? r.datum : null,
       waehrung: r.waehrung,
       positionen: r.positionen

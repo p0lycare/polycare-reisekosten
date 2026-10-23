@@ -34,6 +34,9 @@ export default async function RootLayout({
     : { data: null };
   const aufgaben = user ? await ladeAufgaben(supabase, user.id, profil?.rolle) : null;
   const offen = aufgaben ? aufgaben.genehmigen.length + aufgaben.pruefen.length + aufgaben.auszahlen.length : 0;
+  const { count: eingang } = user
+    ? await supabase.from("beleg_eingang").select("id", { count: "exact", head: true }).eq("mitarbeiter_id", user.id)
+    : { count: 0 };
 
   return (
     <html lang="de">
@@ -44,6 +47,7 @@ export default async function RootLayout({
               name: profil?.name ?? user.email ?? "",
               rolle: profil?.rolle ?? null,
               offen,
+              eingang: eingang ?? 0,
               zeigeFreigaben: istFreigebend(profil?.rolle),
               zeigeEinstellungen: profil?.rolle === "admin" || profil?.rolle === "buchhaltung",
             }}

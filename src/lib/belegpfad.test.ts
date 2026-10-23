@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { istBelegPfad } from "./belegpfad";
+import { eingangPfad, istBelegPfad } from "./belegpfad";
 
 const u = "11111111-1111-1111-1111-111111111111";
 const r = "22222222-2222-2222-2222-222222222222";
@@ -17,5 +17,14 @@ describe("istBelegPfad", () => {
     expect(istBelegPfad(`${u}/${r}/../../${f}/${r}/${f}.jpg`, u, r)).toBe(false);
     expect(istBelegPfad(`${u}/${r}/${f}.exe`, u, r)).toBe(false);
     expect(istBelegPfad(`${u}/${r}/name.jpg`, u, r)).toBe(false);
+  });
+});
+
+describe("Belegeingang", () => {
+  it("Eingangsfotos sind für die eigene Person gültig", () => {
+    expect(istBelegPfad(`${u}/eingang/${f}.jpg`, u, r)).toBe(true);
+    expect(eingangPfad(`${u}/eingang/${f}.jpg`, u)).toBe(true);
+    expect(eingangPfad(`${u}/${r}/${f}.jpg`, u)).toBe(false);
+    expect(eingangPfad(`${f}/eingang/${f}.jpg`, u)).toBe(false);
   });
 });

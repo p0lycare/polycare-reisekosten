@@ -4,6 +4,7 @@ export type KopfzeileDaten = {
   name: string;
   rolle: string | null;
   offen: number;
+  eingang: number;
   zeigeFreigaben: boolean;
   zeigeEinstellungen: boolean;
 };
@@ -22,6 +23,10 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
     <>
       <Link href="/" className={link}>
         Meine Reisen
+      </Link>
+      <Link href="/belege" className={link}>
+        Belege
+        <Zaehler anzahl={daten.eingang} />
       </Link>
       {daten.zeigeFreigaben && (
         <Link href="/freigaben" className={link}>
@@ -58,7 +63,7 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
         <details className="relative sm:hidden">
           <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
             Menü
-            <Zaehler anzahl={daten.offen} />
+            <Zaehler anzahl={daten.offen + daten.eingang} />
           </summary>
           <nav className="absolute right-0 z-10 mt-2 flex w-56 flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm shadow-lg dark:border-neutral-800 dark:bg-neutral-950">
             {links}

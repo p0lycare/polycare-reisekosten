@@ -7,6 +7,7 @@ export function belegSchema(kategorien: KategorieAuswahl[]) {
   return z.object({
     ist_beleg: z.boolean().describe("false, wenn das Bild keine Quittung, Rechnung oder Fahrkarte ist"),
     haendler: z.string().nullable().describe("Name des Hotels, Restaurants, Tankstelle usw."),
+    ort: z.string().nullable().describe("Stadt, in der die Leistung erbracht wurde, z. B. 'Berlin'"),
     datum: z.string().nullable().describe("Leistungs- bzw. Belegdatum im Format YYYY-MM-DD"),
     waehrung: z.string().describe("ISO-Währungscode, meist EUR"),
     positionen: z

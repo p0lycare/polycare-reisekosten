@@ -20,6 +20,7 @@ describe("Belegschema für Claude", () => {
     const ergebnis = belegSchema(kategorien).parse({
       ist_beleg: true,
       haendler: "Hotel Beispiel",
+      ort: "Berlin",
       datum: "2026-10-23",
       waehrung: "EUR",
       positionen: [
@@ -35,7 +36,7 @@ describe("Belegschema für Claude", () => {
   it("lehnt unbekannte Kategorien ab", () => {
     expect(() =>
       belegSchema(kategorien).parse({
-        ist_beleg: true, haendler: null, datum: null, waehrung: "EUR",
+        ist_beleg: true, haendler: null, ort: null, datum: null, waehrung: "EUR",
         positionen: [{ kategorie_id: "erfunden", beschreibung: "", betrag_brutto: 1, mwst_prozent: 0 }],
         fruehstueck_enthalten: false, hinweis: null,
       }),

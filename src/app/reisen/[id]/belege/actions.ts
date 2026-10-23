@@ -4,15 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseEuro } from "@/lib/geld";
-import { belegAuslesen, type AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
+import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
+import { liesGespeichertenBeleg } from "@/lib/ki/auslesen-server";
 import { istBelegPfad } from "@/lib/belegpfad";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
+import { pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
 
 export type BelegStatus = { fehler?: string };
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-const MAX_BETRAG_CENT = 10_000_000; // 100.000 €
 const MAX_POSITIONEN = 20;
 
 function text(formData: FormData, feld: string): string {
@@ -25,32 +26,9 @@ async function dateiEntfernenWennUnbenutzt(supabase: Supabase, pfad: string) {
   if (!count) await supabase.storage.from("belege").remove([pfad]);
 }
 
-type Position = {
-  kategorieId: string;
-  betragCent: number;
-  mwstProzent: number;
-  bewirtungAnlass: string | null;
-  bewirtungTeilnehmer: string | null;
-};
-
-/** Gemeinsame Prüfung für einzelne Belege und für mehrere Positionen auf einmal. */
-async function pruefePositionen(supabase: Supabase, positionen: Position[], bestehend: boolean): Promise<string | null> {
-  const ids = [...new Set(positionen.map((p) => p.kategorieId))];
-  const { data: kategorien } = await supabase.from("kategorie").select("id, abschnitt, beleg_erfassbar, aktiv").in("id", ids);
-  const nachId = new Map((kategorien ?? []).map((k) => [k.id, k]));
-
-  for (const p of positionen) {
-    const k = nachId.get(p.kategorieId);
-    if (!k?.beleg_erfassbar || (!bestehend && !k.aktiv)) return "Bitte eine Kategorie wählen.";
-    if (!Number.isInteger(p.betragCent) || p.betragCent <= 0 || p.betragCent > MAX_BETRAG_CENT) {
-      return "Bitte einen gültigen Betrag angeben, z. B. 12,50.";
-    }
-    if (!Number.isFinite(p.mwstProzent) || p.mwstProzent < 0 || p.mwstProzent >= 100) return "Bitte den MwSt-Satz angeben.";
-    if (k.abschnitt === "E" && (!p.bewirtungAnlass || !p.bewirtungTeilnehmer)) {
-      return "Bei Bewirtungen sind Anlass und Teilnehmende Pflicht.";
-    }
-  }
-  return null;
+/** Beleg aus dem Eingang wurde erfasst – Eintrag entfernen (das Foto bleibt beim Beleg) */
+async function eingangErledigt(supabase: Supabase, eingangId: string) {
+  if (eingangId) await supabase.from("beleg_eingang").delete().eq("id", eingangId);
 }
 
 export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): Promise<BelegStatus> {
@@ -99,6 +77,7 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
     ? await supabase.from("beleg").update(daten).eq("id", id).eq("reise_id", reiseId).select("id")
     : await supabase.from("beleg").insert(daten).select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+  await eingangErledigt(supabase, text(formData, "eingang_id"));
 
   const alterPfad = text(formData, "datei_alt");
   if (alterPfad && alterPfad !== dateiPfad && istBelegPfad(alterPfad, user.id, reiseId)) {
@@ -138,26 +117,7 @@ export async function belegPerKiAuslesen(reiseId: string, pfad: string): Promise
     return { fehler: "Die Reise kann nicht mehr bearbeitet werden." };
   }
 
-  // Kostenschutz: begrenztes Kontingent pro Person und Tag
-  const { data: kontingent } = await supabase.rpc("ki_kontingent_nutzen");
-  if (!kontingent) return { fehler: "Das Tageskontingent für das automatische Auslesen ist erreicht." };
-
-  const [{ data: blob }, { data: kategorien }] = await Promise.all([
-    supabase.storage.from("belege").download(pfad),
-    supabase.from("kategorie").select("id, bezeichnung, abschnitt, mwst_prozent").eq("beleg_erfassbar", true).eq("aktiv", true),
-  ]);
-  if (!blob) return { fehler: "Das Foto wurde nicht gefunden." };
-
-  const ergebnis = await belegAuslesen(
-    { inhalt: new Uint8Array(await blob.arrayBuffer()), contentType: blob.type },
-    (kategorien ?? []).map((k) => ({
-      id: k.id,
-      bezeichnung: k.bezeichnung,
-      abschnitt: k.abschnitt,
-      mwstProzent: k.mwst_prozent == null ? null : Number(k.mwst_prozent),
-    })),
-  );
-  return "fehler" in ergebnis ? { fehler: ergebnis.fehler } : { ergebnis };
+  return liesGespeichertenBeleg(supabase, pfad);
 }
 
 /** Legt mehrere Positionen eines Belegs (z. B. Hotelrechnung) als einzelne Belege mit demselben Foto an. */
@@ -216,6 +176,7 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
     )
     .select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+  await eingangErledigt(supabase, text(formData, "eingang_id"));
 
   revalidatePath(`/reisen/${reiseId}`);
   redirect(`/reisen/${reiseId}`);
