@@ -7,6 +7,10 @@ import { erzeugePdfMitBelegen } from "@/lib/pdf/abrechnung-pdf";
 import { dateiBasis, ladeDokument } from "@/lib/pdf/dokument-laden";
 import { protokolliereMail } from "@/lib/supabase/admin";
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 /**
  * Schickt Abrechnung und Belege an die DATEV-Upload-Mail-Adresse. DATEV Unternehmen online legt
  * jeden Anhang als Beleg ab. Wird nach der Belegprüfung automatisch aufgerufen; nur mit
@@ -53,7 +57,7 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
       an,
       betreff,
       text: `Reisekostenabrechnung ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).`,
-      html: `<p>Reisekostenabrechnung ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).</p>`,
+      html: `<p>Reisekostenabrechnung ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)} mit ${dateien.length} Beleg(en).</p>`,
       anhaenge,
     });
     await protokoll("gesendet");

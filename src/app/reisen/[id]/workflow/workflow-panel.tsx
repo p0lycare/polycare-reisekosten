@@ -90,18 +90,17 @@ function Genehmigen({ id }: { id: string }) {
   );
 }
 
-function Pruefen({ id, belegNrVorschlag }: { id: string; belegNrVorschlag: string }) {
+function Pruefen({ id }: { id: string }) {
   const [status, absenden, laeuft] = useActionState(pruefen, {});
   const [ablehnung, setAblehnung] = useState(false);
   if (ablehnung) return <Ablehnen id={id} onAbbrechen={() => setAblehnung(false)} />;
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        Die Beleg-Nr. wird beim Prüfen fortlaufend vergeben. Danach gehen Abrechnung und Belege automatisch an DATEV.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Beleg-Nr.</span>
-          <input name="beleg_nr" required defaultValue={belegNrVorschlag} className={feld} />
-        </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Buchungsmonat</span>
           <input type="month" name="buchungsmonat" required defaultValue={new Date().toISOString().slice(0, 7)} className={feld} />
@@ -139,13 +138,11 @@ export function WorkflowPanel({
   id,
   rechte,
   betrag,
-  belegNrVorschlag,
   hinweise,
 }: {
   id: string;
   rechte: WorkflowRechte;
   betrag: string;
-  belegNrVorschlag: string;
   hinweise: string[];
 }) {
   if (!rechte.einreichen && !rechte.genehmigen && !rechte.pruefen && !rechte.auszahlen) return null;
@@ -170,7 +167,7 @@ export function WorkflowPanel({
       )}
       {rechte.einreichen && <Einreichen id={id} betrag={betrag} />}
       {rechte.genehmigen && <Genehmigen id={id} />}
-      {rechte.pruefen && <Pruefen id={id} belegNrVorschlag={belegNrVorschlag} />}
+      {rechte.pruefen && <Pruefen id={id} />}
       {rechte.auszahlen && <Auszahlen id={id} betrag={betrag} />}
     </section>
   );

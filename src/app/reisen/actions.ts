@@ -6,6 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { VERKEHRSMITTEL, type Verkehrsmittel } from "@/lib/reisekosten/reise";
 import { parseEuro } from "@/lib/geld";
+import { z } from "zod";
+
+// Nur Tage (YYYY-MM-DD) mit optionalen Ja/Nein-Werten – alles andere würde Seiten zum Absturz bringen
+const MahlzeitenSchema = z.record(
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  z.object({ fruehstueck: z.boolean().optional(), mittag: z.boolean().optional(), abend: z.boolean().optional() }).strict(),
+);
 
 export type FormularStatus = { fehler?: string };
 
@@ -48,7 +55,7 @@ export async function reiseSpeichern(
 
   let mahlzeiten: Record<string, Mahlzeiten>;
   try {
-    mahlzeiten = JSON.parse(text(formData, "mahlzeiten") || "{}");
+    mahlzeiten = MahlzeitenSchema.parse(JSON.parse(text(formData, "mahlzeiten") || "{}"));
   } catch {
     return { fehler: "Mahlzeiten konnten nicht gelesen werden." };
   }

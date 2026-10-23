@@ -16,7 +16,7 @@ export async function ladeAufgaben(supabase: SupabaseClient<Database>, userId: s
 
   const { data: reisen } = await supabase
     .from("reise")
-    .select("*, mitarbeiter:profile!reise_mitarbeiter_id_fkey(name, vorgesetzter_id)")
+    .select("*, mitarbeiter:profile!reise_mitarbeiter_id_fkey(name, vorgesetzter_id, rolle)")
     .neq("mitarbeiter_id", userId)
     .in("status", ["eingereicht", "freigegeben", "geprueft"])
     .order("eingereicht_am");
@@ -32,7 +32,10 @@ export async function ladeAufgaben(supabase: SupabaseClient<Database>, userId: s
           rolle === "admin" ||
           (rolle === "freigeber" && !r.mitarbeiter?.vorgesetzter_id)),
     ),
-    pruefen: buchhaltung ? alle.filter((r) => r.status === "freigegeben") : [],
+    // Vier-Augen-Prinzip wie in reise_pruefen
+    pruefen: buchhaltung
+      ? alle.filter((r) => r.status === "freigegeben" && (r.freigeber_id !== userId || r.mitarbeiter?.rolle === "admin"))
+      : [],
     auszahlen: buchhaltung ? alle.filter((r) => r.status === "geprueft") : [],
   };
 }

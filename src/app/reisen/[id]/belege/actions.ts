@@ -138,6 +138,10 @@ export async function belegPerKiAuslesen(reiseId: string, pfad: string): Promise
     return { fehler: "Die Reise kann nicht mehr bearbeitet werden." };
   }
 
+  // Kostenschutz: begrenztes Kontingent pro Person und Tag
+  const { data: kontingent } = await supabase.rpc("ki_kontingent_nutzen");
+  if (!kontingent) return { fehler: "Das Tageskontingent für das automatische Auslesen ist erreicht." };
+
   const [{ data: blob }, { data: kategorien }] = await Promise.all([
     supabase.storage.from("belege").download(pfad),
     supabase.from("kategorie").select("id, bezeichnung, abschnitt, mwst_prozent").eq("beleg_erfassbar", true).eq("aktiv", true),

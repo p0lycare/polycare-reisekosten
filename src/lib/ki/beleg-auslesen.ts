@@ -15,6 +15,8 @@ export type AusgelesenerBeleg = {
   hinweis: string | null;
 };
 
+const MAX_PDF_SEITEN = 5;
+
 export function kiVerfuegbar(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;
 }
@@ -28,6 +30,17 @@ export async function belegAuslesen(
   kategorien: KategorieAuswahl[],
 ): Promise<AusgelesenerBeleg | { fehler: string }> {
   if (!kiVerfuegbar()) return { fehler: "Das Auslesen per KI ist noch nicht eingerichtet." };
+
+  if (datei.contentType === "application/pdf") {
+    // Mehrseitige Dokumente sind keine Belege – begrenzt Kosten und Laufzeit
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const seiten = (await PDFDocument.load(datei.inhalt, { ignoreEncryption: true })).getPageCount();
+      if (seiten > MAX_PDF_SEITEN) return { fehler: `Das PDF hat ${seiten} Seiten – ausgelesen werden Belege bis ${MAX_PDF_SEITEN} Seiten.` };
+    } catch {
+      return { fehler: "Das PDF konnte nicht gelesen werden." };
+    }
+  }
 
   const daten = Buffer.from(datei.inhalt).toString("base64");
   const quelle: Anthropic.Beta.BetaContentBlockParam | null =

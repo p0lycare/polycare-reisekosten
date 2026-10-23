@@ -19,7 +19,17 @@ export function DatevPanel({ id, letzter }: { id: string; letzter: DatevEintrag 
             ? `An DATEV übertragen am ${letzter.zeit}.`
             : `Übertragung am ${letzter.zeit} fehlgeschlagen${letzter.fehler ? `: ${letzter.fehler}` : "."}`}
       </p>
-      <form onSubmit={ohneZuruecksetzen(absenden)} className="mt-3 flex flex-wrap items-center gap-3">
+      <form
+        onSubmit={(e) => {
+          // Jeder Versand legt in DATEV einen neuen Beleg an
+          if (letzter?.status === "gesendet" && !confirm("Die Abrechnung wurde bereits übertragen. Nochmals senden erzeugt in DATEV einen zweiten Beleg. Trotzdem senden?")) {
+            e.preventDefault();
+            return;
+          }
+          ohneZuruecksetzen(absenden)(e);
+        }}
+        className="mt-3 flex flex-wrap items-center gap-3"
+      >
         <input type="hidden" name="id" value={id} />
         <button type="submit" disabled={laeuft} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
           {laeuft ? "Sendet …" : letzter?.status === "gesendet" ? "Erneut an DATEV senden" : "An DATEV senden"}

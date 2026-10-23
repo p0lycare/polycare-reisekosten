@@ -29,6 +29,8 @@ const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900";
 
 const STANDARD_SAETZE = [19, 7, 0];
+/** Entspricht dem Limit des Speichers – jede Datei passt so in eine Mail an DATEV */
+const MAX_DATEI_BYTES = 2_800_000;
 
 export function BelegFormular({
   werte,
@@ -83,6 +85,14 @@ export function BelegFormular({
     setLaedtHoch(true);
     try {
       const verkleinert = await verkleinereBild(f);
+      if (verkleinert.size > MAX_DATEI_BYTES) {
+        setUploadFehler(
+          verkleinert.type === "application/pdf"
+            ? "Das PDF ist größer als 2,8 MB. Bitte die Seite fotografieren oder das PDF verkleinern."
+            : "Das Bild ist zu groß. Bitte als Foto (JPEG) aufnehmen.",
+        );
+        return null;
+      }
       const endung = verkleinert.name.split(".").pop()?.toLowerCase() || "jpg";
       const pfad = `${userId}/${reiseId}/${crypto.randomUUID()}.${endung}`;
       const { error } = await createClient().storage.from("belege").upload(pfad, verkleinert, {
@@ -92,7 +102,7 @@ export function BelegFormular({
       setHochgeladen({ datei: f, pfad });
       return pfad;
     } catch {
-      setUploadFehler("Das Foto konnte nicht hochgeladen werden (max. 10 MB, Bild oder PDF).");
+      setUploadFehler("Das Foto konnte nicht hochgeladen werden (Bild oder PDF bis 2,8 MB).");
       return null;
     } finally {
       setLaedtHoch(false);
@@ -247,7 +257,7 @@ export function BelegFormular({
             <>
               <span className="font-medium">Foto aufnehmen oder Datei wählen</span>
               <span className="text-xs text-neutral-500">
-                Bild oder PDF, max. 10 MB{kiAktiv && " – Betrag, Datum und MwSt werden automatisch ausgelesen"}
+                Foto oder PDF bis 2,8 MB{kiAktiv && " – Betrag, Datum und MwSt werden automatisch ausgelesen"}
               </span>
             </>
           )}
