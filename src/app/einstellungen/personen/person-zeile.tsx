@@ -45,7 +45,7 @@ export function PersonZeile({ person, fuehrungskraefte }: { person: Person; fueh
       <label className="flex flex-col gap-1">
         <span className="text-xs text-neutral-500">Genehmigt durch</span>
         <select name="vorgesetzter_id" defaultValue={person.vorgesetzter_id ?? ""} className={feld}>
-          <option value="">jede Führungskraft</option>
+          <option value="">jede Führungskraft oder Admin</option>
           {fuehrungskraefte
             .filter((f) => f.id !== person.id)
             .map((f) => (

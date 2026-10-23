@@ -13,7 +13,8 @@ export default async function PersonenPage() {
 
   const { data } = await supabase.from("profile").select("id, name, email, rolle, vorgesetzter_id").order("name");
   const personen = (data ?? []) as Person[];
-  const fuehrungskraefte = personen.filter((p) => p.rolle === "freigeber" || p.rolle === "admin");
+  // Genehmigen kann jede Person außer Mitarbeiter/innen ohne weitere Rolle
+  const fuehrungskraefte = personen.filter((p) => p.rolle !== "mitarbeiter");
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6 font-sans">

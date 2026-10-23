@@ -28,8 +28,9 @@ export async function ladeAufgaben(supabase: SupabaseClient<Database>, userId: s
     genehmigen: alle.filter(
       (r) =>
         r.status === "eingereicht" &&
-        (rolle === "admin" ||
-          (rolle === "freigeber" && (!r.mitarbeiter?.vorgesetzter_id || r.mitarbeiter.vorgesetzter_id === userId))),
+        (r.mitarbeiter?.vorgesetzter_id === userId ||
+          rolle === "admin" ||
+          (rolle === "freigeber" && !r.mitarbeiter?.vorgesetzter_id)),
     ),
     pruefen: buchhaltung ? alle.filter((r) => r.status === "freigegeben") : [],
     auszahlen: buchhaltung ? alle.filter((r) => r.status === "geprueft") : [],
