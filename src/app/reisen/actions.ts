@@ -105,6 +105,10 @@ export async function reiseSpeichern(
 export async function reiseLoeschen(formData: FormData) {
   const id = text(formData, "id");
   const supabase = await createClient();
+  // Belegfotos zuerst entfernen – solange die Reise existiert, erlaubt die Storage-Policy das Löschen
+  const { data: belege } = await supabase.from("beleg").select("datei_pfad").eq("reise_id", id);
+  const pfade = (belege ?? []).flatMap((b) => (b.datei_pfad ? [b.datei_pfad] : []));
+  if (pfade.length) await supabase.storage.from("belege").remove(pfade);
   await supabase.from("reise").delete().eq("id", id);
   revalidatePath("/");
   redirect("/");
