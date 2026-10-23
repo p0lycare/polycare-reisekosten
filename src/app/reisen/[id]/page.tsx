@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { istBearbeitbar, verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
 import { formatDatum, formatDatumZeit, formatEuro, wochentag } from "@/lib/format";
 import { StatusBadge } from "../status-badge";
+import { BelegListe } from "./beleg-liste";
 import { LoeschenButton } from "./loeschen-button";
 
 export default async function ReisePage({ params }: { params: Promise<{ id: string }> }) {
@@ -103,6 +104,8 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
           <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Bemerkung: {reise.verpflegung_bemerkung}</p>
         )}
       </section>
+
+      <BelegListe reiseId={reise.id} bearbeitbar={eigene && istBearbeitbar(reise.status)} />
 
       {eigene && istBearbeitbar(reise.status) && (
         <div className="flex items-center gap-4">

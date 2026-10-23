@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           beschreibung: string | null
           betrag_cent: number
+          bewirtung_anlass: string | null
+          bewirtung_teilnehmer: string | null
           created_at: string
           datei_pfad: string | null
           datum: string
@@ -30,6 +32,8 @@ export type Database = {
         Insert: {
           beschreibung?: string | null
           betrag_cent: number
+          bewirtung_anlass?: string | null
+          bewirtung_teilnehmer?: string | null
           created_at?: string
           datei_pfad?: string | null
           datum: string
@@ -42,6 +46,8 @@ export type Database = {
         Update: {
           beschreibung?: string | null
           betrag_cent?: number
+          bewirtung_anlass?: string | null
+          bewirtung_teilnehmer?: string | null
           created_at?: string
           datei_pfad?: string | null
           datum?: string
