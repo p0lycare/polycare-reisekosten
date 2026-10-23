@@ -30,6 +30,7 @@ describe("erstelleLohnliste", () => {
     expect(anton.erstattung).toBe(4788 + 1000);
     expect(anton.steuerpflichtig).toBe(1008);
     expect(anton.steuerfrei).toBe(4788 + 1000 - 1008);
+    expect(anton.auslagen).toBe(0);
     expect(anton.auszuzahlen).toBe(4788 + 1000 - 2000);
     expect(zeilen[1].steuerpflichtig).toBe(0);
     expect(summe.erstattung).toBe(4788 + 1000 + 5000);
@@ -48,5 +49,24 @@ describe("monatsgrenzen", () => {
   it("ungültig", () => {
     expect(monatsgrenzen("2026-13")).toBeNull();
     expect(monatsgrenzen("Oktober")).toBeNull();
+  });
+});
+
+describe("Auslagen getrennt ausweisen", () => {
+  it("Bewirtung und Sonstiges zählen nicht zu § 3 Nr. 16", () => {
+    const a = berechneAbrechnung({
+      belege: [
+        { kategorieId: "bewirtung_19", abschnitt: "E", bezeichnung: "Bewirtung", konto: null, betragCent: 5950, mwstProzent: 19 },
+        { kategorieId: "bahn", abschnitt: "A", bezeichnung: "Zug", konto: null, betragCent: 1000, mwstProzent: 7 },
+      ],
+      verpflegung: null,
+      kmGeld: null,
+      kmKategorie: { bezeichnung: "Km-Geld", konto: null },
+      verpflegungKategorie: { bezeichnung: "Verpflegung", konto: null },
+      vorschussCent: 0,
+    });
+    const [z] = erstelleLohnliste([{ mitarbeiterId: "x", name: "X", personalnummer: null, belegNr: null, abrechnung: a }]).zeilen;
+    expect(z.steuerfrei).toBe(1000);
+    expect(z.auslagen).toBe(5950);
   });
 });

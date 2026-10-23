@@ -37,15 +37,19 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
     reise.status === "eingereicht" && !eigene
       ? supabase.rpc("darf_genehmigen", { p_mitarbeiter: reise.mitarbeiter_id })
       : Promise.resolve({ data: false }),
-    eigene ? Promise.resolve({ data: null }) : supabase.from("profile").select("name").eq("id", reise.mitarbeiter_id).single(),
+    eigene ? Promise.resolve({ data: null }) : supabase.from("profile").select("name, rolle").eq("id", reise.mitarbeiter_id).single(),
   ]);
   const rechte = {
     einreichen: eigene && istBearbeitbar(reise.status),
     genehmigen: !!darfGenehmigen,
-    pruefen: !eigene && istBuchhaltung && reise.status === "freigegeben",
+    // Vier-Augen-Prinzip: wer genehmigt hat, prüft nicht – außer bei Reisen der Geschäftsführung
+    pruefen:
+      !eigene &&
+      istBuchhaltung &&
+      reise.status === "freigegeben" &&
+      (reise.freigeber_id !== user?.id || reisender?.rolle === "admin"),
     auszahlen: !eigene && istBuchhaltung && reise.status === "geprueft",
   };
-  const { data: belegNrVorschlag } = rechte.pruefen ? await supabase.rpc("naechste_beleg_nr") : { data: "" };
 
   const zeigeDatev = istBuchhaltung && (reise.status === "geprueft" || reise.status === "ausgezahlt");
   const { data: datevLetzter } = zeigeDatev
@@ -192,7 +196,6 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
         id={reise.id}
         rechte={rechte}
         betrag={formatEuro(abrechnung.auszuzahlen)}
-        belegNrVorschlag={belegNrVorschlag ?? ""}
         hinweise={hinweise}
       />
 

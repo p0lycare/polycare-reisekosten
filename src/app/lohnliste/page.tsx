@@ -88,7 +88,8 @@ export default async function LohnlistePage({ searchParams }: { searchParams: Pr
                 <th className="py-2 pr-3 font-normal">Pers.-Nr.</th>
                 <th className="py-2 pr-3 font-normal">Beleg-Nr.</th>
                 <th className="py-2 pr-3 text-right font-normal">Erstattung</th>
-                <th className="py-2 pr-3 text-right font-normal">steuerfrei</th>
+                <th className="py-2 pr-3 text-right font-normal">steuerfrei § 3 Nr. 16</th>
+                <th className="py-2 pr-3 text-right font-normal">Auslagen (E, F)</th>
                 <th className="py-2 pr-3 text-right font-normal">steuerpflichtig</th>
                 <th className="py-2 pr-3 text-right font-normal">Vorschuss</th>
                 <th className="py-2 text-right font-normal">Auszahlung</th>
@@ -102,6 +103,7 @@ export default async function LohnlistePage({ searchParams }: { searchParams: Pr
                   <td className="py-2 pr-3 text-neutral-500">{z.belegNummern.join(", ") || "–"}</td>
                   <td className="py-2 pr-3 text-right">{formatEuro(z.erstattung)}</td>
                   <td className="py-2 pr-3 text-right">{formatEuro(z.steuerfrei)}</td>
+                  <td className="py-2 pr-3 text-right">{formatEuro(z.auslagen)}</td>
                   <td className={`py-2 pr-3 text-right ${z.steuerpflichtig ? "font-medium" : "text-neutral-500"}`}>
                     {formatEuro(z.steuerpflichtig)}
                   </td>
@@ -117,6 +119,7 @@ export default async function LohnlistePage({ searchParams }: { searchParams: Pr
                 </td>
                 <td className="py-2 pr-3 text-right">{formatEuro(summe.erstattung)}</td>
                 <td className="py-2 pr-3 text-right">{formatEuro(summe.steuerfrei)}</td>
+                <td className="py-2 pr-3 text-right">{formatEuro(summe.auslagen)}</td>
                 <td className="py-2 pr-3 text-right">{formatEuro(summe.steuerpflichtig)}</td>
                 <td className="py-2 pr-3 text-right">{summe.vorschuss ? `−${formatEuro(summe.vorschuss)}` : "–"}</td>
                 <td className="py-2 text-right">{formatEuro(summe.auszuzahlen)}</td>

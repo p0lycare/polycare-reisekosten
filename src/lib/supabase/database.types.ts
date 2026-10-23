@@ -184,6 +184,32 @@ export type Database = {
         }
         Relationships: []
       }
+      ki_nutzung: {
+        Row: {
+          id: number
+          person_id: string
+          zeit: string
+        }
+        Insert: {
+          id?: never
+          person_id: string
+          zeit?: string
+        }
+        Update: {
+          id?: never
+          person_id?: string
+          zeit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ki_nutzung_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mail_protokoll: {
         Row: {
           an: string[]
@@ -492,6 +518,7 @@ export type Database = {
       ist_admin: { Args: never; Returns: boolean }
       ist_buchhaltung: { Args: never; Returns: boolean }
       ist_freigeber: { Args: never; Returns: boolean }
+      ki_kontingent_nutzen: { Args: never; Returns: boolean }
       mail_empfaenger: {
         Args: { p_art: string; p_reise: string }
         Returns: {
@@ -510,7 +537,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      naechste_beleg_nr: { Args: never; Returns: string }
       name_aus_metadaten: {
         Args: { email: string; meta: Json }
         Returns: string
@@ -564,8 +590,8 @@ export type Database = {
         }
       }
       reise_pruefen: {
-        Args: { p_beleg_nr: string; p_buchungsmonat: string; p_id: string }
-        Returns: undefined
+        Args: { p_buchungsmonat: string; p_id: string }
+        Returns: string
       }
     }
     Enums: {

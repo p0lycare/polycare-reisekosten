@@ -119,11 +119,12 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
 
 /** Dateiname ohne Sonderzeichen, z. B. "RK-2026-0001_Reisekosten_Erika_Muster" */
 export function dateiBasis(belegNr: string | null, name: string): string {
-  const sauber = name
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/ß/g, "ss")
-    .replace(/[^A-Za-z0-9]+/g, "_")
-    .replace(/^_|_$/g, "");
-  return [belegNr ?? "Entwurf", "Reisekosten", sauber].filter(Boolean).join("_");
+  const sauber = (t: string) =>
+    t
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ß/g, "ss")
+      .replace(/[^A-Za-z0-9-]+/g, "_")
+      .replace(/^_|_$/g, "");
+  return [sauber(belegNr ?? "Entwurf"), "Reisekosten", sauber(name)].filter(Boolean).join("_");
 }

@@ -11,9 +11,15 @@ function text(formData: FormData, feld: string): string {
   return String(formData.get(feld) ?? "").trim();
 }
 
-/** Fehlermeldungen der Datenbankfunktionen sind bereits für Menschen formuliert */
-function meldung(error: { message: string } | null): WorkflowStatus {
-  return error ? { fehler: error.message } : {};
+/**
+ * Eigene Fehlermeldungen der Workflow-Funktionen (raise exception, Code P0001) sind für Menschen
+ * formuliert; technische Fehler (Constraints usw.) werden nicht ungefiltert angezeigt.
+ */
+function meldung(error: { message: string; code?: string } | null): WorkflowStatus {
+  if (!error) return {};
+  if (error.code === "P0001") return { fehler: error.message };
+  console.error("Workflow-Fehler", error);
+  return { fehler: "Das hat nicht geklappt. Bitte Seite neu laden und erneut versuchen." };
 }
 
 function aktualisieren(reiseId: string) {
@@ -56,23 +62,17 @@ export async function ablehnen(_vorher: WorkflowStatus, formData: FormData): Pro
 
 export async function pruefen(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus> {
   const id = text(formData, "id");
-  const belegNr = text(formData, "beleg_nr");
   const monat = text(formData, "buchungsmonat");
-  if (!belegNr) return { fehler: "Bitte eine Beleg-Nr. angeben." };
   if (!/^\d{4}-\d{2}$/.test(monat)) return { fehler: "Bitte den Buchungsmonat angeben." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("reise_pruefen", {
-    p_id: id,
-    p_beleg_nr: belegNr,
-    p_buchungsmonat: `${monat}-01`,
-  });
+  // Die Beleg-Nr. vergibt die Datenbank fortlaufend
+  const { error } = await supabase.rpc("reise_pruefen", { p_id: id, p_buchungsmonat: `${monat}-01` });
   if (!error) {
     await benachrichtige(supabase, id, "geprueft");
     // Abrechnung und Belege automatisch an DATEV; ein Fehler blockiert die Prüfung nicht
     await sendeAnDatev(supabase, id);
   }
   aktualisieren(id);
-  if (error?.message.includes("beleg_nr")) return { fehler: "Diese Beleg-Nr. ist bereits vergeben." };
   return meldung(error);
 }
 
