@@ -1,5 +1,6 @@
 import type { Mahlzeiten } from "./verpflegung";
 import type { Verkehrsmittel } from "./reise";
+import { weichtAb } from "../routing/strecke";
 
 export type PlausiReise = {
   beginn: string;
@@ -17,7 +18,8 @@ export type PlausiBeleg = {
   hatDatei: boolean;
 };
 
-export type PlausiFahrt = { datum: string };
+/** km_route: per Routing berechnete Strecke, falls bekannt */
+export type PlausiFahrt = { datum: string; km?: number | string; km_route?: number | string | null };
 
 /** Kategorien, für die es üblicherweise keinen Beleg gibt */
 const OHNE_BELEG_UEBLICH = new Set(["trinkgeld"]);
@@ -55,6 +57,12 @@ export function pruefePlausibilitaet(reise: PlausiReise, belege: PlausiBeleg[], 
 
   if (pkw && !fahrten.length) {
     hinweise.push("Eigener PKW ist gewählt, aber es sind keine Fahrten erfasst – es wird kein Km-Geld berechnet.");
+  }
+  const abweichend = fahrten.filter((f) => f.km != null && f.km_route != null && weichtAb(Number(f.km), Number(f.km_route)));
+  if (abweichend.length) {
+    hinweise.push(
+      `${abweichend.length === 1 ? "Eine Fahrt weicht" : `${abweichend.length} Fahrten weichen`} deutlich von der berechneten Route ab.`,
+    );
   }
   if (fahrten.length && !pkw) {
     hinweise.push("Es sind Fahrten erfasst, aber „Eigener PKW“ ist nicht als Verkehrsmittel gewählt.");

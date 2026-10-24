@@ -1,0 +1,75 @@
+import "server-only";
+import { zerlegeStrecke } from "./strecke";
+
+/**
+ * Fahrstrecke über OpenStreetMap: Orte per Nominatim finden, Route per OSRM berechnen.
+ * Beide Dienste sind frei nutzbar bei geringem Aufkommen (Nominatim: höchstens 1 Anfrage/s,
+ * mit Kennung). Ergebnisse werden im Speicher gehalten, damit Speichern keine zweite Abfrage braucht.
+ */
+export type RoutenErgebnis = { km: number; orte: string[] } | { fehler: string };
+
+type Punkt = { lat: string; lon: string; name: string };
+
+// Deutschland und Nachbarländer
+const LAENDER = "de,at,ch,nl,be,lu,fr,dk,pl,cz,it";
+
+const orteCache = new Map<string, Punkt | null>();
+const routenCache = new Map<string, RoutenErgebnis>();
+let letzteAnfrage = 0;
+
+function kennung(): string {
+  const kontakt = process.env.MAIL_ABSENDER;
+  return `Polycare-Reisekosten/1.0${kontakt ? ` (${kontakt})` : ""}`;
+}
+
+async function findeOrt(ort: string): Promise<Punkt | null> {
+  const schluessel = ort.toLowerCase();
+  if (orteCache.has(schluessel)) return orteCache.get(schluessel)!;
+
+  const warten = letzteAnfrage + 1100 - Date.now();
+  if (warten > 0) await new Promise((r) => setTimeout(r, warten));
+  letzteAnfrage = Date.now();
+
+  const parameter = new URLSearchParams({ format: "jsonv2", limit: "1", countrycodes: LAENDER, "accept-language": "de", q: ort });
+  const antwort = await fetch(`https://nominatim.openstreetmap.org/search?${parameter}`, {
+    headers: { "User-Agent": kennung() },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!antwort.ok) throw new Error(`Ortssuche fehlgeschlagen (${antwort.status})`);
+  const [treffer] = (await antwort.json()) as { lat: string; lon: string; name?: string; display_name: string }[];
+  const punkt = treffer ? { lat: treffer.lat, lon: treffer.lon, name: treffer.name || treffer.display_name.split(",")[0] } : null;
+  orteCache.set(schluessel, punkt);
+  return punkt;
+}
+
+export async function berechneRoute(strecke: string): Promise<RoutenErgebnis> {
+  const orte = zerlegeStrecke(strecke);
+  if (orte.length < 2) return { fehler: "Bitte Start und Ziel angeben, z. B. „Köln – Essen – Köln“." };
+  const schluessel = orte.join("|").toLowerCase();
+  const bekannt = routenCache.get(schluessel);
+  if (bekannt) return bekannt;
+
+  try {
+    const punkte: Punkt[] = [];
+    for (const ort of orte) {
+      const punkt = await findeOrt(ort);
+      if (!punkt) return { fehler: `„${ort}“ wurde nicht gefunden. Bitte genauer angeben, z. B. mit Postleitzahl.` };
+      punkte.push(punkt);
+    }
+
+    const koordinaten = punkte.map((p) => `${p.lon},${p.lat}`).join(";");
+    const antwort = await fetch(`https://router.project-osrm.org/route/v1/driving/${koordinaten}?overview=false`, {
+      headers: { "User-Agent": kennung() },
+      signal: AbortSignal.timeout(8000),
+    });
+    const daten = (await antwort.json()) as { code: string; routes?: { distance: number }[] };
+    if (!antwort.ok || daten.code !== "Ok" || !daten.routes?.length) return { fehler: "Für diese Strecke wurde keine Route gefunden." };
+
+    const ergebnis = { km: Math.round(daten.routes[0].distance / 100) / 10, orte: punkte.map((p) => p.name) };
+    routenCache.set(schluessel, ergebnis);
+    return ergebnis;
+  } catch (e) {
+    console.error("Routing fehlgeschlagen", e);
+    return { fehler: "Die Strecke konnte gerade nicht berechnet werden. Bitte km selbst eintragen." };
+  }
+}

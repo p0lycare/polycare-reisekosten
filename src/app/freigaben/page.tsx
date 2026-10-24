@@ -20,7 +20,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[], ibans: Map<stri
   const [abrechnungen, { data: belege }, { data: fahrten }] = await Promise.all([
     Promise.all(reisen.map((r) => ladeAbrechnung(supabase, r))),
     supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, kategorie(bezeichnung)").in("reise_id", ids),
-    supabase.from("fahrt").select("reise_id, datum").in("reise_id", ids),
+    supabase.from("fahrt").select("reise_id, datum, km, km_route").in("reise_id", ids),
   ]);
 
   const gruppen = new Map<string, PersonGruppe>();

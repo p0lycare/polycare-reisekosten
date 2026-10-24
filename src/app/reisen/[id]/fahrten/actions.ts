@@ -2,11 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { berechneRoute, type RoutenErgebnis } from "@/lib/routing/osm";
 
 export type FahrtStatus = { fehler?: string; gespeichert?: boolean };
 
 function text(formData: FormData, feld: string): string {
   return String(formData.get(feld) ?? "").trim();
+}
+
+/** Route für die Fahrstrecke berechnen (Vorschlag für das km-Feld) */
+export async function kmBerechnen(strecke: string): Promise<RoutenErgebnis> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { fehler: "Bitte neu anmelden." };
+  return berechneRoute(strecke.slice(0, 300));
 }
 
 export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): Promise<FahrtStatus> {
@@ -20,7 +31,18 @@ export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): 
   if (!strecke) return { fehler: "Fahrstrecke fehlt." };
   if (!Number.isFinite(km) || km <= 0 || km >= 10000) return { fehler: "Kilometer müssen größer als 0 sein." };
 
-  const daten = { reise_id: reiseId, datum, strecke, zweck: text(formData, "zweck") || null, km: Math.round(km * 10) / 10 };
+  // Route serverseitig bestimmen (meist aus dem Zwischenspeicher), damit die Kennzeichnung verlässlich ist
+  const route = await berechneRoute(strecke);
+  const kmRoute = "km" in route && route.km > 0 && route.km < 10000 ? route.km : null;
+
+  const daten = {
+    reise_id: reiseId,
+    datum,
+    strecke,
+    zweck: text(formData, "zweck") || null,
+    km: Math.round(km * 10) / 10,
+    km_route: kmRoute,
+  };
   const supabase = await createClient();
   // RLS erlaubt Änderungen nur in eigenen, bearbeitbaren Reisen
   const { data, error } = id

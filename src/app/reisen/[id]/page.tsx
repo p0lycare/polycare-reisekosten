@@ -75,7 +75,7 @@ export default async function ReisePage({
   const [{ data: plausiBelege }, { data: plausiFahrten }] = zeigeHinweise
     ? await Promise.all([
         supabase.from("beleg").select("kategorie_id, datum, betrag_cent, datei_pfad, kategorie(bezeichnung)").eq("reise_id", reise.id),
-        supabase.from("fahrt").select("datum").eq("reise_id", reise.id),
+        supabase.from("fahrt").select("datum, km, km_route").eq("reise_id", reise.id),
       ])
     : [{ data: null }, { data: null }];
   const hinweise = zeigeHinweise
