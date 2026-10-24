@@ -101,7 +101,7 @@ export async function reiseSpeichern(
     if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
     revalidatePath(`/reisen/${id}`);
     revalidatePath("/");
-    redirect(`/reisen/${id}`);
+    redirect(`/reisen/${id}?gespeichert=reise`);
   }
 
   const { data, error } = await supabase
@@ -116,7 +116,7 @@ export async function reiseSpeichern(
   if (eingangId) await eingangZuordnen(eingangId, data.id);
 
   revalidatePath("/");
-  redirect(`/reisen/${data.id}`);
+  redirect(`/reisen/${data.id}?gespeichert=reise`);
 }
 
 export async function reiseLoeschen(formData: FormData) {

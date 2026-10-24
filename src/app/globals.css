@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
+/* Farben angelehnt an polycare.de: fast Schwarz, Grautöne, Grün als Akzent */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #141414;
+  --marke: #1faa5f;
+  --marke-hell: #e8f6ee;
+  --marke-dunkel: #0f6b3a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-marke: var(--marke);
+  --color-marke-hell: var(--marke-hell);
+  --color-marke-dunkel: var(--marke-dunkel);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #0e0e0e;
     --foreground: #ededed;
+    --marke-hell: #0f2e1e;
+    --marke-dunkel: #8fe0b4;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Tastaturfokus gut sichtbar in Markenfarbe */
+:focus-visible {
+  outline: 2px solid var(--marke);
+  outline-offset: 2px;
 }

@@ -85,7 +85,7 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
   }
 
   revalidatePath(`/reisen/${reiseId}`);
-  redirect(`/reisen/${reiseId}`);
+  redirect(`/reisen/${reiseId}?gespeichert=beleg`);
 }
 
 export async function belegLoeschen(formData: FormData) {
@@ -179,5 +179,5 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
   await eingangErledigt(supabase, text(formData, "eingang_id"));
 
   revalidatePath(`/reisen/${reiseId}`);
-  redirect(`/reisen/${reiseId}`);
+  redirect(`/reisen/${reiseId}?gespeichert=belege`);
 }
