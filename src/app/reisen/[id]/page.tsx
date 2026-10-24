@@ -14,6 +14,7 @@ import { Verlauf } from "./workflow/verlauf";
 import { DatevPanel } from "./workflow/datev-panel";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
+import { istAusland, landName } from "@/lib/reisekosten/laender";
 
 export default async function ReisePage({
   params,
@@ -147,6 +148,7 @@ export default async function ReisePage({
             <h1 className="mt-2 text-2xl font-semibold">{reise.begruendung}</h1>
             <p className="text-neutral-600 dark:text-neutral-400">
               {reise.reiseweg}
+              {istAusland(reise.land) && ` · ${landName(reise.land, Number(reise.beginn.slice(0, 4)))}`}
               {reise.besuchte_stellen && ` · ${reise.besuchte_stellen}`}
             </p>
             {reisender && <p className="mt-1 text-sm font-medium">{reisender.name}</p>}

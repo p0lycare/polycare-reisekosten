@@ -12,6 +12,7 @@ const dokument: AbrechnungsDokument = {
   kostenstelle: "100",
   begruendung: "Messe – Planung „Neubau“",
   reiseweg: "Köln – Essen – Köln",
+  ausland: null,
   besuchteStellen: "Beispiel GmbH",
   abfahrt: "21.10.2026, 07:00",
   rueckkehr: "23.10.2026, 18:00",

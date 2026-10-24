@@ -11,6 +11,8 @@ export type AbrechnungsDokument = {
   kostenstelle: string | null;
   begruendung: string;
   reiseweg: string;
+  /** Anzeigename des Reiselands, null bei Inlandsreisen */
+  ausland: string | null;
   besuchteStellen: string | null;
   abfahrt: string;
   rueckkehr: string;
@@ -110,7 +112,7 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   const l = new Layout(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
 
   // Kopf
-  l.text("Reisekostenabrechnung Inland", RAND, { groesse: 16, fett: true });
+  l.text(`Reisekostenabrechnung ${d.ausland ? "Ausland" : "Inland"}`, RAND, { groesse: 16, fett: true });
   l.text(`Beleg-Nr. ${d.belegNr ?? "–"}`, 0, { groesse: 10, fett: true, rechts: RECHTS });
   l.zeile(14);
   l.text(`Buchungsmonat ${d.buchungsmonat ?? "–"} · erstellt am ${d.erstelltAm}`, 0, { groesse: 8, farbe: GRAU, rechts: RECHTS });
@@ -124,7 +126,7 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   l.feld("Wohnort", d.reisende.wohnort, RAND, spalte * 2 - 8);
   l.feld("IBAN", d.reisende.iban, RAND + spalte * 2, spalte * 2 - 8);
   l.zeile(26);
-  l.feld("Reiseweg", d.reiseweg, RAND, spalte * 2 - 8);
+  l.feld("Reiseweg", d.ausland ? `${d.reiseweg} (${d.ausland})` : d.reiseweg, RAND, spalte * 2 - 8);
   l.feld("Besuchte Stellen", d.besuchteStellen, RAND + spalte * 2, spalte * 2 - 8);
   l.zeile(26);
   l.feld("Begründung", d.begruendung, RAND, spalte * 4 - 8);

@@ -1,4 +1,5 @@
 import "server-only";
+import { istAusland, landName } from "@/lib/reisekosten/laender";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { formatDatum, formatDatumZeit } from "@/lib/format";
@@ -58,6 +59,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     kostenstelle: reise.kostenstelle,
     begruendung: reise.begruendung,
     reiseweg: reise.reiseweg,
+    ausland: istAusland(reise.land) ? landName(reise.land, Number(reise.beginn.slice(0, 4))) : null,
     besuchteStellen: reise.besuchte_stellen,
     abfahrt: formatDatumZeit(reise.beginn),
     rueckkehr: formatDatumZeit(reise.ende),

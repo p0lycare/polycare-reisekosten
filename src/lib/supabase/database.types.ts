@@ -378,6 +378,36 @@ export type Database = {
           },
         ]
       }
+      projekt: {
+        Row: {
+          aktiv: boolean
+          bezeichnung: string
+          created_at: string
+          foerdergeber: string | null
+          foerderkennzeichen: string | null
+          id: string
+          nummer: string | null
+        }
+        Insert: {
+          aktiv?: boolean
+          bezeichnung: string
+          created_at?: string
+          foerdergeber?: string | null
+          foerderkennzeichen?: string | null
+          id?: string
+          nummer?: string | null
+        }
+        Update: {
+          aktiv?: boolean
+          bezeichnung?: string
+          created_at?: string
+          foerdergeber?: string | null
+          foerderkennzeichen?: string | null
+          id?: string
+          nummer?: string | null
+        }
+        Relationships: []
+      }
       reise: {
         Row: {
           ablehnungsgrund: string | null
@@ -405,6 +435,7 @@ export type Database = {
           mit_uebernachtung: boolean
           mitarbeiter_id: string
           mitfahrt_bei: string | null
+          projekt_id: string | null
           reiseweg: string
           status: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
@@ -437,6 +468,7 @@ export type Database = {
           mit_uebernachtung?: boolean
           mitarbeiter_id: string
           mitfahrt_bei?: string | null
+          projekt_id?: string | null
           reiseweg: string
           status?: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
@@ -469,6 +501,7 @@ export type Database = {
           mit_uebernachtung?: boolean
           mitarbeiter_id?: string
           mitfahrt_bei?: string | null
+          projekt_id?: string | null
           reiseweg?: string
           status?: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
@@ -502,6 +535,13 @@ export type Database = {
             columns: ["mitarbeiter_id"]
             isOneToOne: false
             referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reise_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "projekt"
             referencedColumns: ["id"]
           },
         ]
@@ -623,6 +663,7 @@ export type Database = {
           mit_uebernachtung: boolean
           mitarbeiter_id: string
           mitfahrt_bei: string | null
+          projekt_id: string | null
           reiseweg: string
           status: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]

@@ -5,17 +5,19 @@ export type Mahlzeiten = {
   fruehstueck?: boolean;
   mittag?: boolean;
   abend?: boolean;
+  /** Abweichendes Land an diesem Tag (Reisen durch mehrere Staaten), sonst gilt das Reiseland */
+  land?: string;
 };
 
 export type VerpflegungInput = {
   /** Lokale Zeit ohne Zeitzone, z. B. "2026-10-23T07:30" */
   beginn: string;
   ende: string;
-  /** ISO-Ländercode, Standard "DE" */
+  /** Reiseland: "DE", ISO-Code oder "ISO:Stadt" (siehe laender.ts), Standard "DE" */
   land?: string;
   /** Übernachtung auswärts? Bei false werden Reisen über Mitternacht zusammengerechnet. */
   mitUebernachtung?: boolean;
-  /** Gestellte Mahlzeiten je Kalendertag ("YYYY-MM-DD") */
+  /** Gestellte Mahlzeiten und ggf. abweichendes Land je Kalendertag ("YYYY-MM-DD") */
   mahlzeiten?: Record<string, Mahlzeiten>;
 };
 
@@ -60,12 +62,18 @@ function kuerzungFuer(m: Mahlzeiten | undefined, p: Pauschale): number {
   return k;
 }
 
+/**
+ * Pauschale eines Kalendertags. Bei Reisen durch mehrere Staaten gilt je Tag das dort angegebene Land
+ * (BMF: An-/Zwischentage = Ort, der vor 24 Uhr erreicht wird; Abreisetag = letzter Tätigkeitsort).
+ * Die Kürzung für gestellte Mahlzeiten richtet sich nach der vollen Pauschale desselben Tages.
+ */
 function tag(
   datum: string,
   art: VerpflegungTag["art"],
-  p: Pauschale,
+  reiseland: string,
   mahlzeiten: VerpflegungInput["mahlzeiten"],
 ): VerpflegungTag {
+  const p = pauschaleFuer(mahlzeiten?.[datum]?.land || reiseland, Number(datum.slice(0, 4)));
   const pauschale = art === "voll" ? p.voll : art === "klein" ? p.klein : 0;
   const kuerzung = Math.min(pauschale, kuerzungFuer(mahlzeiten?.[datum], p));
   return { datum, art, pauschale, kuerzung, betrag: pauschale - kuerzung };
@@ -80,7 +88,7 @@ export function berechneVerpflegung(input: VerpflegungInput): VerpflegungErgebni
   const ende = parseLokal(input.ende);
   if (ende <= beginn) throw new Error("Ende muss nach dem Beginn liegen");
 
-  const p = pauschaleFuer(input.land ?? "DE");
+  const land = input.land ?? "DE";
   const mitUebernachtung = input.mitUebernachtung ?? true;
 
   // Kalendertage mit jeweiliger Abwesenheitsdauer
@@ -95,7 +103,7 @@ export function berechneVerpflegung(input: VerpflegungInput): VerpflegungErgebni
 
   if (abschnitte.length === 1) {
     const [a] = abschnitte;
-    tage = [tag(a.datum, a.stunden > 8 ? "klein" : "keine", p, input.mahlzeiten)];
+    tage = [tag(a.datum, a.stunden > 8 ? "klein" : "keine", land, input.mahlzeiten)];
   } else if (!mitUebernachtung) {
     // Ohne Übernachtung über Mitternacht: Abwesenheit zusammenrechnen und dem
     // Tag mit der überwiegenden Abwesenheit zuordnen (§ 9 Abs. 4a Satz 3 Nr. 3 EStG).
@@ -105,12 +113,12 @@ export function berechneVerpflegung(input: VerpflegungInput): VerpflegungErgebni
     const gesamt = abschnitte.reduce((s, a) => s + a.stunden, 0);
     const haupt = abschnitte[0].stunden > abschnitte[1].stunden ? 0 : 1;
     tage = abschnitte.map((a, i) =>
-      tag(a.datum, i === haupt && gesamt > 8 ? "klein" : "keine", p, input.mahlzeiten),
+      tag(a.datum, i === haupt && gesamt > 8 ? "klein" : "keine", land, input.mahlzeiten),
     );
   } else {
     const letzter = abschnitte.length - 1;
     tage = abschnitte.map((a, i) =>
-      tag(a.datum, i === 0 || i === letzter ? "klein" : "voll", p, input.mahlzeiten),
+      tag(a.datum, i === 0 || i === letzter ? "klein" : "voll", land, input.mahlzeiten),
     );
   }
 
