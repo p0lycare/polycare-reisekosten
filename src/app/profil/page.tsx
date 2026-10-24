@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatIban } from "@/lib/iban";
 import { ProfilFormular } from "./profil-formular";
 
 export default async function ProfilPage() {
@@ -9,7 +8,7 @@ export default async function ProfilPage() {
   } = await supabase.auth.getUser();
   const [{ data: profil }, { data: privat }] = await Promise.all([
     supabase.from("profile").select("name, email, rolle, kostenstelle, kfz_kennzeichen, kalender_vorschlaege").eq("id", user!.id).single(),
-    supabase.from("profil_privat").select("personalnummer, wohnort, iban").eq("id", user!.id).maybeSingle(),
+    supabase.from("profil_privat").select("personalnummer, wohnort").eq("id", user!.id).maybeSingle(),
   ]);
 
   return (
@@ -24,7 +23,6 @@ export default async function ProfilPage() {
         werte={{
           personalnummer: privat?.personalnummer ?? "",
           wohnort: privat?.wohnort ?? "",
-          iban: privat?.iban ? formatIban(privat.iban) : "",
           kostenstelle: profil?.kostenstelle ?? "",
           kfzKennzeichen: profil?.kfz_kennzeichen ?? "",
           kalenderVorschlaege: profil?.kalender_vorschlaege ?? false,

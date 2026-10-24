@@ -7,7 +7,6 @@ import { profilSpeichern, type ProfilStatus } from "./actions";
 export type ProfilWerte = {
   personalnummer: string;
   wohnort: string;
-  iban: string;
   kostenstelle: string;
   kfzKennzeichen: string;
   kalenderVorschlaege: boolean;
@@ -32,19 +31,11 @@ export function ProfilFormular({ werte }: { werte: ProfilWerte }) {
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-        <legend className="px-1 text-sm font-medium">Vertraulich – nur für dich und die Buchhaltung</legend>
+        <legend className="px-1 text-sm font-medium">Vertraulich – nur für dich und die Buchhaltung (ausgezahlt wird über DATEV)</legend>
         <div className="grid gap-4 sm:grid-cols-2">
           <Feld label="Personalnummer" name="personalnummer" defaultValue={werte.personalnummer} />
           <Feld label="Wohnort" name="wohnort" defaultValue={werte.wohnort} autoComplete="address-level2" />
         </div>
-        <Feld
-          label="IBAN für die Erstattung"
-          name="iban"
-          defaultValue={werte.iban}
-          placeholder="DE00 0000 0000 0000 0000 00"
-          autoComplete="off"
-          spellCheck={false}
-        />
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">

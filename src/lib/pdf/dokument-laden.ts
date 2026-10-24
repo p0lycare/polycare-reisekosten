@@ -4,7 +4,6 @@ import { projektName } from "@/lib/reisekosten/projekte";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { formatDatum, formatDatumZeit } from "@/lib/format";
-import { formatIban } from "@/lib/iban";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
 import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
@@ -25,14 +24,14 @@ function typAusPfad(pfad: string): string {
   return endung === "pdf" ? "application/pdf" : endung === "png" ? "image/png" : endung === "heic" ? "image/heic" : endung === "webp" ? "image/webp" : "image/jpeg";
 }
 
-/** Lädt alles für das Abrechnungs-PDF. Was die angemeldete Person nicht sehen darf (z. B. IBAN), bleibt leer. */
+/** Lädt alles für das Abrechnungs-PDF. Was die angemeldete Person nicht sehen darf (z. B. Personalnummer), bleibt leer. */
 export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: string) {
   const { data: reise } = await supabase.from("reise").select("*").eq("id", reiseId).maybeSingle();
   if (!reise) return null;
 
   const [{ data: person }, { data: privat }, abrechnung, { data: fahrten }, { data: belege }, { data: verlauf }] = await Promise.all([
     supabase.from("profile").select("name").eq("id", reise.mitarbeiter_id).maybeSingle(),
-    supabase.from("profil_privat").select("personalnummer, wohnort, iban").eq("id", reise.mitarbeiter_id).maybeSingle(),
+    supabase.from("profil_privat").select("personalnummer, wohnort").eq("id", reise.mitarbeiter_id).maybeSingle(),
     ladeAbrechnung(supabase, reise),
     supabase.from("fahrt").select("datum, strecke, zweck, km").eq("reise_id", reiseId).order("datum"),
     supabase
@@ -58,7 +57,6 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
       name: person?.name ?? "",
       personalnummer: privat?.personalnummer ?? null,
       wohnort: privat?.wohnort ?? null,
-      iban: privat?.iban ? formatIban(privat.iban) : null,
     },
     kostenstelle: reise.kostenstelle,
     begruendung: reise.begruendung,

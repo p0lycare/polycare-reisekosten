@@ -85,7 +85,7 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
           Hotelrechnung, Beleg außerhalb des Zeitraums …) – kurz prüfen, dann geht es ohne Rückfragen durch.
         </p>
         <p>
-          Danach: Genehmigung durch deine Führungskraft → Belegprüfung durch die Buchhaltung → Übergabe an DATEV → Auszahlung auf dein
+          Danach: Genehmigung durch deine Führungskraft → Belegprüfung durch die Buchhaltung → Übergabe an DATEV → Überweisung auf dein
           Konto. Bei jedem Schritt bekommst du eine Mail.
         </p>
         <p>
@@ -160,8 +160,9 @@ export function FuerBuchhaltung() {
       </Schritt>
       <Schritt nr={3} titel="Auszahlung">
         <p>
-          Unter „Zur Auszahlung“ stehen die Beträge je Person mit IBAN aus dem Profil. Überweisen, dann „als ausgezahlt markieren“ – die
-          Person bekommt eine Mail. Genehmigte Vorschüsse stehen oben unter „Vorschüsse“ und laufen genauso.
+          Ausgezahlt wird als eigene Überweisung über DATEV: Die geprüfte Reise liegt mit Beleg-Nr. als PDF in DATEV, dort buchen und
+          die Zahlung anweisen – die Bankverbindungen sind hinterlegt. Danach im Tool unter „Zur Auszahlung“ als überwiesen markieren
+          (auch gesammelt); die Person bekommt eine Mail. Genehmigte Vorschüsse stehen oben unter „Vorschüsse“ und laufen genauso.
         </p>
       </Schritt>
       <Schritt nr={4} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>

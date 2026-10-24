@@ -21,14 +21,13 @@ export type SammelReise = {
 export type PersonGruppe = {
   personId: string;
   name: string;
-  iban: string | null;
   reisen: SammelReise[];
 };
 
 type Art = "genehmigen" | "pruefen" | "auszahlen";
 
 const AKTION = { genehmigen: sammelGenehmigen, pruefen: sammelPruefen, auszahlen: sammelAuszahlen };
-const KNOPF: Record<Art, string> = { genehmigen: "genehmigen", pruefen: "prüfen und an DATEV", auszahlen: "als ausgezahlt markieren" };
+const KNOPF: Record<Art, string> = { genehmigen: "genehmigen", pruefen: "prüfen und an DATEV", auszahlen: "als in DATEV überwiesen markieren" };
 
 function zeitraum(r: SammelReise): string {
   const von = formatDatum(r.beginn);
@@ -59,9 +58,6 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-200 p-4 dark:border-neutral-800">
           <div>
             <p className="font-medium">{gruppe.name}</p>
-            {art === "auszahlen" && (
-              <p className="font-mono text-sm text-neutral-600 dark:text-neutral-400">{gruppe.iban ?? "IBAN fehlt im Profil"}</p>
-            )}
           </div>
           <p className="tabular-nums">{formatEuro(summe)}</p>
         </div>

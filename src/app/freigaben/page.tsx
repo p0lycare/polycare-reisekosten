@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
-import { formatIban } from "@/lib/iban";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { istFreigebend, ladeAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
@@ -15,7 +14,7 @@ type Eintrag = Reise & { mitarbeiter: { name: string } | null };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /** Reisen je Person bündeln, mit Beträgen und Zahl der Plausibilitäts-Hinweise */
-async function gruppieren(supabase: Supabase, reisen: Eintrag[], ibans: Map<string, string | null>): Promise<PersonGruppe[]> {
+async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<PersonGruppe[]> {
   if (!reisen.length) return [];
   const ids = reisen.map((r) => r.id);
   const [abrechnungen, { data: belege }, { data: fahrten }] = await Promise.all([
@@ -49,7 +48,6 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[], ibans: Map<stri
     const g = gruppen.get(r.mitarbeiter_id) ?? {
       personId: r.mitarbeiter_id,
       name: r.mitarbeiter?.name ?? "",
-      iban: ibans.get(r.mitarbeiter_id) ?? null,
       reisen: [],
     };
     g.reisen.push({
@@ -96,14 +94,6 @@ export default async function FreigabenPage() {
   const buchhaltung = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
   const freigebend = profil?.rolle === "freigeber" || profil?.rolle === "admin";
 
-  // IBAN nur für die Auszahlung (lesbar nur für die Buchhaltung)
-  const auszahlenIds = [...new Set(aufgaben.auszahlen.map((r) => r.mitarbeiter_id))];
-  const { data: privat } =
-    buchhaltung && auszahlenIds.length
-      ? await supabase.from("profil_privat").select("id, iban").in("id", auszahlenIds)
-      : { data: [] as { id: string; iban: string | null }[] };
-  const ibans = new Map((privat ?? []).map((p) => [p.id, p.iban ? formatIban(p.iban) : null]));
-
   // Vorschüsse: genehmigen wie Reisen (Führungskraft), auszahlen durch die Buchhaltung; nie die eigenen
   const { data: vorschuesse } = await supabase
     .from("vorschuss")
@@ -112,11 +102,6 @@ export default async function FreigabenPage() {
     .neq("mitarbeiter_id", user!.id)
     .order("beantragt_am");
   const { genehmigen: vGenehmigen, auszahlen: vAuszahlen } = verteileVorschuesse(vorschuesse ?? [], user!.id, profil?.rolle);
-  const vIbanIds = vAuszahlen.map((v) => v.mitarbeiter_id).filter((id) => !ibans.has(id));
-  if (vIbanIds.length) {
-    const { data } = await supabase.from("profil_privat").select("id, iban").in("id", vIbanIds);
-    for (const p of data ?? []) ibans.set(p.id, p.iban ? formatIban(p.iban) : null);
-  }
   const alsOffen = (v: NonNullable<typeof vorschuesse>[number]): OffenerVorschuss => ({
     id: v.id,
     reiseId: v.reise_id,
@@ -125,13 +110,12 @@ export default async function FreigabenPage() {
     beginn: v.reise_beginn,
     betrag: v.betrag_cent,
     grund: v.grund,
-    iban: ibans.get(v.mitarbeiter_id) ?? null,
   });
 
   const [genehmigen, pruefen, auszahlen] = await Promise.all([
-    gruppieren(supabase, aufgaben.genehmigen, ibans),
-    gruppieren(supabase, aufgaben.pruefen, ibans),
-    gruppieren(supabase, aufgaben.auszahlen, ibans),
+    gruppieren(supabase, aufgaben.genehmigen),
+    gruppieren(supabase, aufgaben.pruefen),
+    gruppieren(supabase, aufgaben.auszahlen),
   ]);
 
   return (
