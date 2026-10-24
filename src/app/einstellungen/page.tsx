@@ -23,6 +23,8 @@ export default async function EinstellungenPage() {
     supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
     supabase.from("projekt").select("*").order("aktiv", { ascending: false }).order("bezeichnung"),
   ]);
+  const { count: offeneMeldungen } =
+    profil?.rolle === "admin" ? await supabase.from("meldung").select("id", { count: "exact", head: true }).neq("status", "erledigt") : { count: 0 };
   const absender = mailKonfiguration() ? process.env.MAIL_ABSENDER : null;
   const serverOk = await adminZugangOk();
   const zeit = new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
@@ -37,9 +39,14 @@ export default async function EinstellungenPage() {
           Kategorien, MwSt-Sätze und Buchungskonten für die Abrechnung. Leerer MwSt-Satz: wird je Beleg gewählt.
         </p>
         {profil?.rolle === "admin" && (
-          <Link href="/einstellungen/personen" className="mt-2 inline-block text-sm underline">
-            Personen und Rollen verwalten →
-          </Link>
+          <div className="mt-2 flex flex-wrap gap-4 text-sm">
+            <Link href="/einstellungen/personen" className="underline">
+              Personen und Rollen verwalten →
+            </Link>
+            <Link href="/einstellungen/meldungen" className="underline">
+              Meldungen{offeneMeldungen ? ` (${offeneMeldungen} offen)` : ""} →
+            </Link>
+          </div>
         )}
       </div>
 

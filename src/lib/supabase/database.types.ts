@@ -302,6 +302,50 @@ export type Database = {
           },
         ]
       }
+      meldung: {
+        Row: {
+          art: string
+          browser: string | null
+          erstellt_am: string
+          id: string
+          notiz: string | null
+          person_id: string
+          seite: string | null
+          status: string
+          text: string
+        }
+        Insert: {
+          art: string
+          browser?: string | null
+          erstellt_am?: string
+          id?: string
+          notiz?: string | null
+          person_id?: string
+          seite?: string | null
+          status?: string
+          text: string
+        }
+        Update: {
+          art?: string
+          browser?: string | null
+          erstellt_am?: string
+          id?: string
+          notiz?: string | null
+          person_id?: string
+          seite?: string | null
+          status?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meldung_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profil_privat: {
         Row: {
           iban: string | null

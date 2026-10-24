@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./logo";
 import { KopfzeileReiter, type Reiter } from "./kopfzeile-reiter";
+import { FeedbackLink } from "./feedback-link";
 
 export type KopfzeileDaten = {
   name: string;
@@ -43,6 +44,7 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
             <Link href="/einfuehrung" className="text-neutral-500 hover:text-neutral-900 hover:underline dark:hover:text-neutral-100">
               Hilfe
             </Link>
+            <FeedbackLink />
             <Link href="/profil" className="flex min-w-0 items-center gap-2 text-neutral-700 hover:underline dark:text-neutral-300">
               <span className="hidden truncate sm:inline">{daten.name}</span>
               <span className="sm:hidden">Profil</span>

@@ -120,7 +120,7 @@ export default async function EinfuehrungPage({ searchParams }: { searchParams: 
       {rolle === "admin" && <FuerAdmins />}
 
       <p className="border-t border-neutral-200 pt-6 text-sm text-neutral-500 dark:border-neutral-800">
-        Fragen oder etwas klemmt? Melde dich bei der Buchhaltung. Diese Einführung findest du jederzeit oben unter „Hilfe“.
+        Fragen, Fehler oder Wünsche? Oben auf „Feedback“ tippen – die Admins bekommen deine Meldung direkt. Diese Einführung findest du jederzeit unter „Hilfe“.
       </p>
     </main>
   );
