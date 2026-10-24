@@ -537,6 +537,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reise_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "projekt"
+            referencedColumns: ["id"]
+          },
         ]
       }
       reise_ereignis: {
@@ -656,6 +663,7 @@ export type Database = {
           mit_uebernachtung: boolean
           mitarbeiter_id: string
           mitfahrt_bei: string | null
+          projekt_id: string | null
           reiseweg: string
           status: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
