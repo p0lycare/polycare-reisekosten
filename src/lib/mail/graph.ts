@@ -28,7 +28,7 @@ export function mailKonfiguration(): Konfiguration | null {
 
 let tokenCache: { token: string; gueltigBis: number } | null = null;
 
-async function zugriffstoken(k: Konfiguration): Promise<string> {
+export async function zugriffstoken(k: Konfiguration): Promise<string> {
   if (tokenCache && tokenCache.gueltigBis > Date.now() + 60_000) return tokenCache.token;
 
   const antwort = await fetch(`https://login.microsoftonline.com/${k.tenantId}/oauth2/v2.0/token`, {

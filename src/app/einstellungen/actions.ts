@@ -85,3 +85,23 @@ export async function saetzeSpeichern(_vorher: AktionStatus, formData: FormData)
   revalidatePath("/einstellungen");
   return { gespeichert: true };
 }
+
+/** Büro-Orte: eine Angabe je Zeile, z. B. Straße oder Ort der ersten Tätigkeitsstätte */
+export async function bueroOrteSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
+  const orte = text(formData, "buero_orte")
+    .split(/\r?\n|,/)
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("einstellungen")
+    .update({ buero_orte: orte, updated_at: new Date().toISOString() })
+    .eq("id", true)
+    .select("id");
+  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+
+  revalidatePath("/einstellungen");
+  return { gespeichert: true };
+}

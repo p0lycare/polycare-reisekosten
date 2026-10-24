@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import type { Abschnitt, Kategorie } from "@/lib/reisekosten/kategorie";
-import { kategorieSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
+import { bueroOrteSpeichern, kategorieSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
 
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -104,6 +104,23 @@ export function SaetzeFormular({ kmSatzCent, kmSteuerfreiCent }: { kmSatzCent: n
         <input name="km_steuerfrei" inputMode="decimal" defaultValue={euro(kmSteuerfreiCent)} className={feld} />
       </label>
       <div className="col-span-2 flex items-center gap-3 sm:col-span-1">
+        <Knopf laeuft={laeuft}>Speichern</Knopf>
+        <Meldung status={status} />
+      </div>
+    </form>
+  );
+}
+
+export function BueroOrteFormular({ orte }: { orte: string[] }) {
+  const [status, absenden, laeuft] = useActionState(bueroOrteSpeichern, {});
+
+  return (
+    <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-2">
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Orte der ersten Tätigkeitsstätte</span>
+        <textarea name="buero_orte" rows={3} defaultValue={orte.join("\n")} placeholder={"Straße des Büros\nOrt"} className={feld} />
+      </label>
+      <div className="flex items-center gap-3">
         <Knopf laeuft={laeuft}>Speichern</Knopf>
         <Meldung status={status} />
       </div>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ABSCHNITT_TEXT, ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
-import { KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
+import { BueroOrteFormular, KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
 import { TestmailKnopf } from "./mail/mail-bereich";
 import { DatevAdresse } from "./mail/datev-adresse";
 import { mailKonfiguration } from "@/lib/mail/graph";
@@ -18,7 +18,7 @@ export default async function EinstellungenPage() {
 
   const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }, { data: intern }] = await Promise.all([
     supabase.from("kategorie").select("*").order("abschnitt").order("sortierung").order("bezeichnung"),
-    supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent").single(),
+    supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent, buero_orte").single(),
     supabase.from("mail_protokoll").select("id, zeit, art, an, betreff, status, fehler").order("zeit", { ascending: false }).limit(10),
     supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
   ]);
@@ -83,6 +83,14 @@ export default async function EinstellungenPage() {
         />
         <p className="text-xs text-neutral-500">
           Der Anteil über dem steuerfreien Satz wird als steuerpflichtiger Arbeitslohn ausgewiesen.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-medium">Kalendervorschläge</h2>
+        <BueroOrteFormular orte={einstellungen?.buero_orte ?? []} />
+        <p className="text-xs text-neutral-500">
+          Eine Angabe je Zeile. Termine, deren Ort einen dieser Texte enthält, gelten als Bürotermin und werden nicht als Reise vorgeschlagen.
         </p>
       </section>
 

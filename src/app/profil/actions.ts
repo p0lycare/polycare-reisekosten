@@ -30,6 +30,7 @@ export async function profilSpeichern(_vorher: ProfilStatus, formData: FormData)
     .update({
       kostenstelle: text(formData, "kostenstelle"),
       kfz_kennzeichen: kennzeichen?.toUpperCase() ?? null,
+      kalender_vorschlaege: formData.get("kalender_vorschlaege") === "on",
     })
     .eq("id", user.id);
 
