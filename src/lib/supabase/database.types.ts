@@ -348,21 +348,18 @@ export type Database = {
       }
       profil_privat: {
         Row: {
-          iban: string | null
           id: string
           personalnummer: string | null
           updated_at: string
           wohnort: string | null
         }
         Insert: {
-          iban?: string | null
           id: string
           personalnummer?: string | null
           updated_at?: string
           wohnort?: string | null
         }
         Update: {
-          iban?: string | null
           id?: string
           personalnummer?: string | null
           updated_at?: string
