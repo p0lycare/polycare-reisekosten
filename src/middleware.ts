@@ -29,7 +29,8 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const oeffentlich = pathname === "/login" || pathname.startsWith("/auth/");
+  // Cron-Routen prüfen ihr eigenes Geheimnis
+  const oeffentlich = pathname === "/login" || pathname.startsWith("/auth/") || pathname.startsWith("/api/cron/");
   if (!user && !oeffentlich) {
     const ziel = request.nextUrl.clone();
     ziel.pathname = "/login";
@@ -41,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

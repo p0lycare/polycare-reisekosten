@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import type { Abschnitt, Kategorie } from "@/lib/reisekosten/kategorie";
-import { bueroOrteSpeichern, kategorieSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
+import { bueroOrteSpeichern, erinnerungTesten, kategorieSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
 
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -124,6 +124,16 @@ export function BueroOrteFormular({ orte }: { orte: string[] }) {
         <Knopf laeuft={laeuft}>Speichern</Knopf>
         <Meldung status={status} />
       </div>
+    </form>
+  );
+}
+
+export function ErinnerungTesten() {
+  const [status, absenden, laeuft] = useActionState(erinnerungTesten, {});
+  return (
+    <form action={absenden} className="flex flex-wrap items-center gap-3">
+      <Knopf laeuft={laeuft}>Erinnerung an mich testen</Knopf>
+      {status.gespeichert ? <p role="status" className="text-sm text-green-700 dark:text-green-400">Gesendet – bitte Postfach prüfen</p> : <Meldung status={status} />}
     </form>
   );
 }

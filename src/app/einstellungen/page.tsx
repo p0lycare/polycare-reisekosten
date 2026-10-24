@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ABSCHNITT_TEXT, ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
-import { BueroOrteFormular, KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
+import { BueroOrteFormular, ErinnerungTesten, KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
 import { TestmailKnopf } from "./mail/mail-bereich";
 import { DatevAdresse } from "./mail/datev-adresse";
 import { mailKonfiguration } from "@/lib/mail/graph";
@@ -92,6 +92,15 @@ export default async function EinstellungenPage() {
         <p className="text-xs text-neutral-500">
           Eine Angabe je Zeile. Termine, deren Ort einen dieser Texte enthält, gelten als Bürotermin und werden nicht als Reise vorgeschlagen.
         </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-medium">Erinnerungen</h2>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Automatisch per Mail: am vorletzten Werktag des Monats an alle mit Entwürfen, abgelehnten Reisen oder Belegen im Eingang; montags an
+          alle, bei denen Freigaben, Belegprüfungen oder Auszahlungen warten. Ohne offene Punkte geht keine Mail raus.
+        </p>
+        {profil?.rolle === "admin" && <ErinnerungTesten />}
       </section>
 
       {abschnitte.map((a) => (

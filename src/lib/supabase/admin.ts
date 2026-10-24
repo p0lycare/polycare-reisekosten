@@ -4,7 +4,8 @@ import type { Database } from "./database.types";
 
 /**
  * Supabase-Client mit Service-Rolle – umgeht RLS. Nur für eng begrenzte Server-Aufgaben verwenden:
- * Mailprotokoll schreiben und Empfänger ermitteln, nachdem ein Workflow-Schritt erfolgreich war.
+ * Mailprotokoll schreiben, Empfänger ermitteln, nachdem ein Workflow-Schritt erfolgreich war,
+ * und der tägliche Erinnerungslauf (Cron).
  */
 export function createAdminClient() {
   const key = process.env.SUPABASE_SECRET_KEY;

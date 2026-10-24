@@ -64,7 +64,7 @@ export function alsMail(art: Benachrichtigung, d: VorlageDaten): { betreff: stri
   const text = [...zeilen, "", `${knopf}: ${d.link}`, "", "– Polycare Reisekosten"].join("\n");
   const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;font-size:15px;color:#171717;line-height:1.5">
 ${zeilen.map((z) => `<p>${escape(z)}</p>`).join("\n")}
-<p><a href="${escape(d.link)}" style="display:inline-block;background:#171717;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(knopf)}</a></p>
+<p><a href="${escape(d.link)}" style="display:inline-block;background:#153c28;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(knopf)}</a></p>
 <p style="color:#737373;font-size:13px">Polycare Reisekosten</p>
 </body></html>`;
   return { betreff, text, html };
@@ -115,8 +115,19 @@ export function alsSammelMail(d: SammelDaten): { betreff: string; text: string; 
 <p>${escape(texte.kopf)}</p>
 <ul>${zeilen.map((z) => `<li>${escape(z)}</li>`).join("")}</ul>
 ${kommentar.map((k) => `<p>${escape(k)}</p>`).join("")}
-<p><a href="${escape(d.link)}" style="display:inline-block;background:#171717;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(texte.knopf)}</a></p>
+<p><a href="${escape(d.link)}" style="display:inline-block;background:#153c28;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(texte.knopf)}</a></p>
 <p style="color:#737373;font-size:13px">Polycare Reisekosten</p>
 </body></html>`;
   return { betreff: texte.betreff, text, html };
+}
+
+/** Erinnerungsmail mit einigen Zeilen und einem Knopf */
+export function alsErinnerung(d: { betreff: string; zeilen: string[]; knopf: string; link: string }): { betreff: string; text: string; html: string } {
+  const text = [...d.zeilen, "", `${d.knopf}: ${d.link}`, "", "– Polycare Reisekosten"].join("\n");
+  const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;font-size:15px;color:#171717;line-height:1.5">
+${d.zeilen.map((z) => `<p style="margin:0 0 8px">${escape(z)}</p>`).join("\n")}
+<p style="margin-top:16px"><a href="${escape(d.link)}" style="display:inline-block;background:#153c28;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(d.knopf)}</a></p>
+<p style="color:#737373;font-size:13px">Polycare Reisekosten · Diese Erinnerung kommt automatisch.</p>
+</body></html>`;
+  return { betreff: d.betreff, text, html };
 }

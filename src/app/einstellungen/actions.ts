@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
+import { erinnerungenSenden } from "@/lib/erinnerungen/senden";
+import { appUrl } from "@/lib/mail/benachrichtigen";
 
 export type AktionStatus = { fehler?: string; gespeichert?: boolean };
 
@@ -103,5 +105,21 @@ export async function bueroOrteSpeichern(_vorher: AktionStatus, formData: FormDa
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
 
   revalidatePath("/einstellungen");
+  return { gespeichert: true };
+}
+
+/** Beide Erinnerungen sofort an die angemeldete Person senden, um Inhalt und Zustellung zu prüfen */
+export async function erinnerungTesten(): Promise<AktionStatus> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profil } = user ? await supabase.from("profile").select("rolle").eq("id", user.id).single() : { data: null };
+  if (!user || profil?.rolle !== "admin") return { fehler: "Nur für Admins." };
+
+  const lauf = await erinnerungenSenden({ basis: await appUrl(), erzwingen: true, nurAn: user.id });
+  revalidatePath("/einstellungen");
+  if (lauf.uebersprungen) return { fehler: lauf.uebersprungen };
+  if (!lauf.monat && !lauf.freigaben) return { fehler: "Bei dir ist gerade nichts offen – es wurde keine Erinnerung gesendet." };
   return { gespeichert: true };
 }
