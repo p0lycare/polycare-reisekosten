@@ -26,6 +26,8 @@ export type ReiseWerte = {
   projektId: string;
   verpflegungBemerkung: string;
   vorschuss: string;
+  /** Vorschuss läuft über einen Antrag im Tool – Feld nicht änderbar */
+  vorschussFest?: boolean;
 };
 
 const AUSWAHL = laenderAuswahl();
@@ -160,7 +162,13 @@ export function ReiseFormular({
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Erhaltener Vorschuss (€)</span>
-          <input name="vorschuss" inputMode="decimal" defaultValue={werte.vorschuss} placeholder="0,00" className={`${feld} tabular-nums`} />
+          {werte.vorschussFest ? (
+            <span className="py-2 text-sm text-neutral-600 dark:text-neutral-400">
+              {werte.vorschuss || "0,00"} € – über den Vorschussantrag
+            </span>
+          ) : (
+            <input name="vorschuss" inputMode="decimal" defaultValue={werte.vorschuss} placeholder="0,00" className={`${feld} tabular-nums`} />
+          )}
         </label>
         {!!projekte.length && (
           <label className="flex flex-col gap-1 sm:col-span-2">

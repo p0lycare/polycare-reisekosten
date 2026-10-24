@@ -52,3 +52,22 @@ export function verteileAufgaben<R extends AufgabenReise>(reisen: R[], userId: s
     auszahlen: buchhaltung ? alle.filter((r) => r.status === "geprueft") : [],
   };
 }
+
+type OffenerVorschuss = {
+  status: Database["public"]["Enums"]["vorschuss_status"];
+  mitarbeiter_id: string;
+  mitarbeiter: { vorgesetzter_id: string | null } | null;
+};
+
+/** Offene Vorschüsse einer Person: zu genehmigen (wie darf_genehmigen) und auszuzahlen (Buchhaltung) */
+export function verteileVorschuesse<V extends OffenerVorschuss>(liste: V[], userId: string, rolle: Rolle | undefined) {
+  const fremde = liste.filter((v) => v.mitarbeiter_id !== userId);
+  return {
+    genehmigen: fremde.filter(
+      (v) =>
+        v.status === "beantragt" &&
+        (v.mitarbeiter?.vorgesetzter_id === userId || rolle === "admin" || (rolle === "freigeber" && !v.mitarbeiter?.vorgesetzter_id)),
+    ),
+    auszahlen: rolle === "buchhaltung" || rolle === "admin" ? fremde.filter((v) => v.status === "genehmigt") : [],
+  };
+}
