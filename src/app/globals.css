@@ -1,12 +1,18 @@
 @import "tailwindcss";
 
-/* Farben angelehnt an polycare.de: fast Schwarz, Grautöne, Grün als Akzent */
+/*
+ * Polycare-Erscheinungsbild (Präsentationsvorlage): Weiß, Dunkelgrün als Hauptfarbe,
+ * Grün als Akzent, Off-White für Flächen, klare Kanten statt runder Ecken.
+ */
 :root {
   --background: #ffffff;
   --foreground: #141414;
-  --marke: #1faa5f;
-  --marke-hell: #e8f6ee;
-  --marke-dunkel: #0f6b3a;
+  --marke: #20a95e;
+  --marke-hell: #e3f3e9;
+  --marke-dunkel: #153c28;
+  --primaer: #153c28;
+  --primaer-hover: #0f2c1d;
+  --flaeche: #f5f6f2;
 }
 
 @theme inline {
@@ -15,8 +21,20 @@
   --color-marke: var(--marke);
   --color-marke-hell: var(--marke-hell);
   --color-marke-dunkel: var(--marke-dunkel);
-  --font-sans: var(--font-geist-sans);
+  --color-primaer: var(--primaer);
+  --color-primaer-hover: var(--primaer-hover);
+  --color-flaeche: var(--flaeche);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Kanten wie in der Vorlage: kaum gerundet */
+@theme {
+  --radius-sm: 1px;
+  --radius: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,13 +43,16 @@
     --foreground: #ededed;
     --marke-hell: #0f2e1e;
     --marke-dunkel: #8fe0b4;
+    --primaer: #20a95e;
+    --primaer-hover: #2bbd6d;
+    --flaeche: #161816;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* Tastaturfokus gut sichtbar in Markenfarbe */

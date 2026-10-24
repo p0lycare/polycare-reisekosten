@@ -118,7 +118,7 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/belege" className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+        <Link href="/belege" className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
           Beleg fotografieren
         </Link>
         <Link href="/reisen/neu" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">

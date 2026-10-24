@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { Kopfzeile } from "./kopfzeile";
 import { createClient } from "@/lib/supabase/server";
 import { istFreigebend, ladeAufgaben } from "@/lib/reisekosten/freigaben";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Inter als frei verfügbare Nähe zur Hausschrift TT Interphases
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -40,7 +41,7 @@ export default async function RootLayout({
 
   return (
     <html lang="de">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
         {user && (
           <Kopfzeile
             daten={{

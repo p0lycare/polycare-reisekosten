@@ -70,11 +70,9 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
   return (
     <header className="border-b border-neutral-200 dark:border-neutral-800">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 font-sans sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold">
-          <Logo className="h-5 w-auto text-marke" />
-          <span>
-            Polycare <span className="font-normal text-neutral-500">Reisekosten</span>
-          </span>
+        <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="Polycare Reisekosten, Startseite">
+          <Logo className="h-5 text-marke-dunkel dark:text-white" />
+          <span className="border-l border-neutral-300 pl-3 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-400">Reisekosten</span>
         </Link>
         <nav className="hidden items-center gap-4 text-sm lg:flex">{links}</nav>
         <details className="relative lg:hidden">

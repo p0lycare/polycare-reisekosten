@@ -212,7 +212,7 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
       )}
 
       <div className="flex items-center gap-4">
-        <button type="submit" disabled={laeuft || !!berechnung?.fehler} className="rounded-md bg-neutral-900 px-4 py-2 font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900">
+        <button type="submit" disabled={laeuft || !!berechnung?.fehler} className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 font-medium text-white disabled:opacity-50 dark:text-neutral-950">
           {laeuft ? "Speichert …" : "Speichern"}
         </button>
         <Link href={werte.id ? `/reisen/${werte.id}` : "/"} className="text-sm text-neutral-600 underline dark:text-neutral-400">

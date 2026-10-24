@@ -121,7 +121,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
           <button
             type="submit"
             disabled={laeuft || !auswahl.size}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+            className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-neutral-950"
           >
             {laeuft ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Reise" : "Reisen"} ${KNOPF[art]}`}
           </button>

@@ -37,7 +37,7 @@ export default async function Home() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Meine Reisen</h1>
         <div className="flex gap-2">
-          <Link href="/belege" className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+          <Link href="/belege" className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
             Beleg fotografieren
           </Link>
           <Link href="/reisen/neu" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">
@@ -75,7 +75,7 @@ export default async function Home() {
               automatisch, du bekommst bei jedem Schritt eine Mail.
             </li>
           </ol>
-          <Link href="/reisen/neu" className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+          <Link href="/reisen/neu" className="mt-5 inline-block rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
             Erste Reise anlegen
           </Link>
         </section>

@@ -48,7 +48,7 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 sm:flex-row">
-        <label className={`${knopf} bg-neutral-900 text-white dark:bg-white dark:text-neutral-900`}>
+        <label className={`${knopf} bg-primaer hover:bg-primaer-hover text-white dark:text-neutral-950`}>
           Beleg fotografieren
           <input
             type="file"

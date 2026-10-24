@@ -59,7 +59,7 @@ export function ProfilFormular({ werte }: { werte: ProfilWerte }) {
       )}
 
       <div>
-        <button type="submit" disabled={laeuft} className="rounded-md bg-neutral-900 px-4 py-2 font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900">
+        <button type="submit" disabled={laeuft} className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 font-medium text-white disabled:opacity-50 dark:text-neutral-950">
           {laeuft ? "Speichert …" : "Speichern"}
         </button>
       </div>

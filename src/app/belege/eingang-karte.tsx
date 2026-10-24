@@ -96,7 +96,7 @@ export function EingangKarte({
             type="button"
             disabled={!reiseId || laeuft || !e?.istBeleg || mitBewirtung}
             onClick={() => ausfuehren(() => eingangZuordnen(eintrag.id, reiseId))}
-            className={`${knopf} bg-neutral-900 text-white dark:bg-white dark:text-neutral-900`}
+            className={`${knopf} bg-primaer hover:bg-primaer-hover text-white dark:text-neutral-950`}
           >
             {laeuft ? "…" : "Zuordnen"}
           </button>
