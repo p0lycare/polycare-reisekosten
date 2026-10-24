@@ -46,7 +46,7 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
     ids.length
       ? supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, kategorie(bezeichnung)").in("reise_id", ids)
       : Promise.resolve({ data: [] as never[] }),
-    ids.length ? supabase.from("fahrt").select("reise_id, datum").in("reise_id", ids) : Promise.resolve({ data: [] as never[] }),
+    ids.length ? supabase.from("fahrt").select("reise_id, datum, km, km_route").in("reise_id", ids) : Promise.resolve({ data: [] as never[] }),
   ]);
 
   const liste = (reisen ?? []).map((r, i) => {

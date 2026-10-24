@@ -64,4 +64,12 @@ describe("pruefePlausibilitaet", () => {
     const h = pruefePlausibilitaet(reise, [beleg("uebernachtung", { hatDatei: false }), beleg("trinkgeld", { hatDatei: false })], []);
     expect(h).toEqual(["Ohne Belegfoto: uebernachtung."]);
   });
+
+  it("Fahrt weicht deutlich von der Route ab", () => {
+    const pkw = { ...reise, verkehrsmittel: ["eigener_pkw" as const] };
+    const passend = { datum: "2026-10-21", km: 150, km_route: 145.7 };
+    const abweichend = { datum: "2026-10-21", km: 220, km_route: 145.7 };
+    expect(pruefePlausibilitaet(pkw, [beleg("uebernachtung")], [passend])).toEqual([]);
+    expect(pruefePlausibilitaet(pkw, [beleg("uebernachtung")], [abweichend])).toEqual([expect.stringContaining("berechneten Route")]);
+  });
 });

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { berechneKmGeld } from "@/lib/reisekosten/fahrtkosten";
 import type { Reise } from "@/lib/reisekosten/reise";
+import { weichtAb } from "@/lib/routing/strecke";
 import { FahrtZeile } from "./fahrt-zeile";
 
 function kmText(km: number): string {
@@ -37,7 +38,7 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
               reiseId={reise.id}
               reiseVon={reiseVon}
               reiseBis={reiseBis}
-              werte={{ id: f.id, datum: f.datum, strecke: f.strecke, zweck: f.zweck ?? "", km: kmText(Number(f.km)) }}
+              werte={{ id: f.id, datum: f.datum, strecke: f.strecke, zweck: f.zweck ?? "", km: kmText(Number(f.km)), kmRoute: f.km_route === null ? null : Number(f.km_route) }}
             />
           ))}
           <FahrtZeile
@@ -57,7 +58,12 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
                   {f.strecke}
                   {f.zweck && <span className="text-neutral-500"> · {f.zweck}</span>}
                 </td>
-                <td className="py-2 text-right tabular-nums whitespace-nowrap">{kmText(Number(f.km))} km</td>
+                <td className="py-2 text-right tabular-nums whitespace-nowrap">
+                  {kmText(Number(f.km))} km
+                  {f.km_route !== null && weichtAb(Number(f.km), Number(f.km_route)) && (
+                    <span className="block text-xs text-amber-700 dark:text-amber-400">Route {kmText(Number(f.km_route))} km</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

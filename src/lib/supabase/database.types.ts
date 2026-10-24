@@ -157,6 +157,7 @@ export type Database = {
           datum: string
           id: string
           km: number
+          km_route: number | null
           reise_id: string
           strecke: string
           zweck: string | null
@@ -166,6 +167,7 @@ export type Database = {
           datum: string
           id?: string
           km: number
+          km_route?: number | null
           reise_id: string
           strecke: string
           zweck?: string | null
@@ -175,6 +177,7 @@ export type Database = {
           datum?: string
           id?: string
           km?: number
+          km_route?: number | null
           reise_id?: string
           strecke?: string
           zweck?: string | null
