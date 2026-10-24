@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
-import { monatsgrenzen } from "@/lib/reisekosten/lohnliste";
+import { monatsgrenzen } from "@/lib/reisekosten/monat";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
