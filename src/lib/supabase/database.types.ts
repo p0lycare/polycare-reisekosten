@@ -645,6 +645,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "vorschuss_ausgezahlt_von_fkey"
+            columns: ["ausgezahlt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vorschuss_entschieden_von_fkey"
+            columns: ["entschieden_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vorschuss_mitarbeiter_id_fkey"
             columns: ["mitarbeiter_id"]
             isOneToOne: false
@@ -665,11 +679,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      vorschuss_ablehnen: { Args: { p_grund: string; p_id: string }; Returns: undefined }
-      vorschuss_auszahlen: { Args: { p_id: string }; Returns: undefined }
-      vorschuss_beantragen: { Args: { p_betrag_cent: number; p_grund: string; p_reise: string }; Returns: string }
-      vorschuss_genehmigen: { Args: { p_id: string }; Returns: undefined }
-      vorschuss_zurueckziehen: { Args: { p_id: string }; Returns: undefined }
       darf_genehmigen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_pruefen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_reise_sehen: { Args: { p_reise: string }; Returns: boolean }
@@ -766,9 +775,45 @@ export type Database = {
         Args: { p_buchungsmonat: string; p_ids: string[] }
         Returns: number
       }
+      vorschuss_ablehnen: {
+        Args: { p_grund: string; p_id: string }
+        Returns: undefined
+      }
+      vorschuss_auszahlen: { Args: { p_id: string }; Returns: undefined }
+      vorschuss_beantragen: {
+        Args: { p_betrag_cent: number; p_grund: string; p_reise: string }
+        Returns: string
+      }
+      vorschuss_genehmigen: { Args: { p_id: string }; Returns: undefined }
+      vorschuss_holen: {
+        Args: { p_id: string }
+        Returns: {
+          ablehnungsgrund: string | null
+          ausgezahlt_am: string | null
+          ausgezahlt_von: string | null
+          beantragt_am: string
+          betrag_cent: number
+          entschieden_am: string | null
+          entschieden_von: string | null
+          grund: string | null
+          id: string
+          mitarbeiter_id: string
+          reise_anlass: string
+          reise_beginn: string
+          reise_id: string
+          reise_weg: string
+          status: Database["public"]["Enums"]["vorschuss_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vorschuss"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      vorschuss_zurueckziehen: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
-      vorschuss_status: "beantragt" | "genehmigt" | "abgelehnt" | "ausgezahlt"
       reise_status:
         | "entwurf"
         | "eingereicht"
@@ -784,6 +829,7 @@ export type Database = {
         | "eigener_pkw"
         | "mitfahrt"
         | "mietwagen"
+      vorschuss_status: "beantragt" | "genehmigt" | "abgelehnt" | "ausgezahlt"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -911,7 +957,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      vorschuss_status: ["beantragt", "genehmigt", "abgelehnt", "ausgezahlt"],
       reise_status: [
         "entwurf",
         "eingereicht",
@@ -929,6 +974,7 @@ export const Constants = {
         "mitfahrt",
         "mietwagen",
       ],
+      vorschuss_status: ["beantragt", "genehmigt", "abgelehnt", "ausgezahlt"],
     },
   },
 } as const
