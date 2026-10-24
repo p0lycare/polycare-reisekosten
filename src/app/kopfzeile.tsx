@@ -37,9 +37,12 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
         <div className="flex items-center justify-between gap-4 pt-4 pb-1">
           <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="Polycare Reisekosten, Startseite">
             <Logo className="h-5 text-marke-dunkel dark:text-white" />
-            <span className="border-l border-neutral-300 pl-3 text-sm text-neutral-600 dark:border-neutral-700 dark:text-neutral-400">Reisekosten</span>
+            <span className="hidden border-l border-neutral-300 pl-3 text-sm sm:inline text-neutral-600 dark:border-neutral-700 dark:text-neutral-400">Reisekosten</span>
           </Link>
-          <div className="flex min-w-0 items-center gap-4 text-sm">
+          <div className="flex min-w-0 items-center gap-3 text-sm sm:gap-4">
+            <Link href="/einfuehrung" className="text-neutral-500 hover:text-neutral-900 hover:underline dark:hover:text-neutral-100">
+              Hilfe
+            </Link>
             <Link href="/profil" className="flex min-w-0 items-center gap-2 text-neutral-700 hover:underline dark:text-neutral-300">
               <span className="hidden truncate sm:inline">{daten.name}</span>
               <span className="sm:hidden">Profil</span>
