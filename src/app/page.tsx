@@ -27,6 +27,9 @@ export default async function Home() {
     gruppe.eintraege.push({ reise, abrechnung: abrechnungen[i] });
   });
 
+  const { data: privat } = await supabase.from("profil_privat").select("iban, wohnort").eq("id", user!.id).maybeSingle();
+  const startklar = !!privat?.iban && !!privat?.wohnort;
+
   const { count: imEingang } = await supabase
     .from("beleg_eingang")
     .select("id", { count: "exact", head: true })
@@ -45,6 +48,19 @@ export default async function Home() {
           </Link>
         </div>
       </div>
+
+      {!startklar && (
+        <Link
+          href="/einfuehrung"
+          className="flex items-center justify-between gap-4 border-l-4 border-marke bg-flaeche p-4 text-sm hover:bg-marke-hell"
+        >
+          <span>
+            <span className="block font-medium">Neu hier? In 2 Minuten startklar</span>
+            <span className="text-neutral-600 dark:text-neutral-400">Kurze Einführung für deine Rolle und was du einmalig im Profil einträgst.</span>
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
+      )}
 
       {!!imEingang && (
         <Link
@@ -75,6 +91,9 @@ export default async function Home() {
               automatisch, du bekommst bei jedem Schritt eine Mail.
             </li>
           </ol>
+          <Link href="/einfuehrung" className="mt-4 block text-sm underline">
+            Ausführliche Einführung
+          </Link>
           <Link href="/reisen/neu" className="mt-5 inline-block rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
             Erste Reise anlegen
           </Link>
