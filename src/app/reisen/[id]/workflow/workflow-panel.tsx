@@ -160,7 +160,7 @@ function Auszahlen({ id, betrag }: { id: string; betrag: string }) {
       <Fehler status={status} />
       <div>
         <button type="submit" disabled={laeuft} className={knopf}>
-          {laeuft ? "…" : `Als ausgezahlt markieren (${betrag})`}
+          {laeuft ? "…" : `In DATEV überwiesen – als ausgezahlt markieren (${betrag})`}
         </button>
       </div>
     </form>

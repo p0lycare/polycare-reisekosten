@@ -7,7 +7,7 @@ export type AbrechnungsDokument = {
   belegNr: string | null;
   buchungsmonat: string | null; // "MM/JJJJ"
   erstelltAm: string; // "TT.MM.JJJJ"
-  reisende: { name: string; personalnummer: string | null; wohnort: string | null; iban: string | null };
+  reisende: { name: string; personalnummer: string | null; wohnort: string | null };
   kostenstelle: string | null;
   begruendung: string;
   reiseweg: string;
@@ -125,8 +125,7 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   l.feld("Pers.-Nr.", d.reisende.personalnummer, RAND + spalte * 2, spalte - 8);
   l.feld("Kostenstelle", d.kostenstelle, RAND + spalte * 3, spalte - 8);
   l.zeile(26);
-  l.feld("Wohnort", d.reisende.wohnort, RAND, spalte * 2 - 8);
-  l.feld("IBAN", d.reisende.iban, RAND + spalte * 2, spalte * 2 - 8);
+  l.feld("Wohnort", d.reisende.wohnort, RAND, spalte * 4 - 8);
   l.zeile(26);
   l.feld("Reiseweg", d.ausland ? `${d.reiseweg} (${d.ausland})` : d.reiseweg, RAND, spalte * 2 - 8);
   l.feld("Besuchte Stellen", d.besuchteStellen, RAND + spalte * 2, spalte * 2 - 8);

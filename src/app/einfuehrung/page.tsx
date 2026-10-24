@@ -47,7 +47,7 @@ export default async function EinfuehrungPage({ searchParams }: { searchParams: 
   } = await supabase.auth.getUser();
   const [{ data: profil }, { data: privat }, { data: einstellungen }] = await Promise.all([
     supabase.from("profile").select("name, rolle, vorgesetzter_id, kfz_kennzeichen, kalender_vorschlaege").eq("id", user!.id).single(),
-    supabase.from("profil_privat").select("iban, personalnummer, wohnort").eq("id", user!.id).maybeSingle(),
+    supabase.from("profil_privat").select("personalnummer, wohnort").eq("id", user!.id).maybeSingle(),
     supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent").single(),
   ]);
 
@@ -56,7 +56,7 @@ export default async function EinfuehrungPage({ searchParams }: { searchParams: 
   const genehmigt = rolle !== "mitarbeiter";
   const bucht = rolle === "buchhaltung" || rolle === "admin";
   const vorname = profil?.name?.split(" ")[0] ?? "";
-  const startklar = !!privat?.iban && !!privat?.wohnort;
+  const startklar = !!privat?.wohnort;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-6 font-sans">
@@ -91,7 +91,6 @@ export default async function EinfuehrungPage({ searchParams }: { searchParams: 
           <p className="text-sm text-neutral-500">Einmal im Profil eintragen – danach füllt das Tool vieles selbst aus.</p>
         </div>
         <ul className="flex flex-col gap-2 text-sm">
-          <Punkt erledigt={!!privat?.iban}>IBAN für die Erstattung</Punkt>
           <Punkt erledigt={!!privat?.wohnort}>Wohnort (für Reiseweg und Fahrten)</Punkt>
           <Punkt erledigt={!!privat?.personalnummer}>Personalnummer</Punkt>
           <Punkt erledigt={!!profil?.kfz_kennzeichen} optional>

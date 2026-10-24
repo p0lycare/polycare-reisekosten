@@ -8,7 +8,7 @@ const dokument: AbrechnungsDokument = {
   belegNr: "RK-2026-0001",
   buchungsmonat: "10/2026",
   erstelltAm: "23.10.2026",
-  reisende: { name: "Erika Muster", personalnummer: "0815", wohnort: "Musterstadt", iban: "DE89 3704 0044 0532 0130 00" },
+  reisende: { name: "Erika Muster", personalnummer: "0815", wohnort: "Musterstadt" },
   kostenstelle: "100",
   begruendung: "Messe – Planung „Neubau“",
   reiseweg: "Köln – Essen – Köln",

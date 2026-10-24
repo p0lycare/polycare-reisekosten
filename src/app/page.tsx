@@ -27,8 +27,8 @@ export default async function Home() {
     gruppe.eintraege.push({ reise, abrechnung: abrechnungen[i] });
   });
 
-  const { data: privat } = await supabase.from("profil_privat").select("iban, wohnort").eq("id", user!.id).maybeSingle();
-  const startklar = !!privat?.iban && !!privat?.wohnort;
+  const { data: privat } = await supabase.from("profil_privat").select("wohnort").eq("id", user!.id).maybeSingle();
+  const startklar = !!privat?.wohnort;
 
   const { count: imEingang } = await supabase
     .from("beleg_eingang")

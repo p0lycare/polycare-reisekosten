@@ -76,7 +76,6 @@ export type OffenerVorschuss = {
   beginn: string;
   betrag: number;
   grund: string | null;
-  iban: string | null;
 };
 
 /** Ein offener Vorschuss in den Freigaben: genehmigen bzw. auszahlen, oder mit Grund ablehnen */
@@ -100,7 +99,6 @@ export function VorschussEntscheiden({ v, art }: { v: OffenerVorschuss; art: "ge
             {v.reise} · ab {formatDatum(v.beginn)}
           </span>
           {v.grund && <span className="block text-sm text-neutral-500">{v.grund}</span>}
-          {art === "auszahlen" && <span className="block font-mono text-sm text-neutral-600 dark:text-neutral-400">{v.iban ?? "IBAN fehlt im Profil"}</span>}
         </span>
         <span className="font-semibold tabular-nums">{formatEuro(v.betrag)}</span>
       </div>
@@ -122,7 +120,7 @@ export function VorschussEntscheiden({ v, art }: { v: OffenerVorschuss; art: "ge
           <>
             <input type="hidden" name="aktion" value={art} />
             <button type="submit" disabled={laeuft} className={hauptknopf}>
-              {laeuft ? "…" : art === "genehmigen" ? "Genehmigen" : "Als ausgezahlt markieren"}
+              {laeuft ? "…" : art === "genehmigen" ? "Genehmigen" : "In DATEV überwiesen – als ausgezahlt markieren"}
             </button>
             <button type="button" onClick={() => setAblehnen(true)} className="text-sm underline">
               Ablehnen …
