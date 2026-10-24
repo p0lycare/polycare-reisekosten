@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { istFreigebend } from "@/lib/reisekosten/freigaben";
-import { monatsgrenzen } from "@/lib/reisekosten/lohnliste";
+import { monatsgrenzen } from "@/lib/reisekosten/monat";
 import { STATUS_TEXT, type ReiseStatus } from "@/lib/reisekosten/reise";
 import { StatusBadge } from "@/app/reisen/status-badge";
 
