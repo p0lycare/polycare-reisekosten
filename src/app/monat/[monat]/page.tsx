@@ -7,7 +7,9 @@ import { monatsgrenzen } from "@/lib/reisekosten/lohnliste";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
+import { Suspense } from "react";
 import { MonatsListe } from "./einreichen-formular";
+import { KalenderVorschlaege } from "./kalender-vorschlaege";
 
 const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -133,6 +135,10 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
       ) : (
         <MonatsListe monat={monat} reisen={liste} />
       )}
+
+      <Suspense fallback={<p className="text-sm text-neutral-500">Kalender wird gelesen …</p>}>
+        <KalenderVorschlaege von={grenzen.von} bis={grenzen.bis} />
+      </Suspense>
     </main>
   );
 }

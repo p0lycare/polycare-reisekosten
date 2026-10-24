@@ -8,7 +8,7 @@ export default async function ProfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const [{ data: profil }, { data: privat }] = await Promise.all([
-    supabase.from("profile").select("name, email, rolle, kostenstelle, kfz_kennzeichen").eq("id", user!.id).single(),
+    supabase.from("profile").select("name, email, rolle, kostenstelle, kfz_kennzeichen, kalender_vorschlaege").eq("id", user!.id).single(),
     supabase.from("profil_privat").select("personalnummer, wohnort, iban").eq("id", user!.id).maybeSingle(),
   ]);
 
@@ -27,6 +27,7 @@ export default async function ProfilPage() {
           iban: privat?.iban ? formatIban(privat.iban) : "",
           kostenstelle: profil?.kostenstelle ?? "",
           kfzKennzeichen: profil?.kfz_kennzeichen ?? "",
+          kalenderVorschlaege: profil?.kalender_vorschlaege ?? false,
         }}
       />
     </main>

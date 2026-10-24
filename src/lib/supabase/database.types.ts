@@ -111,18 +111,21 @@ export type Database = {
       }
       einstellungen: {
         Row: {
+          buero_orte: string[]
           id: boolean
           km_satz_cent: number
           km_steuerfrei_cent: number
           updated_at: string
         }
         Insert: {
+          buero_orte?: string[]
           id?: boolean
           km_satz_cent?: number
           km_steuerfrei_cent?: number
           updated_at?: string
         }
         Update: {
+          buero_orte?: string[]
           id?: boolean
           km_satz_cent?: number
           km_steuerfrei_cent?: number
@@ -333,6 +336,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          kalender_vorschlaege: boolean
           kfz_kennzeichen: string | null
           kostenstelle: string | null
           name: string
@@ -343,6 +347,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          kalender_vorschlaege?: boolean
           kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           name: string
@@ -353,6 +358,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          kalender_vorschlaege?: boolean
           kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           name?: string

@@ -10,6 +10,7 @@ export type ProfilWerte = {
   iban: string;
   kostenstelle: string;
   kfzKennzeichen: string;
+  kalenderVorschlaege: boolean;
 };
 
 const feld =
@@ -50,6 +51,17 @@ export function ProfilFormular({ werte }: { werte: ProfilWerte }) {
         <Feld label="Kostenstelle" name="kostenstelle" defaultValue={werte.kostenstelle} hinweis="Wird bei neuen Reisen vorbelegt" />
         <Feld label="Kfz-Kennzeichen (eigener PKW)" name="kfz_kennzeichen" defaultValue={werte.kfzKennzeichen} hinweis="Wird bei Fahrten mit eigenem PKW vorbelegt" />
       </div>
+
+      <label id="kalender" className="flex items-start gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <input type="checkbox" name="kalender_vorschlaege" defaultChecked={werte.kalenderVorschlaege} className="mt-1 size-4" />
+        <span>
+          <span className="block text-sm font-medium">Reisen aus meinem Outlook-Kalender vorschlagen</span>
+          <span className="block text-sm text-neutral-500">
+            Beim Abrechnen eines Monats liest das Tool Termine mit Ort aus deinem Kalender (Betreff, Ort, Zeiten) und schlägt sie als Reise
+            vor. Termine werden nicht gespeichert und sind für niemanden sonst sichtbar.
+          </span>
+        </span>
+      </label>
 
       {status.fehler && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">{status.fehler}</p>
