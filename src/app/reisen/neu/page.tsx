@@ -29,7 +29,7 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
     ? await supabase.from("reise").select("*").eq("id", vorlageId).eq("mitarbeiter_id", user!.id).maybeSingle()
     : { data: null };
   // Aus einem Outlook-Termin: Betreff, Ort und Zeiten vorbelegen (nur mit Zustimmung im Profil)
-  const termin = terminId && profil?.kalender_vorschlaege ? await ladeTermin(profil.email, terminId) : null;
+  const termin = terminId && profil?.kalender_vorschlaege && user?.email ? await ladeTermin(user!.email!, terminId) : null;
   const terminZeiten = termin ? reiseZeiten(termin) : null;
   const { data: privat } = termin
     ? await supabase.from("profil_privat").select("wohnort").eq("id", user!.id).maybeSingle()

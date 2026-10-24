@@ -54,6 +54,12 @@ export async function meldungAbsenden(_vorher: MeldungStatus, formData: FormData
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { fehler: "Bitte neu anmelden." };
+  const { count } = await supabase
+    .from("meldung")
+    .select("id", { count: "exact", head: true })
+    .eq("person_id", user.id)
+    .gte("erstellt_am", new Date(Date.now() - 3600_000).toISOString());
+  if ((count ?? 0) >= 5) return { fehler: "Du hast gerade schon mehrere Meldungen geschickt – bitte später noch einmal." };
   const { error } = await supabase.from("meldung").insert({ art, text: inhalt, seite, browser: text(formData, "browser", 300) || null });
   if (error) return { fehler: "Senden fehlgeschlagen. Bitte später noch einmal versuchen." };
 

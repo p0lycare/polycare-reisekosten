@@ -1,7 +1,9 @@
-// Polycare Reisekosten – Service Worker für die Offline-Nutzung (v1)
-// Seiten: erst Netz, ohne Netz die zuletzt geladene Fassung (Belege fotografieren geht damit auch im Funkloch).
+// Polycare Reisekosten – Service Worker für die Offline-Nutzung (v2)
+// Nur die Seite "Belege" wird vorgehalten (Belege fotografieren im Funkloch), keine Seiten mit Reise- oder Kontodaten.
+// Beim Abmelden oder wenn die Anmeldeseite erscheint (Sitzung abgelaufen, Personenwechsel), wird sie gelöscht.
 // Statische Dateien von Next.js sind unveränderlich und werden dauerhaft vorgehalten.
-const SEITEN = "seiten-v1";
+const SEITEN = "seiten-v2";
+const OFFLINE_SEITEN = ["/belege"];
 const STATISCH = "statisch-v1";
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -44,7 +46,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.mode === "navigate") {
+  if (request.mode === "navigate" && url.pathname === "/login") {
+    event.waitUntil(caches.delete(SEITEN));
+    return;
+  }
+
+  if (request.mode === "navigate" && OFFLINE_SEITEN.includes(url.pathname)) {
     event.respondWith(
       fetch(request)
         .then((antwort) => {
@@ -59,7 +66,6 @@ self.addEventListener("fetch", (event) => {
           const cache = await caches.open(SEITEN);
           return (
             (await cache.match(url.pathname)) ||
-            (await cache.match("/belege")) ||
             new Response(
               '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Offline</title><body style="font-family:sans-serif;padding:24px"><h1>Keine Verbindung</h1><p>Öffne „Belege“ einmal mit Netz – danach kannst du Belege auch offline fotografieren.</p></body>',
               { headers: { "Content-Type": "text/html; charset=utf-8" } },

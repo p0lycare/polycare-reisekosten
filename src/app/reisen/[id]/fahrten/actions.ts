@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { berechneRoute, type RoutenErgebnis } from "@/lib/routing/osm";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type FahrtStatus = { fehler?: string; gespeichert?: boolean };
 
@@ -35,20 +36,18 @@ export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): 
   const route = await berechneRoute(strecke);
   const kmRoute = "km" in route && route.km > 0 && route.km < 10000 ? route.km : null;
 
-  const daten = {
-    reise_id: reiseId,
-    datum,
-    strecke,
-    zweck: text(formData, "zweck") || null,
-    km: Math.round(km * 10) / 10,
-    km_route: kmRoute,
-  };
+  const daten = { reise_id: reiseId, datum, strecke, zweck: text(formData, "zweck") || null, km: Math.round(km * 10) / 10 };
   const supabase = await createClient();
   // RLS erlaubt Änderungen nur in eigenen, bearbeitbaren Reisen
   const { data, error } = id
     ? await supabase.from("fahrt").update(daten).eq("id", id).select("id")
     : await supabase.from("fahrt").insert(daten).select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+
+  // Die berechnete Route darf nur der Server setzen (Datenbank verwirft Nutzeränderungen);
+  // die Zeile ist durch den RLS-geprüften Schreibvorgang oben als eigene, bearbeitbare Fahrt belegt
+  const { error: routeFehler } = await createAdminClient().from("fahrt").update({ km_route: kmRoute }).eq("id", data[0].id);
+  if (routeFehler) console.error("Route konnte nicht gespeichert werden", routeFehler.message);
 
   revalidatePath(`/reisen/${reiseId}`);
   return { gespeichert: true };
