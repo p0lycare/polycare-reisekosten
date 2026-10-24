@@ -98,6 +98,8 @@ export async function reiseSpeichern(
     kfz_kennzeichen: kfzKennzeichen,
     mitfahrt_bei: mitfahrtBei,
     kostenstelle: text(formData, "kostenstelle") || null,
+    // Nur gültige IDs; ob das Projekt existiert, prüft der Fremdschlüssel
+    projekt_id: /^[0-9a-f-]{36}$/.test(text(formData, "projekt_id")) ? text(formData, "projekt_id") : null,
     verpflegung_bemerkung: text(formData, "verpflegung_bemerkung") || null,
     vorschuss_cent: vorschuss,
   };

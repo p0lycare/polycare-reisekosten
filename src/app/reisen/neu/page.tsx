@@ -4,6 +4,7 @@ import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { reiseVorschlagAusBeleg } from "@/lib/reisekosten/eingang";
 import { ladeTermin } from "@/lib/kalender/graph";
 import { reiseZeiten } from "@/lib/kalender/vorschlaege";
+import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
 
 export default async function NeueReisePage({ searchParams }: { searchParams: Promise<{ eingang?: string; vorlage?: string; termin?: string }> }) {
   const { eingang: eingangId, vorlage: vorlageId, termin: terminId } = await searchParams;
@@ -35,6 +36,8 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
     : { data: null };
   const terminReiseweg = termin?.ort ? (privat?.wohnort ? `${privat.wohnort} – ${termin.ort} – ${privat.wohnort}` : termin.ort) : "";
 
+  const projekte = await ladeProjektAuswahl(supabase, vorlage?.projekt_id);
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       <h1 className="text-xl font-semibold">Neue Reise</h1>
@@ -56,6 +59,7 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
       )}
       <ReiseFormular
         eingangId={eingang?.id}
+        projekte={projekte}
         werte={{
           begruendung: vorlage?.begruendung ?? termin?.betreff ?? "",
           reiseweg: vorlage?.reiseweg ?? vorschlag?.reiseweg ?? terminReiseweg,
@@ -75,6 +79,7 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
           kfzKennzeichen: vorlage?.kfz_kennzeichen ?? profil?.kfz_kennzeichen ?? "",
           mitfahrtBei: vorlage?.mitfahrt_bei ?? "",
           kostenstelle: vorlage?.kostenstelle ?? profil?.kostenstelle ?? "",
+          projektId: vorlage?.projekt_id ?? "",
           verpflegungBemerkung: "",
           vorschuss: "",
         }}

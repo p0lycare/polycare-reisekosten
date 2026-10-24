@@ -5,6 +5,7 @@ import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { alsLokal } from "@/lib/format";
 import { centAlsEingabe } from "@/lib/geld";
 import { ReiseFormular } from "../../reise-formular";
+import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
 
 export default async function ReiseBearbeitenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,10 +18,13 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
   } = await supabase.auth.getUser();
   if (reise.mitarbeiter_id !== user?.id || !istBearbeitbar(reise.status)) redirect(`/reisen/${id}`);
 
+  const projekte = await ladeProjektAuswahl(supabase, reise.projekt_id);
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       <h1 className="text-xl font-semibold">Reise bearbeiten</h1>
       <ReiseFormular
+        projekte={projekte}
         werte={{
           id: reise.id,
           begruendung: reise.begruendung,
@@ -35,6 +39,7 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
           kfzKennzeichen: reise.kfz_kennzeichen ?? "",
           mitfahrtBei: reise.mitfahrt_bei ?? "",
           kostenstelle: reise.kostenstelle ?? "",
+          projektId: reise.projekt_id ?? "",
           verpflegungBemerkung: reise.verpflegung_bemerkung ?? "",
           vorschuss: reise.vorschuss_cent ? centAlsEingabe(reise.vorschuss_cent) : "",
         }}

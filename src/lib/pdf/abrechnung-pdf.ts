@@ -11,6 +11,8 @@ export type AbrechnungsDokument = {
   kostenstelle: string | null;
   begruendung: string;
   reiseweg: string;
+  /** Projekt mit Nummer und ggf. Förderkennzeichen */
+  projekt: string | null;
   /** Anzeigename des Reiselands, null bei Inlandsreisen */
   ausland: string | null;
   besuchteStellen: string | null;
@@ -129,7 +131,12 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   l.feld("Reiseweg", d.ausland ? `${d.reiseweg} (${d.ausland})` : d.reiseweg, RAND, spalte * 2 - 8);
   l.feld("Besuchte Stellen", d.besuchteStellen, RAND + spalte * 2, spalte * 2 - 8);
   l.zeile(26);
-  l.feld("Begründung", d.begruendung, RAND, spalte * 4 - 8);
+  if (d.projekt) {
+    l.feld("Begründung", d.begruendung, RAND, spalte * 2 - 8);
+    l.feld("Projekt", d.projekt, RAND + spalte * 2, spalte * 2 - 8);
+  } else {
+    l.feld("Begründung", d.begruendung, RAND, spalte * 4 - 8);
+  }
   l.zeile(26);
   l.feld("Abfahrt", d.abfahrt, RAND, spalte - 8);
   l.feld("Rückkehr", d.rueckkehr, RAND + spalte, spalte - 8);

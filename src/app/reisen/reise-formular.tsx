@@ -23,6 +23,7 @@ export type ReiseWerte = {
   kfzKennzeichen: string;
   mitfahrtBei: string;
   kostenstelle: string;
+  projektId: string;
   verpflegungBemerkung: string;
   vorschuss: string;
 };
@@ -38,7 +39,16 @@ const MAHLZEITEN: { key: "fruehstueck" | "mittag" | "abend"; label: string }[] =
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900";
 
-export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingangId?: string }) {
+export function ReiseFormular({
+  werte,
+  eingangId,
+  projekte = [],
+}: {
+  werte: ReiseWerte;
+  eingangId?: string;
+  /** Auswählbare Projekte (aktive und ggf. das bereits zugeordnete) */
+  projekte?: { id: string; name: string }[];
+}) {
   const [status, absenden, laeuft] = useActionState<FormularStatus, FormData>(reiseSpeichern, {});
   const [land, setLand] = useState(werte.land);
   const [beginn, setBeginn] = useState(werte.beginn);
@@ -152,6 +162,19 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
           <span className="text-sm font-medium">Erhaltener Vorschuss (€)</span>
           <input name="vorschuss" inputMode="decimal" defaultValue={werte.vorschuss} placeholder="0,00" className={`${feld} tabular-nums`} />
         </label>
+        {!!projekte.length && (
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-sm font-medium">Projekt / Förderprojekt (optional)</span>
+            <select name="projekt_id" defaultValue={werte.projektId} className={feld}>
+              <option value="">– kein Projekt –</option>
+              {projekte.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <label className="flex items-center gap-2">
