@@ -64,6 +64,12 @@ export function pruefePlausibilitaet(reise: PlausiReise, belege: PlausiBeleg[], 
       `${abweichend.length === 1 ? "Eine Fahrt weicht" : `${abweichend.length} Fahrten weichen`} deutlich von der berechneten Route ab.`,
     );
   }
+  const ohneRoute = fahrten.filter((f) => "km_route" in f && f.km != null && f.km_route == null);
+  if (ohneRoute.length) {
+    hinweise.push(
+      `${ohneRoute.length === 1 ? "Für eine Fahrt" : `Für ${ohneRoute.length} Fahrten`} gibt es keine berechnete Route – Kilometer bitte prüfen.`,
+    );
+  }
   if (fahrten.length && !pkw) {
     hinweise.push("Es sind Fahrten erfasst, aber „Eigener PKW“ ist nicht als Verkehrsmittel gewählt.");
   }

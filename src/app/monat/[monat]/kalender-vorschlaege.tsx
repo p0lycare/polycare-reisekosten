@@ -35,7 +35,9 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
     );
   }
 
-  const antwort = await ladeTermine(profil.email, von, bis);
+  // Postfach aus der Microsoft-Anmeldung (auth), nicht aus dem Profil, das Admins ändern können
+  if (!user?.email) return null;
+  const antwort = await ladeTermine(user.email, von, bis);
   if ("fehler" in antwort) {
     // Technische Hinweise nur für Admins; alle anderen sehen einfach keine Vorschläge
     return profil.rolle === "admin" ? (

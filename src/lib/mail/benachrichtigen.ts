@@ -10,6 +10,8 @@ import { mailEmpfaenger, protokolliereMail } from "@/lib/supabase/admin";
 
 export async function appUrl(): Promise<string> {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  // In Produktion nie aus dem (fälschbaren) Host-Header ableiten
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   const h = await headers();
   return `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
 }
