@@ -21,7 +21,20 @@ export async function ladeAufgaben(supabase: SupabaseClient<Database>, userId: s
     .in("status", ["eingereicht", "freigegeben", "geprueft"])
     .order("eingereicht_am");
 
-  const alle = reisen ?? [];
+  return verteileAufgaben(reisen ?? [], userId, rolle);
+}
+
+type AufgabenReise = {
+  status: Database["public"]["Enums"]["reise_status"];
+  mitarbeiter_id: string;
+  freigeber_id: string | null;
+  mitarbeiter: { vorgesetzter_id: string | null; rolle: Rolle } | null;
+};
+
+/** Ordnet offene Reisen den Aufgaben einer Person zu (auch für Erinnerungen ohne Anmeldung nutzbar) */
+export function verteileAufgaben<R extends AufgabenReise>(reisen: R[], userId: string, rolle: Rolle | undefined) {
+  if (!istFreigebend(rolle)) return { genehmigen: [] as R[], pruefen: [] as R[], auszahlen: [] as R[] };
+  const alle = reisen.filter((r) => r.mitarbeiter_id !== userId);
   const buchhaltung = rolle === "buchhaltung" || rolle === "admin";
 
   return {
