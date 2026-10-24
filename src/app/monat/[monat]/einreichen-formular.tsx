@@ -115,7 +115,7 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
             <button
               type="submit"
               disabled={laeuft || auswahl.size === 0}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+              className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-neutral-950"
             >
               {laeuft
                 ? "Reicht ein …"

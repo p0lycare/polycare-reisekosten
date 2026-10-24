@@ -182,7 +182,7 @@ export default async function ReisePage({
         <div className="mt-4 flex flex-wrap gap-2">
           {bearbeitbar && (
             <>
-              <Link href={`/reisen/${reise.id}/belege/neu`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+              <Link href={`/reisen/${reise.id}/belege/neu`} className="rounded-md bg-primaer hover:bg-primaer-hover px-3 py-1.5 text-sm font-medium text-white dark:text-neutral-950">
                 Beleg hinzufügen
               </Link>
               <Link href={`/reisen/${reise.id}/bearbeiten`} className={knopfSekundaer}>

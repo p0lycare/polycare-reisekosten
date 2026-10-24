@@ -26,7 +26,7 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-medium">Belege</h2>
         {bearbeitbar && (
-          <Link href={`/reisen/${reiseId}/belege/neu`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+          <Link href={`/reisen/${reiseId}/belege/neu`} className="rounded-md bg-primaer hover:bg-primaer-hover px-3 py-1.5 text-sm font-medium text-white dark:text-neutral-950">
             Beleg hinzufügen
           </Link>
         )}

@@ -332,7 +332,7 @@ export function BelegFormular({
       )}
 
       <div className="flex items-center gap-4">
-        <button type="submit" disabled={beschaeftigt} className="rounded-md bg-neutral-900 px-4 py-2 font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900">
+        <button type="submit" disabled={beschaeftigt} className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 font-medium text-white disabled:opacity-50 dark:text-neutral-950">
           {laedtHoch ? "Lädt hoch …" : laeuft ? "Speichert …" : "Speichern"}
         </button>
         <Link href={`/reisen/${reiseId}`} className="text-sm text-neutral-600 underline dark:text-neutral-400">
