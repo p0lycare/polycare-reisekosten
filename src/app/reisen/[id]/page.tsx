@@ -15,6 +15,7 @@ import { DatevPanel } from "./workflow/datev-panel";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { istAusland, landName } from "@/lib/reisekosten/laender";
+import { projektName } from "@/lib/reisekosten/projekte";
 
 export default async function ReisePage({
   params,
@@ -41,6 +42,9 @@ export default async function ReisePage({
   const istBuchhaltung = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
   const zeigeKonten = istBuchhaltung;
 
+  const { data: projekt } = reise.projekt_id
+    ? await supabase.from("projekt").select("id, bezeichnung, nummer").eq("id", reise.projekt_id).maybeSingle()
+    : { data: null };
   const [{ data: darfGenehmigen }, { data: reisender }] = await Promise.all([
     reise.status === "eingereicht" && !eigene
       ? supabase.rpc("darf_genehmigen", { p_mitarbeiter: reise.mitarbeiter_id })
@@ -151,6 +155,7 @@ export default async function ReisePage({
               {istAusland(reise.land) && ` · ${landName(reise.land, Number(reise.beginn.slice(0, 4)))}`}
               {reise.besuchte_stellen && ` · ${reise.besuchte_stellen}`}
             </p>
+            {projekt && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Projekt: {projektName(projekt)}</p>}
             {reisender && <p className="mt-1 text-sm font-medium">{reisender.name}</p>}
           </div>
           <div className="text-right">

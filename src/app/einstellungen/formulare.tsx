@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import type { Abschnitt, Kategorie } from "@/lib/reisekosten/kategorie";
-import { bueroOrteSpeichern, erinnerungTesten, kategorieSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
+import { bueroOrteSpeichern, erinnerungTesten, kategorieSpeichern, projektSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
 
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -134,6 +134,65 @@ export function ErinnerungTesten() {
     <form action={absenden} className="flex flex-wrap items-center gap-3">
       <Knopf laeuft={laeuft}>Erinnerung an mich testen</Knopf>
       {status.gespeichert ? <p role="status" className="text-sm text-green-700 dark:text-green-400">Gesendet – bitte Postfach prüfen</p> : <Meldung status={status} />}
+    </form>
+  );
+}
+
+export type ProjektWerte = {
+  id: string;
+  bezeichnung: string;
+  nummer: string | null;
+  foerdergeber: string | null;
+  foerderkennzeichen: string | null;
+  aktiv: boolean;
+};
+
+/** Ein Projekt bearbeiten bzw. (ohne Werte) neu anlegen */
+export function ProjektZeile({ projekt }: { projekt?: ProjektWerte }) {
+  const [status, absenden, laeuft] = useActionState(projektSpeichern, {});
+  const neu = !projekt;
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Nach dem Anlegen leeren, damit nicht versehentlich ein zweites Projekt entsteht
+  useEffect(() => {
+    if (neu && status.gespeichert) formRef.current?.reset();
+  }, [neu, status]);
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={ohneZuruecksetzen(absenden)}
+      className="grid grid-cols-2 items-end gap-2 py-3 sm:grid-cols-[1fr_6rem_9rem_8rem_auto_auto]"
+    >
+      {projekt && <input type="hidden" name="id" value={projekt.id} />}
+      <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
+        <span className="text-xs text-neutral-500">Bezeichnung</span>
+        <input name="bezeichnung" defaultValue={projekt?.bezeichnung} required placeholder={neu ? "Neues Projekt" : undefined} className={feld} />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-neutral-500">Nummer</span>
+        <input name="nummer" defaultValue={projekt?.nummer ?? ""} className={feld} />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-neutral-500">Fördergeber</span>
+        <input name="foerdergeber" defaultValue={projekt?.foerdergeber ?? ""} placeholder="z. B. BMBF" className={feld} />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-neutral-500">Förderkennz.</span>
+        <input name="foerderkennzeichen" defaultValue={projekt?.foerderkennzeichen ?? ""} className={feld} />
+      </label>
+      {projekt ? (
+        <label className="flex items-center gap-2 pb-2 text-sm">
+          <input type="checkbox" name="aktiv" defaultChecked={projekt.aktiv} className="size-4" />
+          aktiv
+        </label>
+      ) : (
+        <span />
+      )}
+      <div className="flex items-center gap-3">
+        <Knopf laeuft={laeuft}>{neu ? "Anlegen" : "Speichern"}</Knopf>
+        <Meldung status={status} />
+      </div>
     </form>
   );
 }

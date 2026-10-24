@@ -60,6 +60,10 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
           Beginn und Ende sind die Abfahrt und Rückkehr an Wohnung oder Büro. Daraus berechnet das Tool die Verpflegungspauschale. Hat
           dir jemand eine Mahlzeit bezahlt (z. B. Frühstück im Hotel), hake sie ab – dann wird die Pauschale gesetzlich gekürzt.
         </p>
+        <p>
+          Gehört die Reise zu einem Projekt oder Förderprojekt, wähle es aus. Bei Reisen ins Ausland das Land wählen – es gelten die
+          Auslandspauschalen; bei mehreren Staaten je Tag das Land, das vor 24 Uhr erreicht wurde.
+        </p>
         <p>Belege aus dem Eingang werden der Reise anhand des Datums zugeordnet.</p>
       </Schritt>
       <Schritt nr={4} titel="Fahrten mit dem eigenen Auto">
@@ -152,7 +156,10 @@ export function FuerBuchhaltung() {
         </p>
       </Schritt>
       <Schritt nr={4} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>
-        <p>Kategorien mit Konto und MwSt-Satz, Km-Sätze, Büro-Orte für die Kalendervorschläge und die DATEV-Upload-Adresse pflegst du hier.</p>
+        <p>
+          Kategorien mit Konto und MwSt-Satz, Km-Sätze, Projekte und Förderprojekte, Büro-Orte für die Kalendervorschläge und die
+          DATEV-Upload-Adresse pflegst du hier. Unter „Freigaben → Projekte“ siehst du die Reisekosten je Projekt und Zeitraum.
+        </p>
       </Schritt>
     </Abschnitt>
   );

@@ -123,3 +123,26 @@ export async function erinnerungTesten(): Promise<AktionStatus> {
   if (!lauf.monat && !lauf.freigaben) return { fehler: "Bei dir ist gerade nichts offen – es wurde keine Erinnerung gesendet." };
   return { gespeichert: true };
 }
+
+/** Projekt anlegen oder ändern (nur Buchhaltung/Admin, per RLS abgesichert) */
+export async function projektSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
+  const id = text(formData, "id");
+  const bezeichnung = text(formData, "bezeichnung").slice(0, 120);
+  if (!bezeichnung) return { fehler: "Bezeichnung fehlt." };
+  const daten = {
+    bezeichnung,
+    nummer: text(formData, "nummer").slice(0, 40) || null,
+    foerdergeber: text(formData, "foerdergeber").slice(0, 120) || null,
+    foerderkennzeichen: text(formData, "foerderkennzeichen").slice(0, 60) || null,
+    aktiv: id ? formData.get("aktiv") === "on" : true,
+  };
+
+  const supabase = await createClient();
+  const { data, error } = id
+    ? await supabase.from("projekt").update(daten).eq("id", id).select("id")
+    : await supabase.from("projekt").insert(daten).select("id");
+  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+
+  revalidatePath("/einstellungen");
+  return { gespeichert: true };
+}

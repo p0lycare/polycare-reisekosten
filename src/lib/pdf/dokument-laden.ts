@@ -1,5 +1,6 @@
 import "server-only";
 import { istAusland, landName } from "@/lib/reisekosten/laender";
+import { projektName } from "@/lib/reisekosten/projekte";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { formatDatum, formatDatumZeit } from "@/lib/format";
@@ -43,6 +44,9 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     supabase.from("reise_ereignis").select("zeit, aktion, person_name, kommentar").eq("reise_id", reiseId).order("zeit"),
   ]);
 
+  const { data: projekt } = reise.projekt_id
+    ? await supabase.from("projekt").select("bezeichnung, nummer, foerderkennzeichen").eq("id", reise.projekt_id).maybeSingle()
+    : { data: null };
   const verpflegung = verpflegungFuer(reise);
   const nummeriert = (belege ?? []).map((b, i) => ({ ...b, nr: i + 1 }));
 
@@ -58,6 +62,9 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     },
     kostenstelle: reise.kostenstelle,
     begruendung: reise.begruendung,
+    projekt: projekt
+      ? `${projektName({ id: "", ...projekt })}${projekt.foerderkennzeichen ? ` (FKZ ${projekt.foerderkennzeichen})` : ""}`
+      : null,
     reiseweg: reise.reiseweg,
     ausland: istAusland(reise.land) ? landName(reise.land, Number(reise.beginn.slice(0, 4))) : null,
     besuchteStellen: reise.besuchte_stellen,

@@ -116,6 +116,11 @@ export default async function FreigabenPage() {
           <Link href="/uebersicht" className="underline">
             Übersicht
           </Link>
+          {buchhaltung && (
+            <Link href="/projekte" className="underline">
+              Projekte
+            </Link>
+          )}
         </div>
       </div>
 

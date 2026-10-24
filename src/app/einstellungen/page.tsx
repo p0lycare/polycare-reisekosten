@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ABSCHNITT_TEXT, ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
-import { BueroOrteFormular, ErinnerungTesten, KategorieZeile, NeueKategorie, SaetzeFormular } from "./formulare";
+import { BueroOrteFormular, ErinnerungTesten, KategorieZeile, NeueKategorie, ProjektZeile, SaetzeFormular } from "./formulare";
 import { TestmailKnopf } from "./mail/mail-bereich";
 import { DatevAdresse } from "./mail/datev-adresse";
 import { mailKonfiguration } from "@/lib/mail/graph";
@@ -16,11 +16,12 @@ export default async function EinstellungenPage() {
   const { data: profil } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (profil?.rolle !== "admin" && profil?.rolle !== "buchhaltung") redirect("/");
 
-  const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }, { data: intern }] = await Promise.all([
+  const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }, { data: intern }, { data: projekte }] = await Promise.all([
     supabase.from("kategorie").select("*").order("abschnitt").order("sortierung").order("bezeichnung"),
     supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent, buero_orte").single(),
     supabase.from("mail_protokoll").select("id, zeit, art, an, betreff, status, fehler").order("zeit", { ascending: false }).limit(10),
     supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
+    supabase.from("projekt").select("*").order("aktiv", { ascending: false }).order("bezeichnung"),
   ]);
   const absender = mailKonfiguration() ? process.env.MAIL_ABSENDER : null;
   const serverOk = await adminZugangOk();
@@ -92,6 +93,24 @@ export default async function EinstellungenPage() {
         <p className="text-xs text-neutral-500">
           Eine Angabe je Zeile. Termine, deren Ort einen dieser Texte enthält, gelten als Bürotermin und werden nicht als Reise vorgeschlagen.
         </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-medium">Projekte und Förderprojekte</h2>
+          <Link href="/projekte" className="text-sm underline">
+            Auswertung →
+          </Link>
+        </div>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Reisen können beim Anlegen einem Projekt zugeordnet werden. Inaktive Projekte stehen nicht mehr zur Auswahl.
+        </p>
+        <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 px-4 dark:divide-neutral-800 dark:border-neutral-800">
+          {(projekte ?? []).map((p) => (
+            <ProjektZeile key={p.id} projekt={p} />
+          ))}
+          <ProjektZeile />
+        </div>
       </section>
 
       <section className="flex flex-col gap-3">
