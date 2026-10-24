@@ -121,13 +121,23 @@ ${kommentar.map((k) => `<p>${escape(k)}</p>`).join("")}
   return { betreff: texte.betreff, text, html };
 }
 
-/** Erinnerungsmail mit einigen Zeilen und einem Knopf */
-export function alsErinnerung(d: { betreff: string; zeilen: string[]; knopf: string; link: string }): { betreff: string; text: string; html: string } {
+/** Kurze Mail mit einigen Zeilen und einem Knopf (Erinnerungen, Vorschuss) */
+export function alsKurzmail(d: { betreff: string; zeilen: string[]; knopf: string; link: string; fuss?: string }): {
+  betreff: string;
+  text: string;
+  html: string;
+} {
+  const fuss = d.fuss ? ` · ${d.fuss}` : "";
   const text = [...d.zeilen, "", `${d.knopf}: ${d.link}`, "", "– Polycare Reisekosten"].join("\n");
   const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;font-size:15px;color:#171717;line-height:1.5">
 ${d.zeilen.map((z) => `<p style="margin:0 0 8px">${escape(z)}</p>`).join("\n")}
 <p style="margin-top:16px"><a href="${escape(d.link)}" style="display:inline-block;background:#153c28;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">${escape(d.knopf)}</a></p>
-<p style="color:#737373;font-size:13px">Polycare Reisekosten · Diese Erinnerung kommt automatisch.</p>
+<p style="color:#737373;font-size:13px">Polycare Reisekosten${escape(fuss)}</p>
 </body></html>`;
   return { betreff: d.betreff, text, html };
+}
+
+/** Erinnerungsmail mit einigen Zeilen und einem Knopf */
+export function alsErinnerung(d: { betreff: string; zeilen: string[]; knopf: string; link: string }): { betreff: string; text: string; html: string } {
+  return alsKurzmail({ ...d, fuss: "Diese Erinnerung kommt automatisch." });
 }

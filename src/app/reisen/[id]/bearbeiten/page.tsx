@@ -19,6 +19,7 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
   if (reise.mitarbeiter_id !== user?.id || !istBearbeitbar(reise.status)) redirect(`/reisen/${id}`);
 
   const projekte = await ladeProjektAuswahl(supabase, reise.projekt_id);
+  const { data: antrag } = await supabase.from("vorschuss").select("id").eq("reise_id", reise.id).neq("status", "abgelehnt").maybeSingle();
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
@@ -42,6 +43,7 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
           projektId: reise.projekt_id ?? "",
           verpflegungBemerkung: reise.verpflegung_bemerkung ?? "",
           vorschuss: reise.vorschuss_cent ? centAlsEingabe(reise.vorschuss_cent) : "",
+          vorschussFest: !!antrag,
         }}
       />
     </main>

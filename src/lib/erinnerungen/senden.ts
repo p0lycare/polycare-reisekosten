@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient, protokolliereMail } from "@/lib/supabase/admin";
 import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { alsErinnerung } from "@/lib/mail/vorlagen";
-import { verteileAufgaben } from "@/lib/reisekosten/freigaben";
+import { verteileAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
 import { freigabeText, istFreigabeErinnerung, istMonatserinnerung, monatsText } from "./plan";
 
 const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -53,6 +53,10 @@ export async function erinnerungenSenden({
       .in("status", ["entwurf", "abgelehnt", "eingereicht", "freigegeben", "geprueft"]),
     db.from("beleg_eingang").select("mitarbeiter_id"),
   ]);
+  const { data: vorschuesse } = await db
+    .from("vorschuss")
+    .select("status, mitarbeiter_id, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(vorgesetzter_id)")
+    .in("status", ["beantragt", "genehmigt"]);
 
   async function senden(person: { id: string; email: string }, art: string, inhalt: { betreff: string; zeilen: string[] }, knopf: string, pfad: string) {
     const mail = alsErinnerung({ ...inhalt, knopf, link: `${basis}${pfad}` });
@@ -82,7 +86,12 @@ export async function erinnerungenSenden({
 
     if (freigaben) {
       const a = verteileAufgaben(reisen ?? [], person.id, person.rolle);
-      const text = freigabeText({ genehmigen: a.genehmigen.length, pruefen: a.pruefen.length, auszahlen: a.auszahlen.length });
+      const v = verteileVorschuesse(vorschuesse ?? [], person.id, person.rolle);
+      const text = freigabeText({
+        genehmigen: a.genehmigen.length + v.genehmigen.length,
+        pruefen: a.pruefen.length,
+        auszahlen: a.auszahlen.length + v.auszahlen.length,
+      });
       if (text && (await senden(person, "erinnerung_freigabe", text, "Freigaben öffnen", "/freigaben"))) lauf.freigaben++;
     }
   }

@@ -4,10 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
 import { formatIban } from "@/lib/iban";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
-import { istFreigebend, ladeAufgaben } from "@/lib/reisekosten/freigaben";
+import { istFreigebend, ladeAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Reise } from "@/lib/reisekosten/reise";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
+import { VorschussEntscheiden, type OffenerVorschuss } from "@/app/vorschuss/formulare";
 import { SammelListe, type PersonGruppe } from "./sammel-liste";
 
 type Eintrag = Reise & { mitarbeiter: { name: string } | null };
@@ -102,6 +103,30 @@ export default async function FreigabenPage() {
       : { data: [] as { id: string; iban: string | null }[] };
   const ibans = new Map((privat ?? []).map((p) => [p.id, p.iban ? formatIban(p.iban) : null]));
 
+  // Vorschüsse: genehmigen wie Reisen (Führungskraft), auszahlen durch die Buchhaltung; nie die eigenen
+  const { data: vorschuesse } = await supabase
+    .from("vorschuss")
+    .select("id, reise_id, mitarbeiter_id, betrag_cent, grund, status, reise_anlass, reise_weg, reise_beginn, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(name, vorgesetzter_id)")
+    .in("status", ["beantragt", "genehmigt"])
+    .neq("mitarbeiter_id", user!.id)
+    .order("beantragt_am");
+  const { genehmigen: vGenehmigen, auszahlen: vAuszahlen } = verteileVorschuesse(vorschuesse ?? [], user!.id, profil?.rolle);
+  const vIbanIds = vAuszahlen.map((v) => v.mitarbeiter_id).filter((id) => !ibans.has(id));
+  if (vIbanIds.length) {
+    const { data } = await supabase.from("profil_privat").select("id, iban").in("id", vIbanIds);
+    for (const p of data ?? []) ibans.set(p.id, p.iban ? formatIban(p.iban) : null);
+  }
+  const alsOffen = (v: NonNullable<typeof vorschuesse>[number]): OffenerVorschuss => ({
+    id: v.id,
+    reiseId: v.reise_id,
+    name: v.mitarbeiter?.name ?? "",
+    reise: `${v.reise_anlass} (${v.reise_weg})`,
+    beginn: v.reise_beginn,
+    betrag: v.betrag_cent,
+    grund: v.grund,
+    iban: ibans.get(v.mitarbeiter_id) ?? null,
+  });
+
   const [genehmigen, pruefen, auszahlen] = await Promise.all([
     gruppieren(supabase, aufgaben.genehmigen, ibans),
     gruppieren(supabase, aufgaben.pruefen, ibans),
@@ -123,6 +148,20 @@ export default async function FreigabenPage() {
           )}
         </div>
       </div>
+
+      {(vGenehmigen.length > 0 || vAuszahlen.length > 0) && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-medium">Vorschüsse</h2>
+          <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+            {vGenehmigen.map((v) => (
+              <VorschussEntscheiden key={v.id} v={alsOffen(v)} art="genehmigen" />
+            ))}
+            {vAuszahlen.map((v) => (
+              <VorschussEntscheiden key={v.id} v={alsOffen(v)} art="auszahlen" />
+            ))}
+          </ul>
+        </section>
+      )}
 
       {(freigebend || genehmigen.length > 0) && (
         <Abschnitt titel="Zur Genehmigung" anzahl={anzahlVon(genehmigen)} summe={summeVon(genehmigen)}>

@@ -58,8 +58,18 @@ export async function reiseSpeichern(
     return { fehler: "Bitte das Kennzeichen des eigenen PKW angeben." };
   }
   const vorschussEingabe = text(formData, "vorschuss");
-  const vorschuss = vorschussEingabe ? parseEuro(vorschussEingabe) : 0;
+  let vorschuss = vorschussEingabe ? parseEuro(vorschussEingabe) : 0;
   if (vorschuss === null) return { fehler: "Bitte den Vorschuss als Betrag angeben, z. B. 100,00." };
+  // Läuft ein Vorschussantrag im Tool, gilt nur dessen ausgezahlter Betrag (die Datenbank hält ihn zusätzlich fest)
+  if (id) {
+    const { data: antrag } = await (await createClient())
+      .from("vorschuss")
+      .select("status, betrag_cent")
+      .eq("reise_id", id)
+      .neq("status", "abgelehnt")
+      .maybeSingle();
+    if (antrag) vorschuss = antrag.status === "ausgezahlt" ? antrag.betrag_cent : 0;
+  }
 
   let mahlzeiten: Record<string, Mahlzeiten>;
   try {

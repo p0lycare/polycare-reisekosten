@@ -591,11 +591,85 @@ export type Database = {
           },
         ]
       }
+      vorschuss: {
+        Row: {
+          ablehnungsgrund: string | null
+          ausgezahlt_am: string | null
+          ausgezahlt_von: string | null
+          beantragt_am: string
+          betrag_cent: number
+          entschieden_am: string | null
+          entschieden_von: string | null
+          grund: string | null
+          id: string
+          mitarbeiter_id: string
+          reise_anlass: string
+          reise_beginn: string
+          reise_id: string
+          reise_weg: string
+          status: Database["public"]["Enums"]["vorschuss_status"]
+        }
+        Insert: {
+          ablehnungsgrund?: string | null
+          ausgezahlt_am?: string | null
+          ausgezahlt_von?: string | null
+          beantragt_am?: string
+          betrag_cent: number
+          entschieden_am?: string | null
+          entschieden_von?: string | null
+          grund?: string | null
+          id?: string
+          mitarbeiter_id: string
+          reise_anlass: string
+          reise_beginn: string
+          reise_id: string
+          reise_weg: string
+          status?: Database["public"]["Enums"]["vorschuss_status"]
+        }
+        Update: {
+          ablehnungsgrund?: string | null
+          ausgezahlt_am?: string | null
+          ausgezahlt_von?: string | null
+          beantragt_am?: string
+          betrag_cent?: number
+          entschieden_am?: string | null
+          entschieden_von?: string | null
+          grund?: string | null
+          id?: string
+          mitarbeiter_id?: string
+          reise_anlass?: string
+          reise_beginn?: string
+          reise_id?: string
+          reise_weg?: string
+          status?: Database["public"]["Enums"]["vorschuss_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vorschuss_mitarbeiter_id_fkey"
+            columns: ["mitarbeiter_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vorschuss_reise_id_fkey"
+            columns: ["reise_id"]
+            isOneToOne: false
+            referencedRelation: "reise"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      vorschuss_ablehnen: { Args: { p_grund: string; p_id: string }; Returns: undefined }
+      vorschuss_auszahlen: { Args: { p_id: string }; Returns: undefined }
+      vorschuss_beantragen: { Args: { p_betrag_cent: number; p_grund: string; p_reise: string }; Returns: string }
+      vorschuss_genehmigen: { Args: { p_id: string }; Returns: undefined }
+      vorschuss_zurueckziehen: { Args: { p_id: string }; Returns: undefined }
       darf_genehmigen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_pruefen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_reise_sehen: { Args: { p_reise: string }; Returns: boolean }
@@ -694,6 +768,7 @@ export type Database = {
       }
     }
     Enums: {
+      vorschuss_status: "beantragt" | "genehmigt" | "abgelehnt" | "ausgezahlt"
       reise_status:
         | "entwurf"
         | "eingereicht"
@@ -836,6 +911,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      vorschuss_status: ["beantragt", "genehmigt", "abgelehnt", "ausgezahlt"],
       reise_status: [
         "entwurf",
         "eingereicht",

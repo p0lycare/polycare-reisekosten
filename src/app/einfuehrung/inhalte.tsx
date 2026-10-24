@@ -93,7 +93,13 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
           der Reise – korrigieren und erneut einreichen.
         </p>
       </Schritt>
-      <Schritt nr={6} titel="Erinnerung am Monatsende">
+      <Schritt nr={6} titel="Vorschuss für größere Ausgaben">
+        <p>
+          Stehen hohe Kosten an (z. B. Hotel oder Flug), kannst du in der geplanten Reise einen Vorschuss beantragen. Deine
+          Führungskraft genehmigt, die Buchhaltung zahlt aus – bei der Abrechnung wird er automatisch abgezogen.
+        </p>
+      </Schritt>
+      <Schritt nr={7} titel="Erinnerung am Monatsende">
         <p>
           Am vorletzten Werktag des Monats bekommst du eine Mail, falls noch Entwürfe oder Belege im Eingang offen sind. Ist alles
           eingereicht, kommt nichts.
@@ -126,7 +132,10 @@ export function FuerFuehrungskraefte() {
         </p>
       </Schritt>
       <Schritt nr={4} titel="Team im Blick" link={{ href: "/uebersicht", text: "Team-Übersicht" }}>
-        <p>Die Übersicht zeigt je Monat, was dein Team eingereicht hat und wo es gerade steht. Montags erinnert eine Mail, falls noch etwas wartet.</p>
+        <p>
+          Die Übersicht zeigt je Monat, was dein Team eingereicht hat und wo es gerade steht. Vorschussanträge erscheinen ebenfalls unter
+          „Freigaben“. Montags erinnert eine Mail, falls noch etwas wartet.
+        </p>
         <p>Deine eigenen Reisen genehmigt deine Führungskraft – niemand genehmigt sich selbst.</p>
       </Schritt>
     </Abschnitt>
@@ -152,7 +161,7 @@ export function FuerBuchhaltung() {
       <Schritt nr={3} titel="Auszahlung">
         <p>
           Unter „Zur Auszahlung“ stehen die Beträge je Person mit IBAN aus dem Profil. Überweisen, dann „als ausgezahlt markieren“ – die
-          Person bekommt eine Mail.
+          Person bekommt eine Mail. Genehmigte Vorschüsse stehen oben unter „Vorschüsse“ und laufen genauso.
         </p>
       </Schritt>
       <Schritt nr={4} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>

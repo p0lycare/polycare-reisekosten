@@ -10,6 +10,7 @@ import { LoeschenButton } from "./loeschen-button";
 import { AbrechnungUebersicht } from "./abrechnung-uebersicht";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { WorkflowPanel } from "./workflow/workflow-panel";
+import { VorschussBeantragen, VorschussZurueckziehen } from "@/app/vorschuss/formulare";
 import { Verlauf } from "./workflow/verlauf";
 import { DatevPanel } from "./workflow/datev-panel";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
@@ -45,6 +46,13 @@ export default async function ReisePage({
   const { data: projekt } = reise.projekt_id
     ? await supabase.from("projekt").select("id, bezeichnung, nummer").eq("id", reise.projekt_id).maybeSingle()
     : { data: null };
+  const { data: vorschuss } = await supabase
+    .from("vorschuss")
+    .select("id, betrag_cent, status, ablehnungsgrund, ausgezahlt_am")
+    .eq("reise_id", reise.id)
+    .order("beantragt_am", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const [{ data: darfGenehmigen }, { data: reisender }] = await Promise.all([
     reise.status === "eingereicht" && !eigene
       ? supabase.rpc("darf_genehmigen", { p_mitarbeiter: reise.mitarbeiter_id })
@@ -216,6 +224,37 @@ export default async function ReisePage({
       )}
 
       <WorkflowPanel id={reise.id} rechte={rechte} betrag={formatEuro(abrechnung.auszuzahlen)} hinweise={hinweise} />
+
+      {(vorschuss || (eigene && reise.status === "entwurf")) && (
+        <section className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+          <h2 className="font-medium">Vorschuss</h2>
+          {vorschuss?.status === "beantragt" && (
+            <>
+              <p>{formatEuro(vorschuss.betrag_cent)} beantragt – wartet auf die Genehmigung.</p>
+              {eigene && <VorschussZurueckziehen id={vorschuss.id} reiseId={reise.id} />}
+            </>
+          )}
+          {vorschuss?.status === "genehmigt" && <p>{formatEuro(vorschuss.betrag_cent)} genehmigt – die Buchhaltung zahlt ihn aus.</p>}
+          {vorschuss?.status === "ausgezahlt" && (
+            <p>
+              {formatEuro(vorschuss.betrag_cent)} ausgezahlt
+              {vorschuss.ausgezahlt_am && ` am ${new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin" }).format(new Date(vorschuss.ausgezahlt_am))}`} – wird
+              bei der Abrechnung abgezogen.
+            </p>
+          )}
+          {vorschuss?.status === "abgelehnt" && (
+            <p className="text-red-700 dark:text-red-400">
+              Antrag über {formatEuro(vorschuss.betrag_cent)} abgelehnt{vorschuss.ablehnungsgrund && `: ${vorschuss.ablehnungsgrund}`}
+            </p>
+          )}
+          {eigene && reise.status === "entwurf" && (!vorschuss || vorschuss.status === "abgelehnt") && (
+            <>
+              {!vorschuss && <p className="text-neutral-500">Für größere Ausgaben vorab, z. B. Hotel oder Flug. Wird bei der Abrechnung abgezogen.</p>}
+              <VorschussBeantragen reiseId={reise.id} />
+            </>
+          )}
+        </section>
+      )}
 
       {zeigeDatev && (
         <DatevPanel
