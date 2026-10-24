@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
-import { LAENDER } from "@/lib/reisekosten/laender";
+import { istAusland, laenderAuswahl } from "@/lib/reisekosten/laender";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { formatDatum, formatEuro, wochentag } from "@/lib/format";
 import { VERKEHRSMITTEL, VERKEHRSMITTEL_TEXT, type Verkehrsmittel } from "@/lib/reisekosten/reise";
@@ -27,9 +27,9 @@ export type ReiseWerte = {
   vorschuss: string;
 };
 
-const LAND_NAMEN: Record<string, string> = { DE: "Deutschland" };
+const AUSWAHL = laenderAuswahl();
 
-const MAHLZEITEN: { key: keyof Mahlzeiten; label: string }[] = [
+const MAHLZEITEN: { key: "fruehstueck" | "mittag" | "abend"; label: string }[] = [
   { key: "fruehstueck", label: "Frühstück" },
   { key: "mittag", label: "Mittag" },
   { key: "abend", label: "Abend" },
@@ -60,9 +60,20 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
     }
   }, [beginn, ende, land, mitUebernachtung, mahlzeiten]);
 
-  function mahlzeitUmschalten(datum: string, key: keyof Mahlzeiten) {
+  function mahlzeitUmschalten(datum: string, key: "fruehstueck" | "mittag" | "abend") {
     setMahlzeiten((alt) => ({ ...alt, [datum]: { ...alt[datum], [key]: !alt[datum]?.[key] } }));
   }
+
+  // Reisen durch mehrere Staaten: je Tag abweichendes Land (leer = Reiseland)
+  function tagLandSetzen(datum: string, code: string) {
+    setMahlzeiten((alt) => {
+      const tagDaten = { ...alt[datum] };
+      if (code && code !== land) tagDaten.land = code;
+      else delete tagDaten.land;
+      return { ...alt, [datum]: tagDaten };
+    });
+  }
+  const tageslaender = istAusland(land) || Object.values(mahlzeiten).some((m) => m.land);
 
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-5">
@@ -88,9 +99,9 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Land</span>
           <select name="land" value={land} onChange={(e) => setLand(e.target.value)} className={feld}>
-            {Object.keys(LAENDER).map((code) => (
-              <option key={code} value={code}>
-                {LAND_NAMEN[code] ?? code}
+            {AUSWAHL.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
               </option>
             ))}
           </select>
@@ -155,11 +166,18 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
         {berechnung?.ergebnis && (
           <>
             <p className="mt-1 text-sm text-neutral-500">Gestellte Mahlzeiten (z. B. Hotelfrühstück) ankreuzen – sie werden abgezogen.</p>
+            {tageslaender && (
+              <p className="mt-1 text-sm text-neutral-500">
+                Mehrere Staaten? Je Tag das Land wählen, das vor 24 Uhr Ortszeit erreicht wurde; am Rückreisetag gilt der letzte
+                Tätigkeitsort im Ausland.
+              </p>
+            )}
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-neutral-500">
                   <tr>
                     <th className="py-1 pr-3 font-normal">Tag</th>
+                    {tageslaender && <th className="py-1 pr-3 font-normal">Land vor 24 Uhr</th>}
                     {MAHLZEITEN.map((m) => (
                       <th key={m.key} className="px-2 py-1 text-center font-normal">{m.label}</th>
                     ))}
@@ -172,6 +190,22 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
                       <td className="py-2 pr-3 whitespace-nowrap">
                         {wochentag(t.datum)} {formatDatum(t.datum)}
                       </td>
+                      {tageslaender && (
+                        <td className="py-2 pr-3">
+                          <select
+                            aria-label={`Land am ${formatDatum(t.datum)}`}
+                            value={mahlzeiten[t.datum]?.land ?? land}
+                            onChange={(e) => tagLandSetzen(t.datum, e.target.value)}
+                            className="max-w-44 rounded-md border border-neutral-300 bg-white px-1.5 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+                          >
+                            {AUSWAHL.map((l) => (
+                              <option key={l.code} value={l.code}>
+                                {l.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
                       {MAHLZEITEN.map((m) => (
                         <td key={m.key} className="px-2 py-2 text-center">
                           <input
@@ -193,7 +227,7 @@ export function ReiseFormular({ werte, eingangId }: { werte: ReiseWerte; eingang
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-neutral-300 font-medium dark:border-neutral-700">
-                    <td className="py-2" colSpan={4}>Summe</td>
+                    <td className="py-2" colSpan={tageslaender ? 5 : 4}>Summe</td>
                     <td className="py-2 pl-3 text-right tabular-nums">{formatEuro(berechnung.ergebnis.summe)}</td>
                   </tr>
                 </tfoot>

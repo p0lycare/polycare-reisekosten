@@ -12,7 +12,14 @@ import { z } from "zod";
 // Nur Tage (YYYY-MM-DD) mit optionalen Ja/Nein-Werten – alles andere würde Seiten zum Absturz bringen
 const MahlzeitenSchema = z.record(
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  z.object({ fruehstueck: z.boolean().optional(), mittag: z.boolean().optional(), abend: z.boolean().optional() }).strict(),
+  z
+    .object({
+      fruehstueck: z.boolean().optional(),
+      mittag: z.boolean().optional(),
+      abend: z.boolean().optional(),
+      land: z.string().max(60).optional(),
+    })
+    .strict(),
 );
 
 export type FormularStatus = { fehler?: string };
