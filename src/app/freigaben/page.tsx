@@ -29,6 +29,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[], ibans: Map<stri
     const hinweise = pruefePlausibilitaet(
       {
         beginn: r.beginn,
+        land: r.land,
         ende: r.ende,
         mitUebernachtung: r.mit_uebernachtung,
         verkehrsmittel: r.verkehrsmittel,

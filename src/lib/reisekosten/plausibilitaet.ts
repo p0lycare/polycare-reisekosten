@@ -1,4 +1,4 @@
-import type { Mahlzeiten } from "./verpflegung";
+import { berechneVerpflegung, type Mahlzeiten } from "./verpflegung";
 import type { Verkehrsmittel } from "./reise";
 import { weichtAb } from "../routing/strecke";
 
@@ -8,6 +8,8 @@ export type PlausiReise = {
   mitUebernachtung: boolean;
   verkehrsmittel: Verkehrsmittel[];
   mahlzeiten: Record<string, Mahlzeiten>;
+  /** Reiseland; ohne Angabe wird die Pauschale nicht geprüft */
+  land?: string;
 };
 
 export type PlausiBeleg = {
@@ -30,6 +32,13 @@ const OHNE_BELEG_UEBLICH = new Set(["trinkgeld"]);
  */
 export function pruefePlausibilitaet(reise: PlausiReise, belege: PlausiBeleg[], fahrten: PlausiFahrt[]): string[] {
   const hinweise: string[] = [];
+  if (reise.land) {
+    try {
+      berechneVerpflegung({ ...reise, land: reise.land, beginn: reise.beginn.slice(0, 16), ende: reise.ende.slice(0, 16) });
+    } catch (e) {
+      hinweise.push(`Die Verpflegungspauschale kann nicht berechnet werden (${e instanceof Error ? e.message : "ungültige Angaben"}) – bitte die Reise bearbeiten.`);
+    }
+  }
   const von = reise.beginn.slice(0, 10);
   const bis = reise.ende.slice(0, 10);
   const hat = (id: string) => belege.some((b) => b.kategorieId === id);

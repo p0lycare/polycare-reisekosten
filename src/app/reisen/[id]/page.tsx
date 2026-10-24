@@ -68,7 +68,7 @@ export default async function ReisePage({
       !eigene &&
       istBuchhaltung &&
       reise.status === "freigegeben" &&
-      (reise.freigeber_id !== user?.id || reisender?.rolle === "admin"),
+      (reise.freigeber_id !== user?.id || reisender?.rolle === "admin" || reisender?.rolle === "buchhaltung"),
     auszahlen: !eigene && istBuchhaltung && reise.status === "geprueft",
   };
 
@@ -95,6 +95,7 @@ export default async function ReisePage({
     ? pruefePlausibilitaet(
         {
           beginn: reise.beginn,
+          land: reise.land,
           ende: reise.ende,
           mitUebernachtung: reise.mit_uebernachtung,
           verkehrsmittel: reise.verkehrsmittel,
@@ -213,7 +214,7 @@ export default async function ReisePage({
               Als Vorlage
             </Link>
           )}
-          {eigene && reise.status === "entwurf" && <LoeschenButton id={reise.id} />}
+          {eigene && reise.status === "entwurf" && !(vorschuss && ["genehmigt", "ausgezahlt"].includes(vorschuss.status)) && <LoeschenButton id={reise.id} />}
         </div>
       </section>
 

@@ -72,4 +72,9 @@ describe("pruefePlausibilitaet", () => {
     expect(pruefePlausibilitaet(pkw, [beleg("uebernachtung")], [passend])).toEqual([]);
     expect(pruefePlausibilitaet(pkw, [beleg("uebernachtung")], [abweichend])).toEqual([expect.stringContaining("berechneten Route")]);
   });
+
+  it("Pauschale nicht berechenbar (z. B. unbekanntes Land)", () => {
+    expect(pruefePlausibilitaet({ ...reise, land: "XX" }, [beleg("uebernachtung")], [])).toEqual([expect.stringContaining("Verpflegungspauschale kann nicht berechnet")]);
+    expect(pruefePlausibilitaet({ ...reise, land: "AT" }, [beleg("uebernachtung")], [])).toEqual([]);
+  });
 });

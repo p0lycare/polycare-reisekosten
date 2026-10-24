@@ -1,5 +1,6 @@
 "use client";
 
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { ablehnen, auszahlen, einreichen, genehmigen, pruefen, zurueckziehen, type WorkflowStatus } from "./actions";
@@ -108,7 +109,7 @@ function Pruefen({ id }: { id: string }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Buchungsmonat</span>
-          <input type="month" name="buchungsmonat" required defaultValue={new Date().toISOString().slice(0, 7)} className={feld} />
+          <input type="month" name="buchungsmonat" required defaultValue={aktuellerMonatBerlin()} className={feld} />
         </label>
       </div>
       <Fehler status={status} />

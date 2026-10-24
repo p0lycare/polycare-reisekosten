@@ -45,9 +45,9 @@ export function verteileAufgaben<R extends AufgabenReise>(reisen: R[], userId: s
           rolle === "admin" ||
           (rolle === "freigeber" && !r.mitarbeiter?.vorgesetzter_id)),
     ),
-    // Vier-Augen-Prinzip wie in reise_pruefen
+    // Vier-Augen-Prinzip wie in reise_pruefen (Ausnahme: Reisen von Admin und Buchhaltung)
     pruefen: buchhaltung
-      ? alle.filter((r) => r.status === "freigegeben" && (r.freigeber_id !== userId || r.mitarbeiter?.rolle === "admin"))
+      ? alle.filter((r) => r.status === "freigegeben" && (r.freigeber_id !== userId || r.mitarbeiter?.rolle === "admin" || r.mitarbeiter?.rolle === "buchhaltung"))
       : [],
     auszahlen: buchhaltung ? alle.filter((r) => r.status === "geprueft") : [],
   };

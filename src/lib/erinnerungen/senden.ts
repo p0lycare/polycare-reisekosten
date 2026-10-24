@@ -37,6 +37,8 @@ export async function erinnerungenSenden({
   if (!mailKonfiguration()) return { ...lauf, uebersprungen: "E-Mail-Versand ist nicht eingerichtet" };
 
   const db = createAdminClient();
+  // Testläufe getrennt protokollieren, damit sie die Tagessperre des echten Laufs nicht auslösen
+  const praefix = erzwingen ? "test_" : "";
   // Ein Lauf je Tag: wurde in den letzten 20 Stunden erinnert (z. B. Wiederholung des Cron-Aufrufs), nichts doppelt senden
   const { count } = await db
     .from("mail_protokoll")
@@ -81,7 +83,7 @@ export async function erinnerungenSenden({
         abgelehnt: eigene.filter((r) => r.status === "abgelehnt").length,
         eingang: (eingang ?? []).filter((e) => e.mitarbeiter_id === person.id).length,
       });
-      if (text && (await senden(person, "erinnerung_monat", text, "Monat abrechnen", `/monat/${heute.slice(0, 7)}`))) lauf.monat++;
+      if (text && (await senden(person, `${praefix}erinnerung_monat`, text, "Monat abrechnen", `/monat/${heute.slice(0, 7)}`))) lauf.monat++;
     }
 
     if (freigaben) {
@@ -92,7 +94,7 @@ export async function erinnerungenSenden({
         pruefen: a.pruefen.length,
         auszahlen: a.auszahlen.length + v.auszahlen.length,
       });
-      if (text && (await senden(person, "erinnerung_freigabe", text, "Freigaben öffnen", "/freigaben"))) lauf.freigaben++;
+      if (text && (await senden(person, `${praefix}erinnerung_freigabe`, text, "Freigaben öffnen", "/freigaben"))) lauf.freigaben++;
     }
   }
   return lauf;
