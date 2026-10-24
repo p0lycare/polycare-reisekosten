@@ -20,6 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Polycare Reisekosten",
   description: "Dienstreisen erfassen, Belege hochladen, Pauschalen berechnen",
+  robots: { index: false, follow: false },
 };
 
 export default async function RootLayout({
