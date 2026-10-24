@@ -68,8 +68,11 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
           anpassen; weicht deine Angabe deutlich von der Route ab, kurz im Zweck begründen (z. B. Umleitung).
         </p>
         <p>
-          Erstattet werden {formatEuro(kmSatzCent)} je km. Davon sind {formatEuro(kmSteuerfreiCent)} steuerfrei, der Rest wird über die
-          Lohnabrechnung versteuert. Tankbelege für den eigenen PKW nicht zusätzlich einreichen.
+          Erstattet werden {formatEuro(kmSatzCent)} je km
+          {kmSatzCent > kmSteuerfreiCent
+            ? ` – davon sind ${formatEuro(kmSteuerfreiCent)} steuerfrei, der Rest wird als Arbeitslohn versteuert. `
+            : ", steuerfrei. "}
+          Tankbelege für den eigenen PKW nicht zusätzlich einreichen.
         </p>
       </Schritt>
       <Schritt nr={5} titel="Gesammelt einreichen">
@@ -128,7 +131,7 @@ export function FuerFuehrungskraefte() {
 
 export function FuerBuchhaltung() {
   return (
-    <Abschnitt id="buchhaltung" titel="Prüfen, buchen, auszahlen" untertitel="Für die Buchhaltung – von der Belegprüfung bis zur Lohnliste.">
+    <Abschnitt id="buchhaltung" titel="Prüfen, buchen, auszahlen" untertitel="Für die Buchhaltung – von der Belegprüfung bis zur Auszahlung.">
       <Schritt nr={1} titel="Belegprüfung" link={{ href: "/freigaben", text: "Freigaben" }}>
         <p>
           Genehmigte Reisen erscheinen unter „Zur Belegprüfung“. In der Reise Beträge mit den Belegfotos abgleichen, ggf. Kategorie oder
@@ -148,13 +151,7 @@ export function FuerBuchhaltung() {
           Person bekommt eine Mail.
         </p>
       </Schritt>
-      <Schritt nr={4} titel="Lohnliste" link={{ href: "/lohnliste", text: "Lohnliste" }}>
-        <p>
-          Je Buchungsmonat und Person: steuerfreie Reisekosten, Auslagen und steuerpflichtiges Km-Geld (Anteil über dem steuerfreien
-          Satz) für die Lohnabrechnung.
-        </p>
-      </Schritt>
-      <Schritt nr={5} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>
+      <Schritt nr={4} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>
         <p>Kategorien mit Konto und MwSt-Satz, Km-Sätze, Büro-Orte für die Kalendervorschläge und die DATEV-Upload-Adresse pflegst du hier.</p>
       </Schritt>
     </Abschnitt>
