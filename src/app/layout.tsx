@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import { Kopfzeile } from "./kopfzeile";
+import { ServiceWorker } from "./service-worker";
 import { createClient } from "@/lib/supabase/server";
 import { istFreigebend, ladeAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
 import "./globals.css";
@@ -65,6 +66,7 @@ export default async function RootLayout({
           />
         )}
         {children}
+        {user && <ServiceWorker />}
       </body>
     </html>
   );
