@@ -32,24 +32,27 @@ export default async function RootLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Profil zuerst (Rolle bestimmt, was geladen wird), danach alles Weitere gleichzeitig
   const { data: profil } = user
     ? await supabase.from("profile").select("name, rolle").eq("id", user.id).single()
     : { data: null };
-  const aufgaben = user ? await ladeAufgaben(supabase, user.id, profil?.rolle) : null;
-  const { data: vorschuesse } =
-    user && istFreigebend(profil?.rolle)
-      ? await supabase
-          .from("vorschuss")
-          .select("status, mitarbeiter_id, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(vorgesetzter_id)")
-          .in("status", ["beantragt", "genehmigt"])
-      : { data: [] };
+  const freigebend = !!user && istFreigebend(profil?.rolle);
+  const [aufgaben, { data: vorschuesse }, { count: eingang }] = user
+    ? await Promise.all([
+        ladeAufgaben(supabase, user.id, profil?.rolle),
+        freigebend
+          ? supabase
+              .from("vorschuss")
+              .select("status, mitarbeiter_id, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(vorgesetzter_id)")
+              .in("status", ["beantragt", "genehmigt"])
+          : Promise.resolve({ data: [] }),
+        supabase.from("beleg_eingang").select("id", { count: "exact", head: true }).eq("mitarbeiter_id", user.id),
+      ])
+    : [null, { data: [] }, { count: 0 }];
   const vorschussAufgaben = user ? verteileVorschuesse(vorschuesse ?? [], user.id, profil?.rolle) : null;
   const offen =
     (aufgaben ? aufgaben.genehmigen.length + aufgaben.pruefen.length + aufgaben.auszahlen.length : 0) +
     (vorschussAufgaben ? vorschussAufgaben.genehmigen.length + vorschussAufgaben.auszahlen.length : 0);
-  const { count: eingang } = user
-    ? await supabase.from("beleg_eingang").select("id", { count: "exact", head: true }).eq("mitarbeiter_id", user.id)
-    : { count: 0 };
 
   return (
     <html lang="de">

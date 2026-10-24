@@ -38,7 +38,7 @@ export default async function ProjektePage({ searchParams }: { searchParams: Pro
       .from("reise")
       .select("*, mitarbeiter:profile!reise_mitarbeiter_id_fkey(name)")
       .not("projekt_id", "is", null)
-      .neq("status", "entwurf")
+      .in("status", ["eingereicht", "freigegeben", "geprueft", "ausgezahlt"])
       .gte("beginn", `${von}-01`)
       .lt("beginn", `${folgemonat(bis)}-01`)
       .order("beginn"),

@@ -8,3 +8,8 @@ export function monatsgrenzen(monat: string): { von: string; bis: string } | nul
   const folge = mon === 12 ? `${jahr + 1}-01` : `${jahr}-${String(mon + 1).padStart(2, "0")}`;
   return { von: `${monat}-01`, bis: `${folge}-01` };
 }
+
+/** Aktueller Monat "YYYY-MM" in deutscher Zeit – auch auf Servern, die in UTC laufen */
+export function aktuellerMonatBerlin(): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit" }).format(new Date());
+}

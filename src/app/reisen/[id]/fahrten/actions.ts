@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { berechneRoute, type RoutenErgebnis } from "@/lib/routing/osm";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -32,10 +33,6 @@ export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): 
   if (!strecke) return { fehler: "Fahrstrecke fehlt." };
   if (!Number.isFinite(km) || km <= 0 || km >= 10000) return { fehler: "Kilometer müssen größer als 0 sein." };
 
-  // Route serverseitig bestimmen (meist aus dem Zwischenspeicher), damit die Kennzeichnung verlässlich ist
-  const route = await berechneRoute(strecke);
-  const kmRoute = "km" in route && route.km > 0 && route.km < 10000 ? route.km : null;
-
   const daten = { reise_id: reiseId, datum, strecke, zweck: text(formData, "zweck") || null, km: Math.round(km * 10) / 10 };
   const supabase = await createClient();
   // RLS erlaubt Änderungen nur in eigenen, bearbeitbaren Reisen
@@ -44,10 +41,16 @@ export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): 
     : await supabase.from("fahrt").insert(daten).select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
 
-  // Die berechnete Route darf nur der Server setzen (Datenbank verwirft Nutzeränderungen);
-  // die Zeile ist durch den RLS-geprüften Schreibvorgang oben als eigene, bearbeitbare Fahrt belegt
-  const { error: routeFehler } = await createAdminClient().from("fahrt").update({ km_route: kmRoute }).eq("id", data[0].id);
-  if (routeFehler) console.error("Route konnte nicht gespeichert werden", routeFehler.message);
+  // Route erst nach der Antwort bestimmen (meist aus dem Zwischenspeicher), damit Speichern nie auf OpenStreetMap wartet.
+  // Nur der Server setzt sie (die Datenbank verwirft Nutzeränderungen); die Zeile ist durch den
+  // RLS-geprüften Schreibvorgang oben als eigene, bearbeitbare Fahrt belegt.
+  const fahrtId = data[0].id;
+  after(async () => {
+    const route = await berechneRoute(strecke);
+    const kmRoute = "km" in route && route.km > 0 && route.km < 10000 ? route.km : null;
+    const { error: routeFehler } = await createAdminClient().from("fahrt").update({ km_route: kmRoute }).eq("id", fahrtId);
+    if (routeFehler) console.error("Route konnte nicht gespeichert werden", routeFehler.message);
+  });
 
   revalidatePath(`/reisen/${reiseId}`);
   return { gespeichert: true };

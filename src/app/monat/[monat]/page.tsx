@@ -63,6 +63,7 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
       hinweise: pruefePlausibilitaet(
         {
           beginn: r.beginn,
+          land: r.land,
           ende: r.ende,
           mitUebernachtung: r.mit_uebernachtung,
           verkehrsmittel: r.verkehrsmittel,

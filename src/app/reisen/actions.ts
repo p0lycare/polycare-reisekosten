@@ -149,6 +149,15 @@ export async function reiseLoeschen(formData: FormData) {
   const { data: reise } = await supabase.from("reise").select("mitarbeiter_id, status").eq("id", id).maybeSingle();
   if (!user || !reise || reise.mitarbeiter_id !== user.id || reise.status !== "entwurf") redirect(`/reisen/${id}`);
 
+  // Mit genehmigtem oder ausgezahltem Vorschuss nicht löschen (die Datenbank verhindert es ohnehin) –
+  // vorher prüfen, damit keine Belege verloren gehen, während die Reise bestehen bleibt
+  const { count: vorschuss } = await supabase
+    .from("vorschuss")
+    .select("id", { count: "exact", head: true })
+    .eq("reise_id", id)
+    .in("status", ["genehmigt", "ausgezahlt"]);
+  if (vorschuss) redirect(`/reisen/${id}`);
+
   // Reihenfolge: Belege, dann Fotos (Storage-Regel: nur unbenutzte Fotos löschbar), dann die Reise
   const { data: belege } = await supabase.from("beleg").delete().eq("reise_id", id).select("datei_pfad");
   const pfade = [...new Set((belege ?? []).flatMap((b) => (b.datei_pfad ? [b.datei_pfad] : [])))];
@@ -156,7 +165,11 @@ export async function reiseLoeschen(formData: FormData) {
     const { error } = await supabase.storage.from("belege").remove(pfade);
     if (error) console.error("Belegfotos konnten nicht gelöscht werden", error);
   }
-  await supabase.from("reise").delete().eq("id", id);
+  const { error } = await supabase.from("reise").delete().eq("id", id);
+  if (error) {
+    console.error("Reise konnte nicht gelöscht werden", error.message);
+    redirect(`/reisen/${id}`);
+  }
   revalidatePath("/");
   redirect("/");
 }

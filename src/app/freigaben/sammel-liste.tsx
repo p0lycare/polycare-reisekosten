@@ -1,5 +1,6 @@
 "use client";
 
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
@@ -113,7 +114,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                 type="month"
                 name="buchungsmonat"
                 required
-                defaultValue={new Date().toISOString().slice(0, 7)}
+                defaultValue={aktuellerMonatBerlin()}
                 className="rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
               />
             </label>
