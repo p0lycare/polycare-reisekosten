@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "./logo";
 
 export type KopfzeileDaten = {
   name: string;
@@ -18,7 +19,7 @@ function aktuellerMonat(): string {
 
 function Zaehler({ anzahl }: { anzahl: number }) {
   return anzahl > 0 ? (
-    <span className="ml-1 rounded-full bg-neutral-900 px-1.5 py-0.5 text-xs text-white dark:bg-white dark:text-neutral-900">{anzahl}</span>
+    <span className="ml-1 rounded-full bg-marke px-1.5 py-0.5 text-xs font-medium text-white">{anzahl}</span>
   ) : null;
 }
 
@@ -69,8 +70,11 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
   return (
     <header className="border-b border-neutral-200 dark:border-neutral-800">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 font-sans sm:px-6">
-        <Link href="/" className="shrink-0 font-semibold">
-          Polycare Reisekosten
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold">
+          <Logo className="h-5 w-auto text-marke" />
+          <span>
+            Polycare <span className="font-normal text-neutral-500">Reisekosten</span>
+          </span>
         </Link>
         <nav className="hidden items-center gap-4 text-sm lg:flex">{links}</nav>
         <details className="relative lg:hidden">

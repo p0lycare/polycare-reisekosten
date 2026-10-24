@@ -15,8 +15,15 @@ import { DatevPanel } from "./workflow/datev-panel";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 
-export default async function ReisePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ReisePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ gespeichert?: string }>;
+}) {
   const { id } = await params;
+  const { gespeichert } = await searchParams;
   const supabase = await createClient();
   const { data: reise } = await supabase.from("reise").select("*").eq("id", id).maybeSingle();
   if (!reise) notFound();
@@ -91,22 +98,109 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
       )
     : [];
 
+  const zeitraum =
+    formatDatum(reise.beginn) === formatDatum(reise.ende)
+      ? `${formatDatumZeit(reise.beginn)} – ${reise.ende.slice(11, 16)}`
+      : `${formatDatumZeit(reise.beginn)} – ${formatDatumZeit(reise.ende)}`;
+  const verkehrsmittelText =
+    reise.verkehrsmittel
+      .map((v) =>
+        v === "eigener_pkw" && reise.kfz_kennzeichen
+          ? `${VERKEHRSMITTEL_TEXT[v]} (${reise.kfz_kennzeichen})`
+          : v === "mitfahrt" && reise.mitfahrt_bei
+            ? `${VERKEHRSMITTEL_TEXT[v]} bei ${reise.mitfahrt_bei}`
+            : VERKEHRSMITTEL_TEXT[v],
+      )
+      .join(", ") || "–";
+  const bearbeitbar = eigene && istBearbeitbar(reise.status);
+  const knopfSekundaer =
+    "rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800";
+  const GESPEICHERT: Record<string, string> = {
+    reise: "Reise gespeichert.",
+    beleg: "Beleg gespeichert.",
+    belege: "Belege angelegt.",
+  };
+
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
-      <Link href={eigene ? "/" : "/freigaben"} className="text-sm text-neutral-600 underline dark:text-neutral-400">
-        {eigene ? "← Meine Reisen" : "← Freigaben"}
+    <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 font-sans sm:p-6">
+      <Link
+        href={eigene ? `/monat/${reise.beginn.slice(0, 7)}` : "/freigaben"}
+        className="text-sm text-neutral-600 underline dark:text-neutral-400"
+      >
+        {eigene ? "← Monatsübersicht" : "← Freigaben"}
       </Link>
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{reise.begruendung}</h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
-            {reise.reiseweg} ({reise.land})
-          </p>
-          {reisender && <p className="mt-1 text-sm font-medium">{reisender.name}</p>}
+      {gespeichert && GESPEICHERT[gespeichert] && (
+        <p role="status" className="rounded-md bg-marke-hell p-3 text-sm text-marke-dunkel">
+          ✓ {GESPEICHERT[gespeichert]}
+        </p>
+      )}
+
+      {/* Kopfbereich: worum geht es, was kostet es, was ist als Nächstes zu tun */}
+      <section className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={reise.status} />
+              {reise.beleg_nr && <span className="text-xs text-neutral-500">{reise.beleg_nr}</span>}
+            </div>
+            <h1 className="mt-2 text-2xl font-semibold">{reise.begruendung}</h1>
+            <p className="text-neutral-600 dark:text-neutral-400">
+              {reise.reiseweg}
+              {reise.besuchte_stellen && ` · ${reise.besuchte_stellen}`}
+            </p>
+            {reisender && <p className="mt-1 text-sm font-medium">{reisender.name}</p>}
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-neutral-500">{abrechnung.auszuzahlen < 0 ? "Rückzahlung" : "Auszuzahlen"}</p>
+            <p className="text-3xl font-semibold tabular-nums">{formatEuro(Math.abs(abrechnung.auszuzahlen))}</p>
+          </div>
         </div>
-        <StatusBadge status={reise.status} />
-      </div>
+        <dl className="mt-4 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+          <dt className="text-neutral-500">Zeitraum</dt>
+          <dd>
+            {zeitraum}
+            {reise.mit_uebernachtung ? " · mit Übernachtung" : ""}
+          </dd>
+          <dt className="text-neutral-500">Verkehrsmittel</dt>
+          <dd>{verkehrsmittelText}</dd>
+          {reise.kostenstelle && (
+            <>
+              <dt className="text-neutral-500">Kostenstelle</dt>
+              <dd>{reise.kostenstelle}</dd>
+            </>
+          )}
+          {reise.buchungsmonat && (
+            <>
+              <dt className="text-neutral-500">Buchungsmonat</dt>
+              <dd>
+                {reise.buchungsmonat.slice(5, 7)}/{reise.buchungsmonat.slice(0, 4)}
+              </dd>
+            </>
+          )}
+        </dl>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {bearbeitbar && (
+            <>
+              <Link href={`/reisen/${reise.id}/belege/neu`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+                Beleg hinzufügen
+              </Link>
+              <Link href={`/reisen/${reise.id}/bearbeiten`} className={knopfSekundaer}>
+                Bearbeiten
+              </Link>
+            </>
+          )}
+          <a href={`/reisen/${reise.id}/pdf`} target="_blank" rel="noreferrer" className={knopfSekundaer}>
+            PDF
+          </a>
+          {eigene && (
+            <Link href={`/reisen/neu?vorlage=${reise.id}`} className={knopfSekundaer}>
+              Als Vorlage
+            </Link>
+          )}
+          {eigene && reise.status === "entwurf" && <LoeschenButton id={reise.id} />}
+        </div>
+      </section>
 
       {reise.status === "abgelehnt" && reise.ablehnungsgrund && (
         <p className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
@@ -114,91 +208,7 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
         </p>
       )}
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-        <dt className="text-neutral-500">Beginn</dt>
-        <dd>{formatDatumZeit(reise.beginn)}</dd>
-        <dt className="text-neutral-500">Ende</dt>
-        <dd>{formatDatumZeit(reise.ende)}</dd>
-        <dt className="text-neutral-500">Übernachtung</dt>
-        <dd>{reise.mit_uebernachtung ? "Ja" : "Nein"}</dd>
-        {reise.besuchte_stellen && (
-          <>
-            <dt className="text-neutral-500">Besuchte Stellen</dt>
-            <dd>{reise.besuchte_stellen}</dd>
-          </>
-        )}
-        <dt className="text-neutral-500">Verkehrsmittel</dt>
-        <dd>
-          {reise.verkehrsmittel
-            .map((v) =>
-              v === "eigener_pkw" && reise.kfz_kennzeichen
-                ? `${VERKEHRSMITTEL_TEXT[v]} (${reise.kfz_kennzeichen})`
-                : v === "mitfahrt" && reise.mitfahrt_bei
-                  ? `${VERKEHRSMITTEL_TEXT[v]} bei ${reise.mitfahrt_bei}`
-                  : VERKEHRSMITTEL_TEXT[v],
-            )
-            .join(", ") || "–"}
-        </dd>
-        {reise.kostenstelle && (
-          <>
-            <dt className="text-neutral-500">Kostenstelle</dt>
-            <dd>{reise.kostenstelle}</dd>
-          </>
-        )}
-        {reise.beleg_nr && (
-          <>
-            <dt className="text-neutral-500">Beleg-Nr.</dt>
-            <dd>
-              {reise.beleg_nr}
-              {reise.buchungsmonat && ` · Buchungsmonat ${reise.buchungsmonat.slice(5, 7)}/${reise.buchungsmonat.slice(0, 4)}`}
-            </dd>
-          </>
-        )}
-      </dl>
-
-      <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-        <h2 className="font-medium">Verpflegungspauschale</h2>
-        {verpflegung ? (
-          <table className="mt-3 w-full text-sm">
-            <tbody>
-              {verpflegung.tage.map((t) => (
-                <tr key={t.datum} className="border-t border-neutral-100 first:border-0 dark:border-neutral-800">
-                  <td className="py-2">
-                    {wochentag(t.datum)} {formatDatum(t.datum)}
-                  </td>
-                  <td className="py-2 text-neutral-500">
-                    {t.art === "voll" ? "24 h" : t.art === "klein" ? "An-/Abreise bzw. > 8 h" : "unter 8 h"}
-                    {t.kuerzung > 0 && ` · Mahlzeiten −${formatEuro(t.kuerzung)}`}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">{formatEuro(t.betrag)}</td>
-                </tr>
-              ))}
-              <tr className="border-t border-neutral-300 font-medium dark:border-neutral-700">
-                <td className="py-2" colSpan={2}>Summe</td>
-                <td className="py-2 text-right tabular-nums">{formatEuro(verpflegung.summe)}</td>
-              </tr>
-            </tbody>
-          </table>
-        ) : (
-          <p className="mt-2 text-sm text-neutral-500">Für dieses Land ist noch keine Pauschale hinterlegt.</p>
-        )}
-        {reise.verpflegung_bemerkung && (
-          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Bemerkung: {reise.verpflegung_bemerkung}</p>
-        )}
-      </section>
-
-      <FahrtenListe reise={reise} bearbeitbar={eigene && istBearbeitbar(reise.status)} />
-
-      <BelegListe reiseId={reise.id} bearbeitbar={eigene && istBearbeitbar(reise.status)} />
-
-      <AbrechnungUebersicht abrechnung={abrechnung} zeigeKonten={zeigeKonten} />
-
-      <WorkflowPanel
-        id={reise.id}
-        rechte={rechte}
-        betrag={formatEuro(abrechnung.auszuzahlen)}
-        hinweise={hinweise}
-      />
+      <WorkflowPanel id={reise.id} rechte={rechte} betrag={formatEuro(abrechnung.auszuzahlen)} hinweise={hinweise} />
 
       {zeigeDatev && (
         <DatevPanel
@@ -215,20 +225,45 @@ export default async function ReisePage({ params }: { params: Promise<{ id: stri
         />
       )}
 
+      <BelegListe reiseId={reise.id} bearbeitbar={bearbeitbar} />
+
+      <FahrtenListe reise={reise} bearbeitbar={bearbeitbar} />
+
+      <details className="group rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
+          <span>Verpflegungspauschale</span>
+          <span className="tabular-nums">
+            {verpflegung ? formatEuro(verpflegung.summe) : "–"} <span className="text-neutral-400 group-open:rotate-90">›</span>
+          </span>
+        </summary>
+        {verpflegung ? (
+          <table className="mt-3 w-full text-sm">
+            <tbody>
+              {verpflegung.tage.map((t) => (
+                <tr key={t.datum} className="border-t border-neutral-100 first:border-0 dark:border-neutral-800">
+                  <td className="py-2">
+                    {wochentag(t.datum)} {formatDatum(t.datum)}
+                  </td>
+                  <td className="py-2 text-neutral-500">
+                    {t.art === "voll" ? "24 h" : t.art === "klein" ? "An-/Abreise bzw. > 8 h" : "unter 8 h"}
+                    {t.kuerzung > 0 && ` · Mahlzeiten −${formatEuro(t.kuerzung)}`}
+                  </td>
+                  <td className="py-2 text-right tabular-nums">{formatEuro(t.betrag)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="mt-2 text-sm text-neutral-500">Für dieses Land ist noch keine Pauschale hinterlegt.</p>
+        )}
+        {reise.verpflegung_bemerkung && (
+          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Bemerkung: {reise.verpflegung_bemerkung}</p>
+        )}
+      </details>
+
+      <AbrechnungUebersicht abrechnung={abrechnung} zeigeKonten={zeigeKonten} />
+
       <Verlauf reiseId={reise.id} />
-
-      <a href={`/reisen/${reise.id}/pdf`} target="_blank" rel="noreferrer" className="text-sm text-neutral-600 underline dark:text-neutral-400">
-        Abrechnung als PDF ansehen
-      </a>
-
-      {eigene && istBearbeitbar(reise.status) && (
-        <div className="flex items-center gap-4">
-          <Link href={`/reisen/${reise.id}/bearbeiten`} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-            Bearbeiten
-          </Link>
-          {reise.status === "entwurf" && <LoeschenButton id={reise.id} />}
-        </div>
-      )}
     </main>
   );
 }
