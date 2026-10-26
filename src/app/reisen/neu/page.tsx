@@ -4,6 +4,7 @@ import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { reiseVorschlagAusBeleg } from "@/lib/reisekosten/eingang";
 import { ladeTermin, ladeTermine } from "@/lib/kalender/graph";
 import { reiseVorschlaege, reiseZeiten } from "@/lib/kalender/vorschlaege";
+import { ladeOrteOhneReise } from "@/lib/kalender/orte";
 import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
 
 export default async function NeueReisePage({ searchParams }: { searchParams: Promise<{ eingang?: string; vorlage?: string; termin?: string }> }) {
@@ -98,13 +99,13 @@ async function vorschlagZuTermin(
 ): Promise<{ betreff: string; ort: string; beginn: string; ende: string }> {
   const von = t.beginn.slice(0, 10);
   const bis = new Date(Date.parse(von) + 8 * 864e5).toISOString().slice(0, 10);
-  const [antwort, { data: einstellungen }] = await Promise.all([
-    ladeTermine(email, von, bis),
-    supabase.from("einstellungen").select("buero_orte").single(),
-  ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [antwort, ohneReise] = await Promise.all([ladeTermine(email, von, bis), ladeOrteOhneReise(supabase, user!.id)]);
   const passend =
     "termine" in antwort
-      ? reiseVorschlaege(antwort.termine, { bueroOrte: einstellungen?.buero_orte ?? [], reisen: [] }).find((v) => v.terminId === t.id)
+      ? reiseVorschlaege(antwort.termine, { bueroOrte: ohneReise, reisen: [] }).find((v) => v.terminId === t.id)
       : undefined;
   return passend ?? { betreff: t.betreff, ort: t.ort, ...reiseZeiten(t) };
 }

@@ -29,9 +29,30 @@ export function reiseZeiten(t: Pick<Termin, "beginn" | "ende" | "ganztaegig">): 
   return { beginn: `${t.beginn.slice(0, 10)}T08:00`, ende: `${ende}T18:00` };
 }
 
-function amBuero(ort: string, bueroOrte: string[]): boolean {
-  const klein = ort.toLowerCase();
-  return bueroOrte.some((b) => b.trim() && klein.includes(b.trim().toLowerCase()));
+/**
+ * Orte, zu denen eine Fahrt keine Reise ist: der eigene Wohnort und – wenn das Büro die erste
+ * Tätigkeitsstätte ist – die Büro-Orte aus den Einstellungen.
+ */
+export function orteOhneReise({
+  bueroOrte,
+  wohnort,
+  bueroIstTaetigkeitsstaette,
+}: {
+  bueroOrte: string[];
+  wohnort: string | null | undefined;
+  bueroIstTaetigkeitsstaette: boolean;
+}): string[] {
+  return [...(bueroIstTaetigkeitsstaette ? bueroOrte : []), ...(wohnort?.trim() ? [wohnort.trim()] : [])];
+}
+
+/** Ort fällt unter einen der Begriffe ("Messe Köln" ↔ "Köln", "Kassel" ↔ "34117 Kassel") */
+function amBuero(ort: string, orte: string[]): boolean {
+  const klein = ort.trim().toLowerCase();
+  if (!klein) return false;
+  return orte.some((b) => {
+    const begriff = b.trim().toLowerCase();
+    return !!begriff && (klein.includes(begriff) || (klein.length >= 3 && begriff.includes(klein)));
+  });
 }
 
 function ueberschneidet(a: { beginn: string; ende: string }, b: { beginn: string; ende: string }): boolean {
