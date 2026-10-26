@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SeitenHilfe } from "@/app/seiten-hilfe";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
@@ -85,6 +86,11 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
           ›
         </Link>
       </div>
+
+      <SeitenHilfe anker={buchhaltung ? "buchhaltung" : "fuehrungskraefte"}>
+        Stand aller eingereichten Reisen {buchhaltung ? "" : "deines Teams "}im Monat (nach Reisebeginn) – wer wo im Ablauf steht
+        {buchhaltung ? " und ob die Übertragung an DATEV geklappt hat" : ""}.
+      </SeitenHilfe>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {proStatus.map((s) => (

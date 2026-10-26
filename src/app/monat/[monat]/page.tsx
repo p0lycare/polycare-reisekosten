@@ -105,6 +105,21 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
         </Link>
       </div>
 
+      <section className="flex flex-col gap-2 bg-flaeche p-4 text-sm">
+        <p className="font-medium">So rechnest du den Monat ab – am besten einmal am Monatsende:</p>
+        <ol className="list-decimal space-y-1 pl-5 text-neutral-700 dark:text-neutral-300">
+          <li>Belege aus dem Eingang den Reisen zuordnen.</li>
+          <li>Fehlende Reisen anlegen – gern direkt aus den Vorschlägen aus deinem Kalender unten.</li>
+          <li>Alle fertigen Reisen auswählen und gesammelt einreichen. Deine Führungskraft bekommt eine Mail und genehmigt alles in einem Schritt.</li>
+        </ol>
+        <p className="text-neutral-500">
+          Einzelne Reisen kannst du auch sofort in der Reise einreichen.{" "}
+          <Link href="/einfuehrung#reisende" className="underline">
+            Mehr in der Hilfe
+          </Link>
+        </p>
+      </section>
+
       {eingangImMonat > 0 && (
         <Link
           href="/belege"
