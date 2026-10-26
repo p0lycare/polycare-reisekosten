@@ -17,6 +17,33 @@ const orteCache = new Map<string, Punkt | null>();
 const routenCache = new Map<string, RoutenErgebnis>();
 let letzteAnfrage = 0;
 
+type Treffer = {
+  lat: string;
+  lon: string;
+  name?: string;
+  display_name: string;
+  address?: { road?: string; house_number?: string; city?: string; town?: string; village?: string; municipality?: string };
+};
+
+/** Lesbarer Name: Adresse als "Straße Nr, Ort", sonst der Name des Ortes/Gebäudes mit Ort */
+function anzeigeName(t: Treffer): string {
+  const a = t.address ?? {};
+  const ort = a.city ?? a.town ?? a.village ?? a.municipality;
+  if (a.road && a.house_number) return [`${a.road} ${a.house_number}`, ort].filter(Boolean).join(", ");
+  const name = t.name && !/^\d/.test(t.name) ? t.name : t.display_name.split(",")[0];
+  return ort && name !== ort ? `${name}, ${ort}` : name;
+}
+
+/** Ein zweiter Versuch bei Zeitüberschreitung oder Netzfehler – die freien Dienste antworten gelegentlich langsam */
+async function mitWiederholung(anfrage: () => Promise<Response>): Promise<Response> {
+  try {
+    return await anfrage();
+  } catch {
+    await new Promise((r) => setTimeout(r, 1100));
+    return anfrage();
+  }
+}
+
 function kennung(): string {
   const kontakt = process.env.MAIL_ABSENDER;
   return `Polycare-Reisekosten/1.0${kontakt ? ` (${kontakt})` : ""}`;
@@ -30,14 +57,13 @@ async function findeOrt(ort: string): Promise<Punkt | null> {
   if (warten > 0) await new Promise((r) => setTimeout(r, warten));
   letzteAnfrage = Date.now();
 
-  const parameter = new URLSearchParams({ format: "jsonv2", limit: "1", countrycodes: LAENDER, "accept-language": "de", q: ort });
-  const antwort = await fetch(`https://nominatim.openstreetmap.org/search?${parameter}`, {
-    headers: { "User-Agent": kennung() },
-    signal: AbortSignal.timeout(8000),
-  });
+  const parameter = new URLSearchParams({ format: "jsonv2", limit: "1", addressdetails: "1", countrycodes: LAENDER, "accept-language": "de", q: ort });
+  const antwort = await mitWiederholung(() =>
+    fetch(`https://nominatim.openstreetmap.org/search?${parameter}`, { headers: { "User-Agent": kennung() }, signal: AbortSignal.timeout(8000) }),
+  );
   if (!antwort.ok) throw new Error(`Ortssuche fehlgeschlagen (${antwort.status})`);
-  const [treffer] = (await antwort.json()) as { lat: string; lon: string; name?: string; display_name: string }[];
-  const punkt = treffer ? { lat: treffer.lat, lon: treffer.lon, name: treffer.name || treffer.display_name.split(",")[0] } : null;
+  const [treffer] = (await antwort.json()) as Treffer[];
+  const punkt = treffer ? { lat: treffer.lat, lon: treffer.lon, name: anzeigeName(treffer) } : null;
   orteCache.set(schluessel, punkt);
   return punkt;
 }
@@ -58,10 +84,12 @@ export async function berechneRoute(strecke: string): Promise<RoutenErgebnis> {
     }
 
     const koordinaten = punkte.map((p) => `${p.lon},${p.lat}`).join(";");
-    const antwort = await fetch(`https://router.project-osrm.org/route/v1/driving/${koordinaten}?overview=false`, {
-      headers: { "User-Agent": kennung() },
-      signal: AbortSignal.timeout(8000),
-    });
+    const antwort = await mitWiederholung(() =>
+      fetch(`https://router.project-osrm.org/route/v1/driving/${koordinaten}?overview=false`, {
+        headers: { "User-Agent": kennung() },
+        signal: AbortSignal.timeout(8000),
+      }),
+    );
     const daten = (await antwort.json()) as { code: string; routes?: { distance: number }[] };
     if (!antwort.ok || daten.code !== "Ok" || !daten.routes?.length) return { fehler: "Für diese Strecke wurde keine Route gefunden." };
 
