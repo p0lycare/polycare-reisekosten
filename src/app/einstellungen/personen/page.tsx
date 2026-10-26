@@ -11,7 +11,7 @@ export default async function PersonenPage() {
   const { data: ich } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (ich?.rolle !== "admin") redirect("/einstellungen");
 
-  const { data } = await supabase.from("profile").select("id, name, email, rolle, vorgesetzter_id").order("name");
+  const { data } = await supabase.from("profile").select("id, name, email, rolle, vorgesetzter_id, buero_ist_taetigkeitsstaette").order("name");
   const personen = (data ?? []) as Person[];
   // Genehmigen kann jede Person außer Mitarbeiter/innen ohne weitere Rolle
   const fuehrungskraefte = personen.filter((p) => p.rolle !== "mitarbeiter");

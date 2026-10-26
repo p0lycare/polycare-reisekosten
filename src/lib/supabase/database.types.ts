@@ -192,6 +192,24 @@ export type Database = {
           },
         ]
       }
+      kalender_ausgeblendet: {
+        Row: {
+          erstellt_am: string
+          person_id: string
+          termin_id: string
+        }
+        Insert: {
+          erstellt_am?: string
+          person_id?: string
+          termin_id: string
+        }
+        Update: {
+          erstellt_am?: string
+          person_id?: string
+          termin_id?: string
+        }
+        Relationships: []
+      }
       kategorie: {
         Row: {
           abschnitt: string
@@ -377,6 +395,7 @@ export type Database = {
       }
       profile: {
         Row: {
+          buero_ist_taetigkeitsstaette: boolean
           created_at: string
           email: string
           id: string
@@ -388,6 +407,7 @@ export type Database = {
           vorgesetzter_id: string | null
         }
         Insert: {
+          buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email: string
           id: string
@@ -399,6 +419,7 @@ export type Database = {
           vorgesetzter_id?: string | null
         }
         Update: {
+          buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email?: string
           id?: string

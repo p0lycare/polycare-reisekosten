@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDatum, wochentag } from "@/lib/format";
 import { ladeTermine } from "@/lib/kalender/graph";
 import { reiseVorschlaege } from "@/lib/kalender/vorschlaege";
+import { ladeOrteOhneReise } from "@/lib/kalender/orte";
+import { vorschlaegeEinblenden, vorschlagAusblenden } from "./kalender-actions";
 
 function zeitraum(beginn: string, ende: string): string {
   const tag = (w: string) => `${wochentag(w.slice(0, 10))} ${formatDatum(w)}`;
@@ -17,10 +19,11 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [{ data: profil }, { data: einstellungen }, { data: reisen }] = await Promise.all([
+  const [{ data: profil }, ohneReise, { data: reisen }, { data: ausgeblendet }] = await Promise.all([
     supabase.from("profile").select("email, rolle, kalender_vorschlaege").eq("id", user!.id).single(),
-    supabase.from("einstellungen").select("buero_orte").single(),
+    ladeOrteOhneReise(supabase, user!.id),
     supabase.from("reise").select("beginn, ende").eq("mitarbeiter_id", user!.id).lt("beginn", bis).gte("ende", von),
+    supabase.from("kalender_ausgeblendet").select("termin_id"),
   ]);
 
   if (!profil?.kalender_vorschlaege) {
@@ -48,11 +51,21 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
     ) : null;
   }
 
-  const vorschlaege = reiseVorschlaege(antwort.termine, { bueroOrte: einstellungen?.buero_orte ?? [], reisen: reisen ?? [] });
+  const alle = reiseVorschlaege(antwort.termine, { bueroOrte: ohneReise, reisen: reisen ?? [] });
+  const weg = new Set((ausgeblendet ?? []).map((a) => a.termin_id));
+  const vorschlaege = alle.filter((v) => !weg.has(v.terminId));
+  const versteckt = alle.length - vorschlaege.length;
+  const einblenden = versteckt > 0 && (
+    <form action={vorschlaegeEinblenden} className="inline">
+      <button type="submit" className="text-sm text-neutral-500 underline">
+        {versteckt} ausgeblendet – wieder anzeigen
+      </button>
+    </form>
+  );
   if (!vorschlaege.length) {
     return (
       <p className="text-sm text-neutral-500">
-        Aus deinem Kalender: In diesem Monat gibt es keine weiteren Termine mit Ort. Online-Termine, Termine an den Büro-Orten
+        Aus deinem Kalender: In diesem Monat gibt es keine weiteren Termine mit Ort. Online-Termine, Termine am Wohnort bzw. im Büro
         {profil.rolle === "admin" || profil.rolle === "buchhaltung" ? (
           <>
             {" "}(
@@ -62,16 +75,19 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
             )
           </>
         ) : null}{" "}
-        und bereits erfasste Reisen werden ausgeblendet.
+        und bereits erfasste Reisen werden ausgeblendet. {einblenden}
       </p>
     );
   }
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-medium">
-        Aus deinem Kalender <span className="font-normal text-neutral-500">– noch nicht erfasst</span>
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-medium">
+          Aus deinem Kalender <span className="font-normal text-neutral-500">– noch nicht erfasst</span>
+        </h2>
+        {einblenden}
+      </div>
       <ul className="divide-y divide-neutral-200 border border-neutral-200 bg-flaeche dark:divide-neutral-800 dark:border-neutral-800">
         {vorschlaege.map((v) => (
           <li key={v.terminId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -81,12 +97,25 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
                 {zeitraum(v.beginn, v.ende)} · {v.ort}
               </span>
             </span>
-            <Link
-              href={`/reisen/neu?termin=${encodeURIComponent(v.terminId)}`}
-              className="shrink-0 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium hover:border-marke dark:border-neutral-700 dark:bg-neutral-900"
-            >
-              Als Reise anlegen
-            </Link>
+            <span className="flex shrink-0 items-center gap-2">
+              <Link
+                href={`/reisen/neu?termin=${encodeURIComponent(v.terminId)}`}
+                className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium hover:border-marke dark:border-neutral-700 dark:bg-neutral-900"
+              >
+                Als Reise anlegen
+              </Link>
+              <form action={vorschlagAusblenden}>
+                <input type="hidden" name="termin_id" value={v.terminId} />
+                <button
+                  type="submit"
+                  aria-label={`Vorschlag „${v.betreff}“ ausblenden`}
+                  title="Keine Dienstreise – ausblenden"
+                  className="flex size-8 items-center justify-center rounded-md text-lg leading-none text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+                >
+                  ×
+                </button>
+              </form>
+            </span>
           </li>
         ))}
       </ul>

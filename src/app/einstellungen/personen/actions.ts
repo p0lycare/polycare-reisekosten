@@ -28,7 +28,7 @@ export async function personSpeichern(_vorher: PersonStatus, formData: FormData)
   // RLS und Trigger lassen nur Admins diese Felder ändern
   const { data, error } = await supabase
     .from("profile")
-    .update({ rolle, vorgesetzter_id: vorgesetzter })
+    .update({ rolle, vorgesetzter_id: vorgesetzter, buero_ist_taetigkeitsstaette: formData.get("buero_ist_taetigkeitsstaette") === "on" })
     .eq("id", id)
     .select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Admin-Berechtigung?" };
