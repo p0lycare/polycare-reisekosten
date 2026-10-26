@@ -4,6 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState, useTransi
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { weichtAb } from "@/lib/routing/strecke";
 import { fahrtLoeschen, fahrtSpeichern, kmBerechnen, type FahrtStatus } from "./actions";
+import { KarteKnopf } from "./route-karte";
 
 export type FahrtWerte = { id?: string; datum: string; strecke: string; zweck: string; km: string; kmRoute?: number | null };
 
@@ -29,6 +30,7 @@ export function FahrtZeile({
   const formRef = useRef<HTMLFormElement>(null);
   const neu = !werte.id;
   const [km, setKm] = useState(werte.km);
+  const [strecke, setStrecke] = useState(werte.strecke);
   const [route, setRoute] = useState<{ km: number; orte?: string[] } | null>(werte.kmRoute ? { km: werte.kmRoute } : null);
   const [routeFehler, setRouteFehler] = useState<string | null>(null);
   const [rechnet, rechnen] = useTransition();
@@ -36,7 +38,6 @@ export function FahrtZeile({
   const abweichung = route && Number.isFinite(kmZahl) && kmZahl > 0 && weichtAb(kmZahl, route.km);
 
   function berechnen() {
-    const strecke = formRef.current?.querySelector<HTMLInputElement>("input[name=strecke]")?.value ?? "";
     setRouteFehler(null);
     rechnen(async () => {
       const ergebnis = await kmBerechnen(strecke);
@@ -75,7 +76,7 @@ export function FahrtZeile({
         </label>
         <label className="flex flex-col gap-1">
           {neu && <span className="text-xs text-neutral-500">Fahrstrecke</span>}
-          <input name="strecke" required defaultValue={werte.strecke} aria-label="Fahrstrecke" className={feld} />
+          <input name="strecke" required value={strecke} onChange={(e) => setStrecke(e.target.value)} aria-label="Fahrstrecke" className={feld} />
         </label>
         <label className="flex flex-col gap-1">
           {neu && <span className="text-xs text-neutral-500">Zweck</span>}
@@ -120,6 +121,7 @@ export function FahrtZeile({
         </p>
       )}
       {routeFehler && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{routeFehler}</p>}
+      {strecke.trim() && <KarteKnopf key={strecke} strecke={strecke} />}
       {status.fehler && <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-400">{status.fehler}</p>}
       {status.gespeichert && !neu && <p role="status" className="mt-1 text-sm text-green-700 dark:text-green-400">Gespeichert</p>}
     </div>

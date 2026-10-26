@@ -4,6 +4,7 @@ import { berechneKmGeld } from "@/lib/reisekosten/fahrtkosten";
 import type { Reise } from "@/lib/reisekosten/reise";
 import { weichtAb } from "@/lib/routing/strecke";
 import { FahrtZeile } from "./fahrt-zeile";
+import { KarteKnopf } from "./route-karte";
 
 function kmText(km: number): string {
   return km.toLocaleString("de-DE", { maximumFractionDigits: 1 });
@@ -57,6 +58,7 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
                 <td className="py-2 pr-3">
                   {f.strecke}
                   {f.zweck && <span className="text-neutral-500"> · {f.zweck}</span>}
+                  <KarteKnopf strecke={f.strecke} />
                 </td>
                 <td className="py-2 text-right tabular-nums whitespace-nowrap">
                   {kmText(Number(f.km))} km
