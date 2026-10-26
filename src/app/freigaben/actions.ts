@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { benachrichtigeSammel } from "@/lib/mail/benachrichtigen";
+import { benachrichtige, benachrichtigeSammel } from "@/lib/mail/benachrichtigen";
 import { sendeAnDatev } from "@/lib/datev/senden";
 
 export type SammelStatus = { fehler?: string; erledigt?: number; hinweis?: string };
@@ -67,4 +67,25 @@ export async function sammelAuszahlen(_vorher: SammelStatus, formData: FormData)
   await benachrichtigeSammel(supabase, auswahl, "", "ausgezahlt");
   aktualisieren();
   return { erledigt: data ?? auswahl.length };
+}
+
+/** Ausgewählte Reisen mit einem gemeinsamen Grund ablehnen (bei Genehmigung oder Belegprüfung) */
+export async function sammelAblehnen(_vorher: SammelStatus, formData: FormData): Promise<SammelStatus> {
+  const auswahl = ids(formData);
+  const grund = String(formData.get("grund") ?? "").trim().slice(0, 500);
+  if (!auswahl.length) return { fehler: "Bitte mindestens eine Reise auswählen." };
+  if (!grund) return { fehler: "Bitte einen Grund angeben – er geht an die reisende Person." };
+  const supabase = await createClient();
+  let erledigt = 0;
+  for (const id of auswahl) {
+    const { error } = await supabase.rpc("reise_ablehnen", { p_id: id, p_grund: grund });
+    if (error) {
+      aktualisieren();
+      return { ...meldung(error), erledigt: erledigt || undefined };
+    }
+    await benachrichtige(supabase, id, "abgelehnt", { grund });
+    erledigt += 1;
+  }
+  aktualisieren();
+  return { erledigt, hinweis: "Abgelehnt – die reisende Person wurde per Mail informiert." };
 }
