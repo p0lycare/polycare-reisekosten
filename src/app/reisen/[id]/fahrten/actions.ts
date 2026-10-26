@@ -1,10 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { berechneRoute, type RoutenErgebnis } from "@/lib/routing/osm";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { routeNachtragen } from "@/lib/routing/route-nachtragen";
 
 export type FahrtStatus = { fehler?: string; gespeichert?: boolean };
 
@@ -41,16 +40,7 @@ export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): 
     : await supabase.from("fahrt").insert(daten).select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
 
-  // Route erst nach der Antwort bestimmen (meist aus dem Zwischenspeicher), damit Speichern nie auf OpenStreetMap wartet.
-  // Nur der Server setzt sie (die Datenbank verwirft Nutzeränderungen); die Zeile ist durch den
-  // RLS-geprüften Schreibvorgang oben als eigene, bearbeitbare Fahrt belegt.
-  const fahrtId = data[0].id;
-  after(async () => {
-    const route = await berechneRoute(strecke);
-    const kmRoute = "km" in route && route.km > 0 && route.km < 10000 ? route.km : null;
-    const { error: routeFehler } = await createAdminClient().from("fahrt").update({ km_route: kmRoute }).eq("id", fahrtId);
-    if (routeFehler) console.error("Route konnte nicht gespeichert werden", routeFehler.message);
-  });
+  routeNachtragen(data[0].id, strecke);
 
   revalidatePath(`/reisen/${reiseId}`);
   return { gespeichert: true };

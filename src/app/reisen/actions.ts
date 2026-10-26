@@ -1,5 +1,6 @@
 "use server";
 
+import { routeNachtragen } from "@/lib/routing/route-nachtragen";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -57,6 +58,11 @@ export async function reiseSpeichern(
   if (verkehrsmittel.includes("eigener_pkw") && !kfzKennzeichen) {
     return { fehler: "Bitte das Kennzeichen des eigenen PKW angeben." };
   }
+  // km der Fahrt mit eigenem PKW (nur beim Anlegen, optional)
+  const kmEingabe = text(formData, "pkw_km").replace(",", ".");
+  const pkwKm = !id && verkehrsmittel.includes("eigener_pkw") && kmEingabe ? Math.round(Number(kmEingabe) * 10) / 10 : null;
+  if (pkwKm !== null && !(pkwKm > 0 && pkwKm < 10000)) return { fehler: "Bitte die gefahrenen Kilometer als Zahl angeben, z. B. 494,2." };
+
   const vorschussEingabe = text(formData, "vorschuss");
   let vorschuss = vorschussEingabe ? parseEuro(vorschussEingabe) : 0;
   if (vorschuss === null) return { fehler: "Bitte den Vorschuss als Betrag angeben, z. B. 100,00." };
@@ -129,6 +135,16 @@ export async function reiseSpeichern(
     .select("id")
     .single();
   if (error || !data) return { fehler: "Speichern fehlgeschlagen." };
+
+  // Eigener PKW mit km in der Maske: die Fahrt gleich mit anlegen (weitere Fahrten in der Reise)
+  if (pkwKm !== null) {
+    const { data: fahrt } = await supabase
+      .from("fahrt")
+      .insert({ reise_id: data.id, datum: beginn.slice(0, 10), strecke: reiseweg, zweck: begruendung, km: pkwKm })
+      .select("id")
+      .single();
+    if (fahrt) routeNachtragen(fahrt.id, reiseweg);
+  }
 
   // Neue Reise aus einem Eingangsbeleg: Beleg gleich zuordnen (klappt das nicht, bleibt er im Eingang)
   const eingangId = text(formData, "eingang_id");
