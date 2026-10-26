@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { KalenderVorschlaege } from "./monat/[monat]/kalender-vorschlaege";
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { SeitenHilfe } from "./seiten-hilfe";
 import { createClient } from "@/lib/supabase/server";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { formatDatum, formatEuro } from "@/lib/format";
@@ -35,6 +39,11 @@ export default async function Home() {
     .select("id", { count: "exact", head: true })
     .eq("mitarbeiter_id", user!.id);
 
+  // Kalendervorschläge für den laufenden und den Vormonat (am Monatsanfang wird meist der Vormonat abgerechnet)
+  const [jahr, mon] = aktuellerMonatBerlin().split("-").map(Number);
+  const vormonatErster = new Date(Date.UTC(jahr, mon - 2, 1)).toISOString().slice(0, 10);
+  const folgemonatErster = new Date(Date.UTC(jahr, mon, 1)).toISOString().slice(0, 10);
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       <div className="flex items-center justify-between gap-3">
@@ -48,6 +57,11 @@ export default async function Home() {
           </Link>
         </div>
       </div>
+
+      <SeitenHilfe anker="reisende">
+        Belege fotografierst du unterwegs, Reisen legst du am Monatsende an und reichst sie unter „Monat abrechnen“ gesammelt ein.
+        Jede Reise zeigt, wo sie im Ablauf steht.
+      </SeitenHilfe>
 
       {!startklar && (
         <Link
@@ -73,6 +87,10 @@ export default async function Home() {
           <span aria-hidden>→</span>
         </Link>
       )}
+
+      <Suspense fallback={null}>
+        <KalenderVorschlaege von={vormonatErster} bis={folgemonatErster} zeitraumText="diesem und dem letzten Monat" stillWennLeer />
+      </Suspense>
 
       {!reisen?.length ? (
         <section className="rounded-lg border border-dashed border-neutral-300 p-6 dark:border-neutral-700">

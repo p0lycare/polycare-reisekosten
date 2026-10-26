@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SeitenHilfe } from "@/app/seiten-hilfe";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
@@ -133,6 +134,11 @@ export default async function FreigabenPage() {
           )}
         </div>
       </div>
+      <SeitenHilfe anker={buchhaltung ? "buchhaltung" : "fuehrungskraefte"}>
+        {buchhaltung
+          ? "Hier wartet, was du tun musst: Reisen deines Teams genehmigen, Belege prüfen (damit gehen sie an DATEV) und nach der Überweisung in DATEV als ausgezahlt markieren. Reisen sind je Person gebündelt."
+          : "Hier genehmigst du die eingereichten Reisen deines Teams – je Person gebündelt, meist in einem Schritt pro Monat. Danach prüft die Buchhaltung die Belege."}
+      </SeitenHilfe>
 
       {(vGenehmigen.length > 0 || vAuszahlen.length > 0) && (
         <section className="flex flex-col gap-3">

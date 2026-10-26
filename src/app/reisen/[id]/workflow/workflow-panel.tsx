@@ -1,6 +1,7 @@
 "use client";
 
 import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { ablehnen, auszahlen, einreichen, genehmigen, pruefen, zurueckziehen, type WorkflowStatus } from "./actions";
@@ -28,25 +29,46 @@ function Fehler({ status }: { status: WorkflowStatus }) {
   ) : null;
 }
 
-function Einreichen({ id, betrag }: { id: string; betrag: string }) {
+const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+
+/**
+ * Empfohlen: alle Reisen eines Monats gesammelt einreichen (eine Mail an die Führungskraft, ein Durchgang).
+ * Einzeln einreichen bleibt möglich, z. B. wenn eine Reise schnell erstattet werden soll.
+ */
+function Einreichen({ id, betrag, monat }: { id: string; betrag: string; monat: string }) {
   const [status, absenden, laeuft] = useActionState(einreichen, {});
+  const name = MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`));
   return (
-    <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
-      <input type="hidden" name="id" value={id} />
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" name="richtigkeit" required className="mt-0.5 size-4" />
-        <span>
-          Für die Richtigkeit: Ich bestätige, dass die Angaben vollständig und richtig sind und die Kosten
-          dienstlich veranlasst waren.
-        </span>
-      </label>
-      <Fehler status={status} />
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-neutral-700 dark:text-neutral-300">
+        <span className="font-medium">Empfohlen:</span> Sammle alle Reisen eines Monats und reiche sie am Monatsende gemeinsam
+        ein – deine Führungskraft genehmigt dann alles in einem Schritt.
+      </p>
       <div>
-        <button type="submit" disabled={laeuft} className={knopf}>
-          {laeuft ? "Reicht ein …" : `Zur Genehmigung einreichen (${betrag})`}
-        </button>
+        <Link href={`/monat/${monat}`} className={`${knopf} inline-block`}>
+          {name} abrechnen und gesammelt einreichen
+        </Link>
       </div>
-    </form>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-neutral-600 underline dark:text-neutral-400">Diese Reise jetzt einzeln einreichen</summary>
+        <form onSubmit={ohneZuruecksetzen(absenden)} className="mt-3 flex flex-col gap-3">
+          <input type="hidden" name="id" value={id} />
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="richtigkeit" required className="mt-0.5 size-4" />
+            <span>
+              Für die Richtigkeit: Ich bestätige, dass die Angaben vollständig und richtig sind und die Kosten
+              dienstlich veranlasst waren.
+            </span>
+          </label>
+          <Fehler status={status} />
+          <div>
+            <button type="submit" disabled={laeuft} className={knopfSekundaer}>
+              {laeuft ? "Reicht ein …" : `Einzeln zur Genehmigung einreichen (${betrag})`}
+            </button>
+          </div>
+        </form>
+      </details>
+    </div>
   );
 }
 
@@ -139,9 +161,7 @@ function Zurueckziehen({ id }: { id: string }) {
       className="flex flex-col gap-3"
     >
       <input type="hidden" name="id" value={id} />
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        Die Reise wartet auf die Genehmigung. Solange sie noch nicht genehmigt ist, kannst du sie zurückziehen und korrigieren.
-      </p>
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">Zurückziehen macht die Reise wieder zum Entwurf, den du korrigieren kannst.</p>
       <Fehler status={status} />
       <div>
         <button type="submit" disabled={laeuft} className={knopfSekundaer}>
@@ -172,11 +192,14 @@ export function WorkflowPanel({
   rechte,
   betrag,
   hinweise,
+  monat,
 }: {
   id: string;
   rechte: WorkflowRechte;
   betrag: string;
   hinweise: string[];
+  /** Monat der Reise ("YYYY-MM") für das gesammelte Einreichen */
+  monat: string;
 }) {
   if (!rechte.einreichen && !rechte.zurueckziehen && !rechte.genehmigen && !rechte.pruefen && !rechte.auszahlen) return null;
 
@@ -199,7 +222,7 @@ export function WorkflowPanel({
           </ul>
         </div>
       )}
-      {rechte.einreichen && <Einreichen id={id} betrag={betrag} />}
+      {rechte.einreichen && <Einreichen id={id} betrag={betrag} monat={monat} />}
       {rechte.zurueckziehen && <Zurueckziehen id={id} />}
       {rechte.genehmigen && <Genehmigen id={id} />}
       {rechte.pruefen && <Pruefen id={id} />}

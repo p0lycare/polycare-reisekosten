@@ -14,7 +14,19 @@ function zeitraum(beginn: string, ende: string): string {
 }
 
 /** Termine mit Ort aus dem eigenen Outlook-Kalender als Reise vorschlagen (nur mit Zustimmung im Profil) */
-export async function KalenderVorschlaege({ von, bis }: { von: string; bis: string }) {
+export async function KalenderVorschlaege({
+  von,
+  bis,
+  zeitraumText = "diesem Monat",
+  stillWennLeer = false,
+}: {
+  von: string;
+  bis: string;
+  /** Für den Hinweis, wenn nichts passt: "In <zeitraumText> gibt es keine weiteren Termine mit Ort" */
+  zeitraumText?: string;
+  /** Auf der Startseite: nichts anzeigen, wenn nichts passt oder der Kalender aus ist */
+  stillWennLeer?: boolean;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,6 +39,7 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
   ]);
 
   if (!profil?.kalender_vorschlaege) {
+    if (stillWennLeer) return null;
     return (
       <p className="text-sm text-neutral-500">
         Tipp: Reisen aus deinem Outlook-Kalender vorschlagen lassen –{" "}
@@ -42,6 +55,7 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
   if (!user?.email) return null;
   const antwort = await ladeTermine(user.email, von, bis);
   if ("fehler" in antwort) {
+    if (stillWennLeer) return null;
     // Technische Hinweise nur für Admins; alle anderen sehen einfach keine Vorschläge
     return profil.rolle === "admin" ? (
       <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
@@ -63,9 +77,10 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
     </form>
   );
   if (!vorschlaege.length) {
+    if (stillWennLeer) return null;
     return (
       <p className="text-sm text-neutral-500">
-        Aus deinem Kalender: In diesem Monat gibt es keine weiteren Termine mit Ort. Online-Termine, Termine am Wohnort bzw. im Büro
+        Aus deinem Kalender: In {zeitraumText} gibt es keine weiteren Termine mit Ort. Online-Termine, Termine am Wohnort bzw. im Büro
         {profil.rolle === "admin" || profil.rolle === "buchhaltung" ? (
           <>
             {" "}(

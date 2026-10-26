@@ -10,6 +10,7 @@ import { LoeschenButton } from "./loeschen-button";
 import { AbrechnungUebersicht } from "./abrechnung-uebersicht";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { WorkflowPanel } from "./workflow/workflow-panel";
+import { WorkflowTracker } from "../workflow-tracker";
 import { VorschussBeantragen, VorschussZurueckziehen } from "@/app/vorschuss/formulare";
 import { Verlauf } from "./workflow/verlauf";
 import { DatevPanel } from "./workflow/datev-panel";
@@ -218,13 +219,15 @@ export default async function ReisePage({
         </div>
       </section>
 
+      <WorkflowTracker status={reise.status} />
+
       {reise.status === "abgelehnt" && reise.ablehnungsgrund && (
         <p className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
           Abgelehnt: {reise.ablehnungsgrund}
         </p>
       )}
 
-      <WorkflowPanel id={reise.id} rechte={rechte} betrag={formatEuro(abrechnung.auszuzahlen)} hinweise={hinweise} />
+      <WorkflowPanel id={reise.id} rechte={rechte} betrag={formatEuro(abrechnung.auszuzahlen)} hinweise={hinweise} monat={reise.beginn.slice(0, 7)} />
 
       {(vorschuss || (eigene && reise.status === "entwurf")) && (
         <section className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
