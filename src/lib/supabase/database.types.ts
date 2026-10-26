@@ -208,7 +208,15 @@ export type Database = {
           person_id?: string
           termin_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kalender_ausgeblendet_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kategorie: {
         Row: {
