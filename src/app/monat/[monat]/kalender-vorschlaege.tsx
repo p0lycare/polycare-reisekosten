@@ -49,7 +49,23 @@ export async function KalenderVorschlaege({ von, bis }: { von: string; bis: stri
   }
 
   const vorschlaege = reiseVorschlaege(antwort.termine, { bueroOrte: einstellungen?.buero_orte ?? [], reisen: reisen ?? [] });
-  if (!vorschlaege.length) return null;
+  if (!vorschlaege.length) {
+    return (
+      <p className="text-sm text-neutral-500">
+        Aus deinem Kalender: In diesem Monat gibt es keine weiteren Termine mit Ort. Online-Termine, Termine an den Büro-Orten
+        {profil.rolle === "admin" || profil.rolle === "buchhaltung" ? (
+          <>
+            {" "}(
+            <Link href="/einstellungen" className="underline">
+              Einstellungen
+            </Link>
+            )
+          </>
+        ) : null}{" "}
+        und bereits erfasste Reisen werden ausgeblendet.
+      </p>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-3">
