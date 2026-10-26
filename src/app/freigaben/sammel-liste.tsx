@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { formatDatum, formatEuro } from "@/lib/format";
-import { sammelAuszahlen, sammelGenehmigen, sammelPruefen, type SammelStatus } from "./actions";
+import { sammelAblehnen, sammelAuszahlen, sammelGenehmigen, sammelPruefen, type SammelStatus } from "./actions";
 
 export type SammelReise = {
   id: string;
@@ -39,7 +39,20 @@ function zeitraum(r: SammelReise): string {
 function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
   const [status, absenden, laeuft] = useActionState<SammelStatus, FormData>(AKTION[art], {});
   const [auswahl, setAuswahl] = useState<Set<string>>(() => new Set(gruppe.reisen.map((r) => r.id)));
+  const [ablehnStatus, ablehnen, lehntAb] = useActionState<SammelStatus, FormData>(sammelAblehnen, {});
+  const [ablehnenOffen, setAblehnenOffen] = useState(false);
+  const ablehnbar = art === "genehmigen" || art === "pruefen";
   const summe = gruppe.reisen.filter((r) => auswahl.has(r.id)).reduce((s, r) => s + r.betrag, 0);
+
+  if (ablehnStatus.erledigt && !ablehnStatus.fehler) {
+    return (
+      <li className="rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+        <p role="status" className="text-amber-800 dark:text-amber-300">
+          {gruppe.name}: {ablehnStatus.erledigt} {ablehnStatus.erledigt === 1 ? "Reise" : "Reisen"} abgelehnt – die Person wurde per Mail informiert.
+        </p>
+      </li>
+    );
+  }
 
   if (status.erledigt) {
     return (
@@ -129,6 +142,44 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
           </p>
         )}
       </form>
+      {ablehnbar && (
+        <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-800">
+          {ablehnenOffen ? (
+            <form onSubmit={ohneZuruecksetzen(ablehnen)} className="flex flex-wrap items-end gap-2">
+              {[...auswahl].map((id) => (
+                <input key={id} type="hidden" name="ids" value={id} />
+              ))}
+              <input
+                name="grund"
+                required
+                maxLength={500}
+                autoFocus
+                placeholder="Grund der Ablehnung, z. B. Hotelrechnung fehlt"
+                className="min-w-48 flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              />
+              <button
+                type="submit"
+                disabled={lehntAb || !auswahl.size}
+                className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+              >
+                {lehntAb ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Reise" : "Reisen"} ablehnen`}
+              </button>
+              <button type="button" onClick={() => setAblehnenOffen(false)} className="text-sm underline">
+                Abbrechen
+              </button>
+              {ablehnStatus.fehler && (
+                <p role="alert" className="w-full text-sm text-red-700 dark:text-red-400">
+                  {ablehnStatus.fehler}
+                </p>
+              )}
+            </form>
+          ) : (
+            <button type="button" onClick={() => setAblehnenOffen(true)} disabled={!auswahl.size} className="text-sm text-neutral-600 underline disabled:opacity-50 dark:text-neutral-400">
+              Auswahl ablehnen …
+            </button>
+          )}
+        </div>
+      )}
     </li>
   );
 }
