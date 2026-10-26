@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ReiseFormular } from "../reise-formular";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { reiseVorschlagAusBeleg } from "@/lib/reisekosten/eingang";
-import { ladeTermin } from "@/lib/kalender/graph";
-import { reiseZeiten } from "@/lib/kalender/vorschlaege";
+import { ladeTermin, ladeTermine } from "@/lib/kalender/graph";
+import { reiseVorschlaege, reiseZeiten } from "@/lib/kalender/vorschlaege";
 import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
 
 export default async function NeueReisePage({ searchParams }: { searchParams: Promise<{ eingang?: string; vorlage?: string; termin?: string }> }) {
@@ -29,8 +29,10 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
     ? await supabase.from("reise").select("*").eq("id", vorlageId).eq("mitarbeiter_id", user!.id).maybeSingle()
     : { data: null };
   // Aus einem Outlook-Termin: Betreff, Ort und Zeiten vorbelegen (nur mit Zustimmung im Profil)
-  const termin = terminId && profil?.kalender_vorschlaege && user?.email ? await ladeTermin(user!.email!, terminId) : null;
-  const terminZeiten = termin ? reiseZeiten(termin) : null;
+  const einzel = terminId && profil?.kalender_vorschlaege && user?.email ? await ladeTermin(user.email, terminId) : null;
+  // Wie auf der Monatsseite: der Vorschlag kann mehrere Termine umfassen (Hinfahrt bis Rückfahrt)
+  const termin = einzel ? await vorschlagZuTermin(supabase, user!.email!, einzel) : null;
+  const terminZeiten = termin ? { beginn: termin.beginn, ende: termin.ende } : null;
   const { data: privat } = termin
     ? await supabase.from("profil_privat").select("wohnort").eq("id", user!.id).maybeSingle()
     : { data: null };
@@ -86,4 +88,23 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
       />
     </main>
   );
+}
+
+/** Den Vorschlag rund um einen Termin neu bilden (Fahrten über bis zu 7 Tage), sonst nur der Termin selbst */
+async function vorschlagZuTermin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string,
+  t: NonNullable<Awaited<ReturnType<typeof ladeTermin>>>,
+): Promise<{ betreff: string; ort: string; beginn: string; ende: string }> {
+  const von = t.beginn.slice(0, 10);
+  const bis = new Date(Date.parse(von) + 8 * 864e5).toISOString().slice(0, 10);
+  const [antwort, { data: einstellungen }] = await Promise.all([
+    ladeTermine(email, von, bis),
+    supabase.from("einstellungen").select("buero_orte").single(),
+  ]);
+  const passend =
+    "termine" in antwort
+      ? reiseVorschlaege(antwort.termine, { bueroOrte: einstellungen?.buero_orte ?? [], reisen: [] }).find((v) => v.terminId === t.id)
+      : undefined;
+  return passend ?? { betreff: t.betreff, ort: t.ort, ...reiseZeiten(t) };
 }
