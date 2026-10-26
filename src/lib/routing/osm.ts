@@ -6,7 +6,10 @@ import { zerlegeStrecke } from "./strecke";
  * Beide Dienste sind frei nutzbar bei geringem Aufkommen (Nominatim: höchstens 1 Anfrage/s,
  * mit Kennung). Ergebnisse werden im Speicher gehalten, damit Speichern keine zweite Abfrage braucht.
  */
-export type RoutenErgebnis = { km: number; orte: string[] } | { fehler: string };
+/** Koordinaten als [Breite, Länge] */
+export type Koordinate = [number, number];
+/** km, gefundene Orte (Name + Lage) und der vereinfachte Linienverlauf für die Karte */
+export type RoutenErgebnis = { km: number; orte: string[]; halte: Koordinate[]; linie: Koordinate[] } | { fehler: string };
 
 type Punkt = { lat: string; lon: string; name: string };
 
@@ -85,15 +88,21 @@ export async function berechneRoute(strecke: string): Promise<RoutenErgebnis> {
 
     const koordinaten = punkte.map((p) => `${p.lon},${p.lat}`).join(";");
     const antwort = await mitWiederholung(() =>
-      fetch(`https://router.project-osrm.org/route/v1/driving/${koordinaten}?overview=false`, {
+      fetch(`https://router.project-osrm.org/route/v1/driving/${koordinaten}?overview=simplified&geometries=geojson`, {
         headers: { "User-Agent": kennung() },
         signal: AbortSignal.timeout(8000),
       }),
     );
-    const daten = (await antwort.json()) as { code: string; routes?: { distance: number }[] };
+    const daten = (await antwort.json()) as { code: string; routes?: { distance: number; geometry?: { coordinates: [number, number][] } }[] };
     if (!antwort.ok || daten.code !== "Ok" || !daten.routes?.length) return { fehler: "Für diese Strecke wurde keine Route gefunden." };
 
-    const ergebnis = { km: Math.round(daten.routes[0].distance / 100) / 10, orte: punkte.map((p) => p.name) };
+    const ergebnis = {
+      km: Math.round(daten.routes[0].distance / 100) / 10,
+      orte: punkte.map((p) => p.name),
+      halte: punkte.map((p): Koordinate => [Number(p.lat), Number(p.lon)]),
+      // GeoJSON liefert [Länge, Breite]
+      linie: (daten.routes[0].geometry?.coordinates ?? []).map(([lon, lat]): Koordinate => [lat, lon]),
+    };
     routenCache.set(schluessel, ergebnis);
     return ergebnis;
   } catch (e) {
