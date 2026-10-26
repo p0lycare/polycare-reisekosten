@@ -18,6 +18,9 @@ export type ReiseVorschlag = {
   ende: string;
 };
 
+/** Start des Tools: ältere Termine werden nicht gelesen und nicht vorgeschlagen */
+export const KALENDER_AB = "2026-10-01";
+
 const ONLINE = /\b(teams|zoom|webex|skype|google meet|online|virtuell|telefon)/i;
 
 /** Ganztägige Termine enden in Graph um 00:00 des Folgetags → letzter Tag 18:00, Beginn 08:00 */
