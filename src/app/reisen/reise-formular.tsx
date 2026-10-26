@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import { istAusland, laenderAuswahl } from "@/lib/reisekosten/laender";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { formatDatum, formatEuro, wochentag } from "@/lib/format";
 import { VERKEHRSMITTEL, VERKEHRSMITTEL_TEXT, type Verkehrsmittel } from "@/lib/reisekosten/reise";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { reiseSpeichern, type FormularStatus } from "./actions";
+import { kmBerechnen } from "./[id]/fahrten/actions";
+import { KarteKnopf } from "./[id]/fahrten/route-karte";
 
 export type ReiseWerte = {
   id?: string;
@@ -58,6 +60,7 @@ export function ReiseFormular({
   const [mitUebernachtung, setMitUebernachtung] = useState(werte.mitUebernachtung);
   const [mahlzeiten, setMahlzeiten] = useState(werte.mahlzeiten);
   const [verkehrsmittel, setVerkehrsmittel] = useState(werte.verkehrsmittel);
+  const [reiseweg, setReiseweg] = useState(werte.reiseweg);
 
   function verkehrsmittelUmschalten(v: Verkehrsmittel) {
     setVerkehrsmittel((alt) => (alt.includes(v) ? alt.filter((x) => x !== v) : [...alt, v]));
@@ -106,7 +109,7 @@ export function ReiseFormular({
       <div className="grid gap-5 sm:grid-cols-[1fr_12rem]">
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Reiseweg</span>
-          <input name="reiseweg" required defaultValue={werte.reiseweg} placeholder="z. B. Köln – Essen – Köln" className={feld} />
+          <input name="reiseweg" required value={reiseweg} onChange={(e) => setReiseweg(e.target.value)} placeholder="z. B. Köln – Essen – Köln" className={feld} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Land</span>
@@ -147,6 +150,7 @@ export function ReiseFormular({
             <input name="kfz_kennzeichen" required defaultValue={werte.kfzKennzeichen} placeholder="z. B. K-AB 123" className={`${feld} uppercase`} />
           </label>
         )}
+        {verkehrsmittel.includes("eigener_pkw") && !werte.id && <PkwKm reiseweg={reiseweg} />}
         {verkehrsmittel.includes("mitfahrt") && (
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium">Mitfahrt von/bei</span>
@@ -285,5 +289,50 @@ export function ReiseFormular({
         </Link>
       </div>
     </form>
+  );
+}
+
+/** Gefahrene km gleich beim Anlegen: aus dem Reiseweg berechnen lassen oder selbst eintragen */
+function PkwKm({ reiseweg }: { reiseweg: string }) {
+  const [km, setKm] = useState("");
+  const [info, setInfo] = useState<string | null>(null);
+  const [rechnet, rechnen] = useTransition();
+
+  function berechnen() {
+    setInfo(null);
+    rechnen(async () => {
+      const ergebnis = await kmBerechnen(reiseweg);
+      if ("fehler" in ergebnis) return setInfo(ergebnis.fehler);
+      setKm(ergebnis.km.toLocaleString("de-DE", { maximumFractionDigits: 1 }));
+      setInfo(`Route über ${ergebnis.orte.join(" → ")}`);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium">Gefahrene km (Hin- und Rückweg)</span>
+      <div className="flex flex-wrap gap-2">
+        <input
+          name="pkw_km"
+          inputMode="decimal"
+          value={km}
+          onChange={(e) => setKm(e.target.value)}
+          placeholder="z. B. 494,2"
+          className={`${feld} max-w-40 text-right tabular-nums`}
+        />
+        <button
+          type="button"
+          onClick={berechnen}
+          disabled={rechnet || !reiseweg.trim()}
+          className="rounded-md border border-neutral-300 px-3 py-2 text-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+        >
+          {rechnet ? "…" : "km aus Reiseweg berechnen"}
+        </button>
+      </div>
+      <span className="text-xs text-neutral-500">
+        {info ?? "Tatsächlich gefahrene km zählen. Die Fahrt wird beim Speichern angelegt; weitere Fahrten fügst du in der Reise hinzu."}
+      </span>
+      {reiseweg.trim() && <KarteKnopf key={reiseweg} strecke={reiseweg} />}
+    </div>
   );
 }
