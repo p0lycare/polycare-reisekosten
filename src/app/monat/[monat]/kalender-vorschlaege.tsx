@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDatum, wochentag } from "@/lib/format";
 import { ladeTermine } from "@/lib/kalender/graph";
-import { reiseVorschlaege } from "@/lib/kalender/vorschlaege";
+import { KALENDER_AB, reiseVorschlaege } from "@/lib/kalender/vorschlaege";
 import { ladeOrteOhneReise } from "@/lib/kalender/orte";
 import { vorschlaegeEinblenden, vorschlagAusblenden } from "./kalender-actions";
 
@@ -27,6 +27,13 @@ export async function KalenderVorschlaege({
   /** Auf der Startseite: nichts anzeigen, wenn nichts passt oder der Kalender aus ist */
   stillWennLeer?: boolean;
 }) {
+  // Kalender erst ab Start des Tools lesen
+  if (von < KALENDER_AB) von = KALENDER_AB;
+  if (von >= bis) {
+    return stillWennLeer ? null : (
+      <p className="text-sm text-neutral-500">Vorschläge aus dem Kalender gibt es für Termine ab dem 01.10.2026.</p>
+    );
+  }
   const supabase = await createClient();
   const {
     data: { user },
