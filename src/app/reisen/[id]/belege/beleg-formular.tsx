@@ -11,6 +11,7 @@ import { ABSCHNITT_TEXT, type Abschnitt, type Kategorie } from "@/lib/reisekoste
 import { belegPerKiAuslesen, belegPositionenAnlegen, belegSpeichern, type BelegStatus } from "./actions";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { centAlsEingabe } from "@/lib/geld";
+import { auslagenVorschlag } from "@/lib/reisekosten/eingang";
 
 export type BelegWerte = {
   id?: string;
@@ -23,6 +24,9 @@ export type BelegWerte = {
   dateiUrl?: string;
   bewirtungAnlass: string;
   bewirtungTeilnehmer: string;
+  lieferant: string;
+  kostenstelle: string;
+  zahlungsart: string;
 };
 
 const feld =
@@ -31,8 +35,19 @@ const feld =
 const STANDARD_SAETZE = [19, 7, 0];
 /** Entspricht dem Limit des Speichers – jede Datei passt so in eine Mail an DATEV */
 const MAX_DATEI_BYTES = 2_800_000;
+/** Ab hier muss die Rechnung auf Polycare ausgestellt sein, sonst ist die Vorsteuer nicht abziehbar */
+const KLEINBETRAG_CENT = 25_000;
+
+const ZAHLUNGSARTEN = [
+  { wert: "ec", text: "EC-Karte" },
+  { wert: "kreditkarte", text: "Kreditkarte (privat)" },
+  { wert: "bar", text: "Bar" },
+  { wert: "ueberweisung", text: "Überweisung" },
+  { wert: "sonstige", text: "Sonstige (z. B. PayPal)" },
+];
 
 export function BelegFormular({
+  auslagen = false,
   werte,
   reiseId,
   userId,
@@ -43,6 +58,7 @@ export function BelegFormular({
   eingangId,
   kiStart,
 }: {
+  auslagen?: boolean;
   werte: BelegWerte;
   reiseId: string;
   userId: string;
@@ -59,6 +75,7 @@ export function BelegFormular({
   const [betrag, setBetrag] = useState(werte.betrag);
   const [datum, setDatum] = useState(werte.datum);
   const [beschreibung, setBeschreibung] = useState(werte.beschreibung);
+  const [lieferant, setLieferant] = useState(werte.lieferant);
   const [ki, setKi] = useState<{ laeuft: boolean; ergebnis?: AusgelesenerBeleg; fehler?: string }>({ laeuft: false, ergebnis: kiStart });
   const [positionenStatus, positionenAnlegen, legtAn] = useActionState<BelegStatus, FormData>(belegPositionenAnlegen, {});
   const [datei, setDatei] = useState<File | null>(null);
@@ -115,6 +132,18 @@ export function BelegFormular({
 
   /** Füllt das Formular mit dem KI-Vorschlag (erste Position); weitere Positionen werden angeboten. */
   function vorschlagUebernehmen(e: AusgelesenerBeleg) {
+    if (e.haendler) setLieferant(e.haendler);
+    if (auslagen) {
+      const v = auslagenVorschlag(e);
+      const k = e.positionen.find((p) => kategorien.some((x) => x.id === p.kategorieId));
+      if (k) setKategorieId(k.kategorieId);
+      if (v) {
+        setMwst(String(v.mwstProzent));
+        setBetrag(centAlsEingabe(v.betragCent));
+      }
+      if (e.datum && e.datum >= reiseVon && e.datum <= reiseBis) setDatum(e.datum);
+      return;
+    }
     const erste = e.positionen[0];
     if (erste && kategorien.some((k) => k.id === erste.kategorieId)) {
       setKategorieId(erste.kategorieId);
@@ -172,7 +201,9 @@ export function BelegFormular({
   }
 
   const beschaeftigt = laeuft || laedtHoch || ki.laeuft || legtAn;
-  const mehrerePositionen = !werte.id && (ki.ergebnis?.positionen.length ?? 0) > 1;
+  // Auslagen werden als ein Beleg mit Gesamtbetrag erfasst
+  const mehrerePositionen = !auslagen && !werte.id && (ki.ergebnis?.positionen.length ?? 0) > 1;
+  const ueberKleinbetrag = auslagen && (parseEuro(betrag) ?? 0) > KLEINBETRAG_CENT;
   const katName = (id: string) => kategorien.find((k) => k.id === id)?.bezeichnung ?? id;
 
   return (
@@ -207,6 +238,7 @@ export function BelegFormular({
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Belegdatum</span>
           <input type="date" name="datum" required value={datum} onChange={(e) => setDatum(e.target.value)} min={reiseVon} max={reiseBis} className={feld} />
+          {auslagen && <span className="text-xs text-neutral-500">nachgereichte Belege aus Vormonaten sind möglich</span>}
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Betrag brutto (€)</span>
@@ -232,10 +264,47 @@ export function BelegFormular({
         </p>
       )}
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Beschreibung</span>
-        <input name="beschreibung" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="optional, z. B. Hotel Name, Strecke" className={feld} />
-      </label>
+      {ueberKleinbetrag && (
+        <p className="-mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          Über 250 € brutto: Die Rechnung muss auf Polycare Research Technology GmbH ausgestellt sein (mit Anschrift), sonst
+          kann die Vorsteuer nicht gezogen werden. Ein Kassenbon reicht dann nicht.
+        </p>
+      )}
+
+      {auslagen ? (
+        <>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Lieferant</span>
+              <input name="lieferant" value={lieferant} onChange={(e) => setLieferant(e.target.value)} maxLength={120} placeholder="z. B. Bauhaus Köln" className={feld} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Bezahlt mit</span>
+              <select name="zahlungsart" defaultValue={werte.zahlungsart} className={feld}>
+                <option value="">Bitte wählen</option>
+                {ZAHLUNGSARTEN.map((z) => (
+                  <option key={z.wert} value={z.wert}>
+                    {z.text}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Zweck</span>
+            <input name="beschreibung" required value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="Wofür? z. B. Aufbau Mockup Köln" className={feld} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Kostenstelle / Projekt</span>
+            <input name="kostenstelle" defaultValue={werte.kostenstelle} maxLength={40} placeholder="optional" className={feld} />
+          </label>
+        </>
+      ) : (
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">Beschreibung</span>
+          <input name="beschreibung" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="optional, z. B. Hotel Name, Strecke" className={feld} />
+        </label>
+      )}
 
       {kategorie?.abschnitt === "E" && (
         <div className="grid gap-5 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
@@ -301,7 +370,7 @@ export function BelegFormular({
             </p>
           )}
           {ki.ergebnis.hinweis && <p>Hinweis: {ki.ergebnis.hinweis}</p>}
-          {ki.ergebnis.fruehstueckEnthalten && (
+          {!auslagen && ki.ergebnis.fruehstueckEnthalten && (
             <p>Die Rechnung enthält Frühstück. Markiere es bei der Reise als gestellt – das kürzt die Verpflegungspauschale.</p>
           )}
           {mehrerePositionen && (

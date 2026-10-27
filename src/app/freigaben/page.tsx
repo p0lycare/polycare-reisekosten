@@ -20,7 +20,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
   const ids = reisen.map((r) => r.id);
   const [abrechnungen, { data: belege }, { data: fahrten }] = await Promise.all([
     Promise.all(reisen.map((r) => ladeAbrechnung(supabase, r))),
-    supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, kategorie(bezeichnung)").in("reise_id", ids),
+    supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, kategorie(bezeichnung)").in("reise_id", ids),
     supabase.from("fahrt").select("reise_id, datum, km, km_route").in("reise_id", ids),
   ]);
 
@@ -30,6 +30,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
       {
         beginn: r.beginn,
         land: r.land,
+        art: r.art,
         ende: r.ende,
         mitUebernachtung: r.mit_uebernachtung,
         verkehrsmittel: r.verkehrsmittel,
@@ -43,6 +44,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
           datum: b.datum,
           betragCent: b.betrag_cent,
           hatDatei: !!b.datei_pfad,
+          beschreibung: b.beschreibung,
         })),
       (fahrten ?? []).filter((f) => f.reise_id === r.id),
     ).length;

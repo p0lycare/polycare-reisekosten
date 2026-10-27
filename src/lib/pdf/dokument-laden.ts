@@ -6,6 +6,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { formatDatum, formatDatumZeit } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
+import { monatsname } from "@/lib/reisekosten/auslagen";
 import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
 
 const AKTION: Record<string, string> = {
@@ -36,7 +37,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     supabase.from("fahrt").select("datum, strecke, zweck, km").eq("reise_id", reiseId).order("datum"),
     supabase
       .from("beleg")
-      .select("datum, beschreibung, betrag_cent, mwst_prozent, datei_pfad, created_at, kategorie(bezeichnung)")
+      .select("datum, beschreibung, betrag_cent, mwst_prozent, datei_pfad, created_at, lieferant, kostenstelle, zahlungsart, kategorie(bezeichnung)")
       .eq("reise_id", reiseId)
       .order("datum")
       .order("created_at"),
@@ -50,6 +51,8 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
   const nummeriert = (belege ?? []).map((b, i) => ({ ...b, nr: i + 1 }));
 
   const dokument: AbrechnungsDokument = {
+    art: reise.art,
+    monat: monatsname(reise.beginn.slice(0, 7)),
     belegNr: reise.beleg_nr,
     buchungsmonat: reise.buchungsmonat ? `${reise.buchungsmonat.slice(5, 7)}/${reise.buchungsmonat.slice(0, 4)}` : null,
     erstelltAm: new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin" }).format(new Date()),
@@ -95,6 +98,9 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
       brutto: b.betrag_cent,
       mwstProzent: Number(b.mwst_prozent),
       mitDatei: !!b.datei_pfad,
+      lieferant: b.lieferant,
+      kostenstelle: b.kostenstelle,
+      zahlungsart: b.zahlungsart,
     })),
     abrechnung,
     verlauf: (verlauf ?? []).map((v) => ({
@@ -125,8 +131,8 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
   return { reise, dokument, dateien };
 }
 
-/** Dateiname ohne Sonderzeichen, z. B. "RK-2026-0001_Reisekosten_Erika_Muster" */
-export function dateiBasis(belegNr: string | null, name: string): string {
+/** Dateiname ohne Sonderzeichen, z. B. "RK-2026-0001_Reisekosten_Erika_Muster" bzw. "AL-2026-0001_Auslagen_Erika_Muster" */
+export function dateiBasis(belegNr: string | null, name: string, art: "reise" | "auslagen" = "reise"): string {
   const sauber = (t: string) =>
     t
       .normalize("NFKD")
@@ -134,5 +140,5 @@ export function dateiBasis(belegNr: string | null, name: string): string {
       .replace(/ß/g, "ss")
       .replace(/[^A-Za-z0-9-]+/g, "_")
       .replace(/^_|_$/g, "");
-  return [sauber(belegNr ?? "Entwurf"), "Reisekosten", sauber(name)].filter(Boolean).join("_");
+  return [sauber(belegNr ?? "Entwurf"), art === "auslagen" ? "Auslagen" : "Reisekosten", sauber(name)].filter(Boolean).join("_");
 }

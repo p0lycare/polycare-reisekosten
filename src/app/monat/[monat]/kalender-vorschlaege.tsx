@@ -41,7 +41,7 @@ export async function KalenderVorschlaege({
   const [{ data: profil }, ohneReise, { data: reisen }, { data: ausgeblendet }] = await Promise.all([
     supabase.from("profile").select("email, rolle, kalender_vorschlaege").eq("id", user!.id).single(),
     ladeOrteOhneReise(supabase, user!.id),
-    supabase.from("reise").select("beginn, ende").eq("mitarbeiter_id", user!.id).lt("beginn", bis).gte("ende", von),
+    supabase.from("reise").select("beginn, ende").eq("mitarbeiter_id", user!.id).eq("art", "reise").lt("beginn", bis).gte("ende", von),
     supabase.from("kalender_ausgeblendet").select("termin_id"),
   ]);
 

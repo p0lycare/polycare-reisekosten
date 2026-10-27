@@ -20,6 +20,7 @@ export default async function Home() {
     .from("reise")
     .select("*")
     .eq("mitarbeiter_id", user!.id)
+    .eq("art", "reise")
     .order("beginn", { ascending: false });
   const abrechnungen = await Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r)));
   // Nach Monat des Reisebeginns gruppieren – so wird am Monatsende abgerechnet

@@ -10,6 +10,7 @@ import { monatEinreichen, type MonatStatus } from "../actions";
 
 export type MonatsReise = {
   id: string;
+  art: "reise" | "auslagen";
   begruendung: string;
   reiseweg: string;
   beginn: string;
@@ -26,12 +27,19 @@ function zeitraum(r: MonatsReise): string {
   return von === bis ? von : `${von} – ${bis}`;
 }
 
-/** Liste der Reisen eines Monats; Entwürfe sind auswählbar und werden gemeinsam eingereicht. */
+/** "2 Reisen", "1 Abrechnung" – sobald Auslagen dabei sind, neutral als Abrechnungen */
+function anzahlText(n: number, mitAuslagen: boolean): string {
+  if (mitAuslagen) return `${n} ${n === 1 ? "Abrechnung" : "Abrechnungen"}`;
+  return `${n} ${n === 1 ? "Reise" : "Reisen"}`;
+}
+
+/** Reisen und Auslagen eines Monats; Entwürfe sind auswählbar und werden gemeinsam eingereicht. */
 export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsReise[] }) {
   const [status, absenden, laeuft] = useActionState<MonatStatus, FormData>(monatEinreichen, {});
   const offen = reisen.filter((r) => r.status === "entwurf" || r.status === "abgelehnt");
   const [auswahl, setAuswahl] = useState<Set<string>>(() => new Set(offen.map((r) => r.id)));
   const summe = offen.filter((r) => auswahl.has(r.id)).reduce((s, r) => s + r.betrag, 0);
+  const mitAuslagen = reisen.some((r) => r.art === "auslagen");
 
   function umschalten(id: string) {
     setAuswahl((alt) => {
@@ -69,7 +77,8 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
                     <Link href={`/reisen/${r.id}`} className="min-w-0 hover:underline">
                       <p className="truncate font-medium">{r.begruendung}</p>
                       <p className="truncate text-sm text-neutral-500">
-                        {zeitraum(r)} · {r.reiseweg} · {r.anzahlBelege} {r.anzahlBelege === 1 ? "Beleg" : "Belege"}
+                        {r.art === "auslagen" ? "Auslagen ohne Reise" : `${zeitraum(r)} · ${r.reiseweg}`} · {r.anzahlBelege}{" "}
+                        {r.anzahlBelege === 1 ? "Beleg" : "Belege"}
                       </p>
                     </Link>
                     <div className="flex shrink-0 flex-col items-end gap-1">
@@ -84,11 +93,13 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
                       ))}
                     </ul>
                   )}
-                  <div className="mt-2 flex gap-4 text-xs">
-                    <Link href={`/reisen/neu?vorlage=${r.id}`} className="text-neutral-600 underline dark:text-neutral-400">
-                      Als Vorlage für neue Reise
-                    </Link>
-                  </div>
+                  {r.art === "reise" && (
+                    <div className="mt-2 flex gap-4 text-xs">
+                      <Link href={`/reisen/neu?vorlage=${r.id}`} className="text-neutral-600 underline dark:text-neutral-400">
+                        Als Vorlage für neue Reise
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </li>
@@ -102,7 +113,7 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="richtigkeit" required className="mt-0.5 size-4" />
             <span>
-              Für die Richtigkeit: Ich bestätige, dass die Angaben der ausgewählten Reisen vollständig und richtig sind und die
+              Für die Richtigkeit: Ich bestätige, dass die Angaben der ausgewählten {mitAuslagen ? "Abrechnungen" : "Reisen"} vollständig und richtig sind und die
               Kosten dienstlich veranlasst waren.
             </span>
           </label>
@@ -119,14 +130,14 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
             >
               {laeuft
                 ? "Reicht ein …"
-                : `${auswahl.size} ${auswahl.size === 1 ? "Reise" : "Reisen"} einreichen (${formatEuro(summe)})`}
+                : `${anzahlText(auswahl.size, mitAuslagen)} einreichen (${formatEuro(summe)})`}
             </button>
           </div>
         </section>
       )}
       {status.eingereicht && (
         <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
-          {status.eingereicht} {status.eingereicht === 1 ? "Reise" : "Reisen"} eingereicht
+          {anzahlText(status.eingereicht, mitAuslagen)} eingereicht
           {status.benachrichtigt ? " – die genehmigende Person wurde per Mail benachrichtigt." : "."}
         </p>
       )}

@@ -36,8 +36,8 @@ describe("monatsText", () => {
 describe("freigabeText", () => {
   it("fasst die Aufgaben zusammen", () => {
     expect(freigabeText({ genehmigen: 1, pruefen: 2, auszahlen: 0 })).toEqual({
-      betreff: "Erinnerung: 3 Reisekostenabrechnungen warten auf dich",
-      zeilen: ["Diese Reisekostenabrechnungen warten auf dich: 1 zu genehmigen, 2 zur Belegprüfung."],
+      betreff: "Erinnerung: 3 Abrechnungen warten auf dich",
+      zeilen: ["Diese Abrechnungen warten auf dich: 1 zu genehmigen, 2 zur Belegprüfung."],
     });
     expect(freigabeText({ genehmigen: 0, pruefen: 0, auszahlen: 0 })).toBeNull();
   });

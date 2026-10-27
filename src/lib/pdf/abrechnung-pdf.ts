@@ -1,9 +1,13 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Abrechnung } from "@/lib/reisekosten/abrechnung";
 import { ABSCHNITT_TEXT } from "@/lib/reisekosten/kategorie";
+import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
 
-/** Alles, was auf der Abrechnung steht – entspricht dem Formblatt FB 06 */
+/** Alles, was auf der Abrechnung steht – entspricht dem Formblatt FB 06 (Reise) bzw. FB 21 (Auslagen) */
 export type AbrechnungsDokument = {
+  art?: "reise" | "auslagen";
+  /** Abrechnungsmonat der Auslagen, z. B. "Oktober 2026" */
+  monat?: string;
   belegNr: string | null;
   buchungsmonat: string | null; // "MM/JJJJ"
   erstelltAm: string; // "TT.MM.JJJJ"
@@ -22,7 +26,18 @@ export type AbrechnungsDokument = {
   verpflegung: { datum: string; art: string; pauschale: number; kuerzung: number; betrag: number }[];
   verpflegungBemerkung: string | null;
   fahrten: { datum: string; strecke: string; zweck: string | null; km: number }[];
-  belege: { nr: number; datum: string; kategorie: string; beschreibung: string | null; brutto: number; mwstProzent: number; mitDatei: boolean }[];
+  belege: {
+    nr: number;
+    datum: string;
+    kategorie: string;
+    beschreibung: string | null;
+    brutto: number;
+    mwstProzent: number;
+    mitDatei: boolean;
+    lieferant?: string | null;
+    kostenstelle?: string | null;
+    zahlungsart?: string | null;
+  }[];
   abrechnung: Abrechnung;
   verlauf: { zeit: string; aktion: string; person: string; kommentar: string | null }[];
 };
@@ -106,20 +121,56 @@ class Layout {
 
 const RECHTS = A4[0] - RAND;
 
-/** Erzeugt die Abrechnungsseiten (ohne Belege). */
-export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDFDocument> {
-  const doc = await PDFDocument.create();
-  doc.setTitle(winAnsi(`Reisekostenabrechnung ${d.belegNr ?? ""} ${d.reisende.name}`.trim()));
-  doc.setProducer("Polycare Reisekosten");
-  const l = new Layout(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
+const ZAHLUNGSART_TEXT: Record<string, string> = {
+  bar: "bar",
+  ec: "EC",
+  kreditkarte: "Kreditkarte",
+  ueberweisung: "Überweisung",
+  sonstige: "sonstige",
+};
 
-  // Kopf
-  l.text(`Reisekostenabrechnung ${d.ausland ? "Ausland" : "Inland"}`, RAND, { groesse: 16, fett: true });
-  l.text(`Beleg-Nr. ${d.belegNr ?? "–"}`, 0, { groesse: 10, fett: true, rechts: RECHTS });
-  l.zeile(14);
-  l.text(`Buchungsmonat ${d.buchungsmonat ?? "–"} · erstellt am ${d.erstelltAm}`, 0, { groesse: 8, farbe: GRAU, rechts: RECHTS });
-  l.zeile(26);
+/** Kopf der Auslagenabrechnung (FB 21): Person, Monat, keine Reisedaten */
+function auslagenKopf(l: Layout, d: AbrechnungsDokument) {
+  const spalte = (A4[0] - 2 * RAND) / 4;
+  l.feld("Vor- und Zuname", d.reisende.name, RAND, spalte * 2 - 8);
+  l.feld("Pers.-Nr.", d.reisende.personalnummer, RAND + spalte * 2, spalte - 8);
+  l.feld("Abrechnungsmonat", d.monat, RAND + spalte * 3, spalte - 8);
+  l.zeile(24);
+}
 
+/** Einzelbelege wie im FB 21: Datum, Lieferant, Zweck, Kostenstelle, Zahlungsart, Netto, MwSt, Brutto */
+function auslagenPositionen(l: Layout, d: AbrechnungsDokument) {
+  const xText = RAND + 74;
+  const xKst = RAND + 282;
+  const xNetto = RAND + 380;
+  const xMwst = RAND + 440;
+  l.ueberschrift("Einzelbelege");
+  l.text("Nr.", RAND, { groesse: 7, farbe: GRAU });
+  l.text("Datum", RAND + 20, { groesse: 7, farbe: GRAU });
+  l.text("Lieferant · Zweck (Zahlungsart)", xText, { groesse: 7, farbe: GRAU });
+  l.text("KSt", xKst, { groesse: 7, farbe: GRAU });
+  l.text("Netto", 0, { groesse: 7, farbe: GRAU, rechts: xNetto });
+  l.text("MwSt", 0, { groesse: 7, farbe: GRAU, rechts: xMwst });
+  l.text("Brutto", 0, { groesse: 7, farbe: GRAU, rechts: RECHTS });
+  l.zeile(13);
+  for (const b of d.belege) {
+    l.platz(14);
+    const { netto, mwst } = nettoAusBrutto(b.brutto, b.mwstProzent);
+    const zahlung = b.zahlungsart ? ` (${ZAHLUNGSART_TEXT[b.zahlungsart] ?? b.zahlungsart})` : "";
+    const text = [b.lieferant || b.kategorie, b.beschreibung].filter(Boolean).join(" · ") + zahlung + (b.mitDatei ? "" : " – ohne Beleg");
+    l.text(`${b.nr}.`, RAND);
+    l.text(b.datum, RAND + 20);
+    l.text(l.passend(text, xKst - xText - 6), xText);
+    l.text(l.passend(b.kostenstelle ?? "–", xNetto - xKst - 50), xKst, { farbe: GRAU });
+    l.text(fmt(netto), 0, { rechts: xNetto });
+    l.text(mwst ? fmt(mwst) : "–", 0, { rechts: xMwst, farbe: GRAU });
+    l.text(fmt(b.brutto), 0, { rechts: RECHTS });
+    l.zeile(12);
+  }
+}
+
+/** Kopf der Reisekostenabrechnung (FB 06) */
+function reiseKopf(l: Layout, d: AbrechnungsDokument) {
   const spalte = (A4[0] - 2 * RAND) / 4;
   l.feld("Vor- und Zuname", d.reisende.name, RAND, spalte * 2 - 8);
   l.feld("Pers.-Nr.", d.reisende.personalnummer, RAND + spalte * 2, spalte - 8);
@@ -141,8 +192,27 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   l.feld("Rückkehr", d.rueckkehr, RAND + spalte, spalte - 8);
   l.feld("Benutzte Verkehrsmittel", d.verkehrsmittel, RAND + spalte * 2, spalte * 2 - 8);
   l.zeile(24);
+}
 
-  // Abschnitte A–F
+/** Erzeugt die Abrechnungsseiten (ohne Belege). */
+export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDFDocument> {
+  const doc = await PDFDocument.create();
+  const auslagen = d.art === "auslagen";
+  doc.setTitle(winAnsi(`${auslagen ? "Auslagenabrechnung" : "Reisekostenabrechnung"} ${d.belegNr ?? ""} ${d.reisende.name}`.trim()));
+  doc.setProducer("Polycare Reisekosten");
+  const l = new Layout(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
+
+  // Kopf
+  l.text(auslagen ? "Auslagenabrechnung" : `Reisekostenabrechnung ${d.ausland ? "Ausland" : "Inland"}`, RAND, { groesse: 16, fett: true });
+  l.text(`Beleg-Nr. ${d.belegNr ?? "–"}`, 0, { groesse: 10, fett: true, rechts: RECHTS });
+  l.zeile(14);
+  l.text(`Buchungsmonat ${d.buchungsmonat ?? "–"} · erstellt am ${d.erstelltAm}`, 0, { groesse: 8, farbe: GRAU, rechts: RECHTS });
+  l.zeile(26);
+
+  if (auslagen) auslagenKopf(l, d);
+  else reiseKopf(l, d);
+
+  // Abschnitte A–G
   l.ueberschrift("Abrechnung");
   const xKonto = RAND + 250;
   const xNetto = RAND + 340;
@@ -221,7 +291,9 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   }
 
   // Belegliste
-  if (d.belege.length) {
+  if (auslagen && d.belege.length) {
+    auslagenPositionen(l, d);
+  } else if (d.belege.length) {
     l.ueberschrift("Einzelbelege");
     for (const b of d.belege) {
       l.platz(14);
@@ -243,7 +315,7 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
     l.zeile(12);
   }
   l.zeile(6);
-  l.text("Elektronisch bestätigt im Polycare-Reisekosten-Tool; ersetzt die Unterschriften des Formblatts FB 06.", RAND, {
+  l.text(`Elektronisch bestätigt im Polycare-Reisekosten-Tool; ersetzt die Unterschriften des Formblatts ${auslagen ? "FB 21" : "FB 06"}.`, RAND, {
     groesse: 7,
     farbe: GRAU,
   });

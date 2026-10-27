@@ -15,6 +15,7 @@ export default async function BelegeingangPage() {
       .from("reise")
       .select("id, begruendung, reiseweg, beginn, ende")
       .eq("mitarbeiter_id", user!.id)
+      .eq("art", "reise")
       .in("status", ["entwurf", "abgelehnt"])
       .order("beginn", { ascending: false }),
     supabase.from("kategorie").select("id, bezeichnung"),
@@ -30,7 +31,8 @@ export default async function BelegeingangPage() {
       <div>
         <h1 className="text-xl font-semibold">Belege</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Belege direkt nach dem Bezahlen fotografieren – sie warten hier, bis du sie am Monatsende einer Reise zuordnest.
+          Belege direkt nach dem Bezahlen fotografieren – sie warten hier, bis du sie am Monatsende einer Reise zuordnest
+          oder als Auslage erfasst (z. B. Einkauf im Baumarkt ohne Reise).
         </p>
       </div>
 

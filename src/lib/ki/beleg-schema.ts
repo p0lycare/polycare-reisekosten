@@ -30,7 +30,7 @@ export function anweisung(kategorien: KategorieAuswahl[]): string {
   const liste = kategorien
     .map((k) => `- ${k.id}: ${k.bezeichnung} (Abschnitt ${k.abschnitt}${k.mwstProzent != null ? `, üblich ${k.mwstProzent} %` : ""})`)
     .join("\n");
-  return `Du liest Belege für eine deutsche Reisekostenabrechnung aus (Formblatt mit Abschnitten A Fahrtkosten, C Übernachtung, E Bewirtung, F Sonstiges).
+  return `Du liest Belege für eine deutsche Reisekosten- bzw. Auslagenabrechnung aus (Abschnitte A Fahrtkosten, C Übernachtung, E Bewirtung, F Sonstiges auf Reisen, G Auslagen ohne Reise).
 
 Ordne jeden Betrag einer dieser Kategorien zu:
 ${liste}
@@ -38,6 +38,7 @@ ${liste}
 Regeln:
 - Hotelrechnungen aufteilen: Übernachtung (meist 7 %), Frühstück (19 %), Servicepauschale, Parken, Kurtaxe bzw. Beherbergungssteuer jeweils als eigene Position mit dem Steuersatz laut Rechnung.
 - Restaurantrechnungen sind Bewirtungen; nimm die Kategorie mit dem passenden Steuersatz. Trinkgeld, das separat ausgewiesen ist, als eigene Position (Trinkgeld ohne MwSt).
+- Einkäufe in Baumarkt, Bürobedarf, Versand, Software oder Fachbuchhandel sind Auslagen (Abschnitt G): meist eine Position je Steuersatz mit dem Gesamtbetrag, nicht jeder Artikel einzeln.
 - Bahn, Fernbus und Taxi bis 50 km: 7 %; Flug innerhalb Deutschlands: 19 %.
 - Lies Beträge und Steuersätze vom Beleg ab; rate nicht. Wenn etwas unleserlich ist, sag es im Hinweis.
 - Datum: Leistungsdatum, bei Hotels der Abreisetag laut Rechnung.`;

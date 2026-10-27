@@ -78,3 +78,34 @@ describe("pruefePlausibilitaet", () => {
     expect(pruefePlausibilitaet({ ...reise, land: "AT" }, [beleg("uebernachtung")], [])).toEqual([]);
   });
 });
+
+describe("pruefePlausibilitaet für Auslagen", () => {
+  const auslagen: PlausiReise = { ...reise, beginn: "2026-10-01T00:00", ende: "2026-10-31T23:59", mitUebernachtung: false, verkehrsmittel: [], art: "auslagen" };
+  const einkauf = (extra: Partial<PlausiBeleg> = {}) => beleg("aus_material", { datum: "2026-10-17", beschreibung: "Aufbau Mockup", ...extra });
+
+  it("vollständige Auslagen ohne Hinweise – keine Reiseprüfungen", () => {
+    expect(pruefePlausibilitaet(auslagen, [einkauf()], [])).toEqual([]);
+  });
+
+  it("ohne Belege", () => {
+    expect(pruefePlausibilitaet(auslagen, [], [])).toEqual(["Es ist noch kein Beleg erfasst."]);
+  });
+
+  it("fehlender Zweck, Beleg aus dem Vormonat und ohne Foto", () => {
+    const h = pruefePlausibilitaet(auslagen, [einkauf({ beschreibung: " ", datum: "2026-09-30", hatDatei: false })], []);
+    expect(h).toEqual([
+      expect.stringContaining("außerhalb des Abrechnungsmonats"),
+      expect.stringContaining("fehlt der Zweck"),
+      expect.stringContaining("Ohne Belegfoto"),
+    ]);
+  });
+
+  it("über 250 € muss die Rechnung auf Polycare lauten, genau 250 € nicht", () => {
+    expect(pruefePlausibilitaet(auslagen, [einkauf({ betragCent: 25000 })], [])).toEqual([]);
+    expect(pruefePlausibilitaet(auslagen, [einkauf({ betragCent: 30081 })], [])).toEqual([expect.stringContaining("auf Polycare ausgestellt")]);
+  });
+
+  it("möglicher Doppelbeleg", () => {
+    expect(pruefePlausibilitaet(auslagen, [einkauf(), einkauf()], [])).toEqual([expect.stringContaining("Doppelbeleg")]);
+  });
+});

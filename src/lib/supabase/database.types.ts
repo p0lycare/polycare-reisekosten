@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       beleg: {
         Row: {
+          kostenstelle: string | null
+          lieferant: string | null
+          zahlungsart: string | null
           beschreibung: string | null
           betrag_cent: number
           bewirtung_anlass: string | null
@@ -30,6 +33,9 @@ export type Database = {
           waehrung: string
         }
         Insert: {
+          kostenstelle?: string | null
+          lieferant?: string | null
+          zahlungsart?: string | null
           beschreibung?: string | null
           betrag_cent: number
           bewirtung_anlass?: string | null
@@ -44,6 +50,9 @@ export type Database = {
           waehrung?: string
         }
         Update: {
+          kostenstelle?: string | null
+          lieferant?: string | null
+          zahlungsart?: string | null
           beschreibung?: string | null
           betrag_cent?: number
           bewirtung_anlass?: string | null
@@ -490,6 +499,7 @@ export type Database = {
       }
       reise: {
         Row: {
+          art: Database["public"]["Enums"]["abrechnung_art"]
           ablehnungsgrund: string | null
           ausgezahlt_am: string | null
           ausgezahlt_von: string | null
@@ -523,6 +533,7 @@ export type Database = {
           vorschuss_cent: number
         }
         Insert: {
+          art?: Database["public"]["Enums"]["abrechnung_art"]
           ablehnungsgrund?: string | null
           ausgezahlt_am?: string | null
           ausgezahlt_von?: string | null
@@ -556,6 +567,7 @@ export type Database = {
           vorschuss_cent?: number
         }
         Update: {
+          art?: Database["public"]["Enums"]["abrechnung_art"]
           ablehnungsgrund?: string | null
           ausgezahlt_am?: string | null
           ausgezahlt_von?: string | null
@@ -921,6 +933,7 @@ export type Database = {
       vorschuss_zurueckziehen: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
+      abrechnung_art: "reise" | "auslagen"
       reise_status:
         | "entwurf"
         | "eingereicht"
@@ -1064,6 +1077,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      abrechnung_art: ["reise", "auslagen"],
       reise_status: [
         "entwurf",
         "eingereicht",

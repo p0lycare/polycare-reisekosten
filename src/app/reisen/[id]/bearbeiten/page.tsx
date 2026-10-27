@@ -16,7 +16,8 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (reise.mitarbeiter_id !== user?.id || !istBearbeitbar(reise.status)) redirect(`/reisen/${id}`);
+  // Auslagenabrechnungen haben keine Reisedaten zum Bearbeiten
+  if (reise.mitarbeiter_id !== user?.id || !istBearbeitbar(reise.status) || reise.art === "auslagen") redirect(`/reisen/${id}`);
 
   const projekte = await ladeProjektAuswahl(supabase, reise.projekt_id);
   const { data: antrag } = await supabase.from("vorschuss").select("id").eq("reise_id", reise.id).neq("status", "abgelehnt").maybeSingle();
