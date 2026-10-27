@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import { Kopfzeile } from "./kopfzeile";
+import { BereichProvider } from "./bereich";
 import { ServiceWorker } from "./service-worker";
 import { createClient } from "@/lib/supabase/server";
 import { istFreigebend, ladeAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
@@ -57,19 +58,21 @@ export default async function RootLayout({
   return (
     <html lang="de">
       <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
-        {user && (
-          <Kopfzeile
-            daten={{
-              name: profil?.name ?? user.email ?? "",
-              rolle: profil?.rolle ?? null,
-              offen,
-              eingang: eingang ?? 0,
-              zeigeFreigaben: istFreigebend(profil?.rolle),
-              zeigeEinstellungen: profil?.rolle === "admin" || profil?.rolle === "buchhaltung",
-            }}
-          />
-        )}
-        {children}
+        <BereichProvider>
+          {user && (
+            <Kopfzeile
+              daten={{
+                name: profil?.name ?? user.email ?? "",
+                rolle: profil?.rolle ?? null,
+                offen,
+                eingang: eingang ?? 0,
+                zeigeFreigaben: istFreigebend(profil?.rolle),
+                zeigeEinstellungen: profil?.rolle === "admin" || profil?.rolle === "buchhaltung",
+              }}
+            />
+          )}
+          {children}
+        </BereichProvider>
         {user && <ServiceWorker />}
       </body>
     </html>

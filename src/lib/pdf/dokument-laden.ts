@@ -6,7 +6,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { formatDatum, formatDatumZeit } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
-import { monatsname } from "@/lib/reisekosten/auslagen";
+import { monatsname } from "@/lib/reisekosten/monat";
 import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
 
 const AKTION: Record<string, string> = {

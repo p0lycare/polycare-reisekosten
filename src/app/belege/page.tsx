@@ -18,13 +18,14 @@ export default async function BelegeingangPage() {
       .eq("art", "reise")
       .in("status", ["entwurf", "abgelehnt"])
       .order("beginn", { ascending: false }),
-    supabase.from("kategorie").select("id, bezeichnung"),
+    supabase.from("kategorie").select("id, bezeichnung, abschnitt"),
   ]);
 
   const pfade = (eingang ?? []).map((e) => e.datei_pfad);
   const { data: signiert } = pfade.length ? await supabase.storage.from("belege").createSignedUrls(pfade, 3600) : { data: [] };
   const urls = new Map((signiert ?? []).map((s) => [s.path, s.signedUrl]));
   const kategorieName = Object.fromEntries((kategorien ?? []).map((k) => [k.id, k.bezeichnung]));
+  const auslagenKategorien = (kategorien ?? []).filter((k) => k.abschnitt === "G").map((k) => k.id);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 font-sans sm:p-6">
@@ -51,6 +52,7 @@ export default async function BelegeingangPage() {
                 key={e.id}
                 reisen={reisen ?? []}
                 kategorieName={kategorieName}
+                auslagenKategorien={auslagenKategorien}
                 eintrag={{
                   id: e.id,
                   bildUrl: urls.get(e.datei_pfad) ?? null,

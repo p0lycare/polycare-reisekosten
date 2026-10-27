@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { benachrichtigeSammel } from "@/lib/mail/benachrichtigen";
+import { monatsname } from "@/lib/reisekosten/monat";
 
 export type MonatStatus = { fehler?: string; eingereicht?: number; benachrichtigt?: number };
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 /** Reicht die ausgewählten Reisen und Auslagen eines Monats mit einer Bestätigung ein – eine Mail an die genehmigende Person. */
 export async function monatEinreichen(_vorher: MonatStatus, formData: FormData): Promise<MonatStatus> {
@@ -22,7 +22,7 @@ export async function monatEinreichen(_vorher: MonatStatus, formData: FormData):
     return { fehler: error.code === "P0001" ? error.message : "Das Einreichen hat nicht geklappt. Bitte Seite neu laden." };
   }
 
-  const zeitraum = /^\d{4}-\d{2}$/.test(monat) ? MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`)) : "";
+  const zeitraum = /^\d{4}-\d{2}$/.test(monat) ? monatsname(monat) : "";
   const benachrichtigt = await benachrichtigeSammel(supabase, ids, zeitraum);
 
   revalidatePath(`/monat/${monat}`);

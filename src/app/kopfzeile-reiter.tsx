@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useBereich } from "./bereich";
 
 export type Reiter = { href: string; text: string; aktivBei: string; zaehler?: number };
 
 /** Bereichsreiter unter dem Logo; die aktive Seite ist grün unterstrichen, am Handy seitlich wischbar */
 export function KopfzeileReiter({ reiter }: { reiter: Reiter[] }) {
   const pfad = usePathname();
-  const aktiv = (r: Reiter) => (r.aktivBei === "/" ? pfad === "/" || pfad.startsWith("/reisen") : pfad.startsWith(r.aktivBei));
+  const bereich = useBereich();
+  const aktiv = (r: Reiter) =>
+    bereich ? r.aktivBei === bereich : r.aktivBei === "/" ? pfad === "/" || pfad.startsWith("/reisen") : pfad.startsWith(r.aktivBei);
 
   return (
     <nav aria-label="Bereiche" className="-mb-px flex gap-6 overflow-x-auto text-sm [scrollbar-width:none]">

@@ -1,3 +1,4 @@
+import { Bereich } from "@/app/bereich";
 import { notFound } from "next/navigation";
 import { centAlsEingabe } from "@/lib/geld";
 import { BelegFormular } from "../beleg-formular";
@@ -18,6 +19,7 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
+      {reise.art === "auslagen" && <Bereich reiter="/auslagen" />}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Beleg bearbeiten</h1>
         <BelegLoeschenButton id={beleg.id} reiseId={id} />

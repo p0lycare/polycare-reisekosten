@@ -18,7 +18,8 @@ import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { istAusland, landName } from "@/lib/reisekosten/laender";
 import { projektName } from "@/lib/reisekosten/projekte";
-import { monatsname } from "@/lib/reisekosten/auslagen";
+import { monatsname } from "@/lib/reisekosten/monat";
+import { Bereich } from "@/app/bereich";
 
 export default async function ReisePage({
   params,
@@ -143,6 +144,7 @@ export default async function ReisePage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 font-sans sm:p-6">
+      {istAuslagen && eigene && <Bereich reiter="/auslagen" />}
       <Link
         href={eigene ? (istAuslagen ? "/auslagen" : `/monat/${reise.beginn.slice(0, 7)}`) : "/freigaben"}
         className="text-sm text-neutral-600 underline dark:text-neutral-400"

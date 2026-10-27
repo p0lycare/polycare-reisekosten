@@ -1,8 +1,10 @@
+import { Bereich } from "@/app/bereich";
 import { BelegFormular } from "../beleg-formular";
 import { ladeFuerBeleg } from "../laden";
 import { kiVerfuegbar, type AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { centAlsEingabe } from "@/lib/geld";
 import { auslagenVorschlag } from "@/lib/reisekosten/eingang";
+import { passendeKategorie } from "@/lib/reisekosten/kategorie";
 
 export default async function NeuerBelegPage({
   params,
@@ -23,7 +25,8 @@ export default async function NeuerBelegPage({
   // Auslagen: ein Beleg mit Gesamtbetrag und einer Auslagen-Kategorie, sofern die KI eine erkannt hat
   const auslagen = reise.art === "auslagen";
   const gesamt = auslagen && ergebnis ? auslagenVorschlag(ergebnis) : null;
-  const erste = ergebnis?.positionen.find((p) => kategorien.some((k) => k.id === p.kategorieId));
+  const erste = ergebnis?.positionen[0];
+  const kategorieId = erste ? passendeKategorie(erste, reise.art, kategorien) : null;
   const betragCent = gesamt?.betragCent ?? erste?.betragCent;
   const mwstProzent = gesamt?.mwstProzent ?? erste?.mwstProzent;
   const { data: signiert } = eingang ? await supabase.storage.from("belege").createSignedUrl(eingang.datei_pfad, 3600) : { data: null };
@@ -34,6 +37,7 @@ export default async function NeuerBelegPage({
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
+      {reise.art === "auslagen" && <Bereich reiter="/auslagen" />}
       <h1 className="text-xl font-semibold">{reise.art === "auslagen" ? "Auslage hinzufügen" : "Beleg hinzufügen"}</h1>
       <BelegFormular
         auslagen={auslagen}
@@ -46,7 +50,7 @@ export default async function NeuerBelegPage({
         eingangId={eingang?.id}
         kiStart={ergebnis ?? undefined}
         werte={{
-          kategorieId: erste?.kategorieId ?? "",
+          kategorieId: kategorieId ?? "",
           datum,
           beschreibung: auslagen ? "" : erste?.beschreibung || ergebnis?.haendler || "",
           betrag: betragCent != null ? centAlsEingabe(betragCent) : "",

@@ -1,14 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { monatsgrenzen } from "./monat";
+import { monatsgrenzen, monatsname } from "./monat";
 import { istBearbeitbar } from "./reise";
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
-
-/** "2026-10" → "Oktober 2026" */
-export function monatsname(monat: string): string {
-  return MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`));
-}
 
 /**
  * Eine Auslagenabrechnung umfasst genau einen Kalendermonat (wie das Formblatt FB 21):
@@ -24,6 +18,14 @@ export function auslagenZeitraum(monat: string): { beginn: string; ende: string;
     ende: `${monat}-${String(letzter).padStart(2, "0")}T23:59:00`,
     begruendung: `Auslagen ${monatsname(monat)}`,
   };
+}
+
+/**
+ * Eine Auslagenabrechnung ohne Belege ist nur ein angefangener Platzhalter (z. B. Formular abgebrochen):
+ * Sie wird weder zum Einreichen vorgeschlagen noch angemahnt – einreichen ließe sie sich ohnehin nicht.
+ */
+export function istLeereAuslage(r: { art: "reise" | "auslagen"; anzahlBelege: number }): boolean {
+  return r.art === "auslagen" && r.anzahlBelege === 0;
 }
 
 export type AuslagenErgebnis = { id: string } | { fehler: string };

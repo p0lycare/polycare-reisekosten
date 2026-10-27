@@ -3,9 +3,10 @@ import { createAdminClient, protokolliereMail } from "@/lib/supabase/admin";
 import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { alsErinnerung } from "@/lib/mail/vorlagen";
 import { verteileAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
+import { istLeereAuslage } from "@/lib/reisekosten/auslagen";
 import { freigabeText, istFreigabeErinnerung, istMonatserinnerung, monatsText } from "./plan";
+import { monatsname } from "@/lib/reisekosten/monat";
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 function heuteInBerlin(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
@@ -51,7 +52,7 @@ export async function erinnerungenSenden({
     db.from("profile").select("id, name, email, rolle"),
     db
       .from("reise")
-      .select("id, status, mitarbeiter_id, freigeber_id, mitarbeiter:profile!reise_mitarbeiter_id_fkey(vorgesetzter_id, rolle)")
+      .select("id, status, art, mitarbeiter_id, freigeber_id, beleg(count), mitarbeiter:profile!reise_mitarbeiter_id_fkey(vorgesetzter_id, rolle)")
       .in("status", ["entwurf", "abgelehnt", "eingereicht", "freigegeben", "geprueft"]),
     db.from("beleg_eingang").select("mitarbeiter_id"),
   ]);
@@ -77,8 +78,10 @@ export async function erinnerungenSenden({
     if (!person.email || (nurAn && person.id !== nurAn)) continue;
 
     if (monat) {
-      const eigene = (reisen ?? []).filter((r) => r.mitarbeiter_id === person.id);
-      const text = monatsText(MONATSNAME.format(new Date(`${heute.slice(0, 7)}-01T00:00:00Z`)), {
+      const eigene = (reisen ?? []).filter(
+        (r) => r.mitarbeiter_id === person.id && !istLeereAuslage({ art: r.art, anzahlBelege: r.beleg[0]?.count ?? 0 }),
+      );
+      const text = monatsText(monatsname(heute.slice(0, 7)), {
         entwuerfe: eigene.filter((r) => r.status === "entwurf").length,
         abgelehnt: eigene.filter((r) => r.status === "abgelehnt").length,
         eingang: (eingang ?? []).filter((e) => e.mitarbeiter_id === person.id).length,

@@ -5,11 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { istFreigebend } from "@/lib/reisekosten/freigaben";
-import { monatsgrenzen } from "@/lib/reisekosten/monat";
+import { monatsgrenzen, monatsname } from "@/lib/reisekosten/monat";
 import { STATUS_TEXT, type ReiseStatus } from "@/lib/reisekosten/reise";
 import { StatusBadge } from "@/app/reisen/status-badge";
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 const REIHENFOLGE: ReiseStatus[] = ["eingereicht", "abgelehnt", "freigegeben", "geprueft", "ausgezahlt"];
 
 function verschiebe(monat: string, delta: number): string {
@@ -76,7 +75,7 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
         </Link>
         <div className="text-center">
           <h1 className="text-xl font-semibold">
-            {buchhaltung ? "Übersicht" : "Team"} {MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`))}
+            {buchhaltung ? "Übersicht" : "Team"} {monatsname(monat)}
           </h1>
           <p className="text-sm text-neutral-500 tabular-nums">
             {zeilen.length} {zeilen.length === 1 ? "Reise" : "Reisen"} · {formatEuro(gesamt)}

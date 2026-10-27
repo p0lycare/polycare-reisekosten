@@ -20,3 +20,28 @@ export const ERFASSBARE_ABSCHNITTE: Abschnitt[] = ["A", "C", "E", "F", "G"];
 export function abschnitteFuer(art: "reise" | "auslagen"): Abschnitt[] {
   return art === "auslagen" ? ["G"] : ["A", "C", "E", "F"];
 }
+
+/** Gleichwertige Kategorien in Reisekosten (F) und Auslagen (G); Porto je nach Steuersatz */
+const GEGENSTUECK: Record<string, (mwst: number) => string> = {
+  aus_buero: () => "buerobedarf",
+  aus_porto: (mwst) => (mwst > 0 ? "telefon_porto" : "telefon_porto_ohne"),
+  buerobedarf: () => "aus_buero",
+  telefon_porto: () => "aus_porto",
+  telefon_porto_ohne: () => "aus_porto",
+};
+
+/**
+ * Die KI kennt alle Kategorien und weiß nicht, ob ein Beleg zu einer Reise oder zu den Auslagen kommt.
+ * Liefert die Kategorie, die zur Art der Abrechnung passt – das Gegenstück, falls es eines gibt, sonst null
+ * (dann wird die Kategorie von Hand gewählt).
+ */
+export function passendeKategorie(
+  position: { kategorieId: string; mwstProzent: number },
+  art: "reise" | "auslagen",
+  kategorien: { id: string; abschnitt: string }[],
+): string | null {
+  const erlaubt = (id: string) => kategorien.some((k) => k.id === id && abschnitteFuer(art).includes(k.abschnitt as Abschnitt));
+  if (erlaubt(position.kategorieId)) return position.kategorieId;
+  const ersatz = GEGENSTUECK[position.kategorieId]?.(position.mwstProzent);
+  return ersatz && erlaubt(ersatz) ? ersatz : null;
+}
