@@ -20,7 +20,7 @@ export default async function EinstellungenPage() {
     supabase.from("kategorie").select("*").order("abschnitt").order("sortierung").order("bezeichnung"),
     supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent").single(),
     supabase.from("mail_protokoll").select("id, zeit, art, an, betreff, status, fehler").order("zeit", { ascending: false }).limit(10),
-    supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
+    supabase.from("einstellungen_intern").select("datev_upload_mail, datev_upload_mail_auslagen").maybeSingle(),
     supabase.from("projekt").select("*").order("aktiv", { ascending: false }).order("bezeichnung"),
     supabase.from("standort").select("id, name, orte, aktiv").order("sortierung").order("name"),
   ]);
@@ -62,9 +62,10 @@ export default async function EinstellungenPage() {
           {absender ? `Benachrichtigungen werden von ${absender} gesendet.` : "Noch nicht eingerichtet – Benachrichtigungen werden nur protokolliert."}
         </p>
         <TestmailKnopf />
-        <DatevAdresse adresse={intern?.datev_upload_mail ?? ""} />
+        <DatevAdresse reisekosten={intern?.datev_upload_mail ?? ""} auslagen={intern?.datev_upload_mail_auslagen ?? ""} />
         <p className="text-xs text-neutral-500">
-          Nach der Belegprüfung gehen Abrechnung und Belege als PDF automatisch an diese Adresse. Falls DATEV nur bestimmte Absender
+          Nach der Belegprüfung gehen Abrechnung und Belege als PDF automatisch an die passende Adresse – Auslagen an die
+          Auslagen-Adresse (leer: ebenfalls an die Reisekosten-Adresse). Falls DATEV nur bestimmte Absender
           zulässt, dort {absender ?? "die Absenderadresse"} freigeben.
         </p>
         {!!protokoll?.length && (
