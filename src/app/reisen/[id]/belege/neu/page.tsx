@@ -15,7 +15,7 @@ export default async function NeuerBelegPage({
 }) {
   const { id } = await params;
   const { eingang: eingangId } = await searchParams;
-  const { supabase, user, reise, kategorien } = await ladeFuerBeleg(id);
+  const { supabase, user, reise, kategorien, vorbelegt } = await ladeFuerBeleg(id);
 
   // Beleg aus dem Eingang von Hand erfassen: Foto und KI-Vorschlag übernehmen
   const { data: eingang } = eingangId
@@ -62,6 +62,9 @@ export default async function NeuerBelegPage({
           lieferant: ergebnis?.haendler ?? "",
           kostenstelle: "",
           zahlungsart: "",
+          anlass: vorbelegt.anlass ?? "",
+          person: vorbelegt.person ?? "",
+          kfzKennzeichen: vorbelegt.kfzKennzeichen ?? "",
         }}
       />
     </main>

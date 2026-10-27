@@ -7,6 +7,7 @@ import { formatDatum, formatDatumZeit } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
 import { monatsname } from "@/lib/reisekosten/monat";
+import { angabenText } from "@/lib/reisekosten/pflichtangaben";
 import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
 
 const AKTION: Record<string, string> = {
@@ -37,7 +38,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     supabase.from("fahrt").select("datum, strecke, zweck, km").eq("reise_id", reiseId).order("datum"),
     supabase
       .from("beleg")
-      .select("datum, beschreibung, betrag_cent, mwst_prozent, datei_pfad, created_at, lieferant, kostenstelle, zahlungsart, kategorie(bezeichnung)")
+      .select("datum, beschreibung, betrag_cent, mwst_prozent, datei_pfad, created_at, lieferant, kostenstelle, zahlungsart, anlass, person, kfz_kennzeichen, bewirtung_anlass, bewirtung_teilnehmer, kategorie(bezeichnung)")
       .eq("reise_id", reiseId)
       .order("datum")
       .order("created_at"),
@@ -48,7 +49,17 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     ? await supabase.from("projekt").select("bezeichnung, nummer, foerderkennzeichen").eq("id", reise.projekt_id).maybeSingle()
     : { data: null };
   const verpflegung = verpflegungFuer(reise);
-  const nummeriert = (belege ?? []).map((b, i) => ({ ...b, nr: i + 1 }));
+  const nummeriert = (belege ?? []).map((b, i) => ({
+    ...b,
+    nr: i + 1,
+    angaben: angabenText({
+      anlass: b.anlass,
+      person: b.person,
+      kfzKennzeichen: b.kfz_kennzeichen,
+      bewirtungAnlass: b.bewirtung_anlass,
+      bewirtungTeilnehmer: b.bewirtung_teilnehmer,
+    }),
+  }));
 
   const dokument: AbrechnungsDokument = {
     art: reise.art,
@@ -101,6 +112,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
       lieferant: b.lieferant,
       kostenstelle: b.kostenstelle,
       zahlungsart: b.zahlungsart,
+      angaben: b.angaben || null,
     })),
     abrechnung,
     verlauf: (verlauf ?? []).map((v) => ({
@@ -120,8 +132,16 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     const { data: blob } = await supabase.storage.from("belege").download(b.datei_pfad);
     if (!blob) continue;
     const endung = b.datei_pfad.split(".").pop();
+    // Beschriftung für die Belegseite: Kategorie und Angaben aller Positionen, die dieses Foto teilen
+    const teile = nummeriert.filter((x) => x.datei_pfad === b.datei_pfad);
+    const beschriftung = [
+      ...new Set(teile.map((x) => x.kategorie?.bezeichnung).filter(Boolean)),
+      ...new Set(teile.map((x) => x.angaben).filter(Boolean)),
+      ...(dokument.art === "auslagen" ? teile.map((x) => [x.lieferant, x.beschreibung].filter(Boolean).join(" · ")).filter(Boolean) : []),
+    ].join(" · ");
     dateien.push({
       nr: b.nr,
+      beschriftung,
       name: `Beleg_${String(b.nr).padStart(2, "0")}.${endung}`,
       contentType: blob.type && blob.type !== "application/octet-stream" ? blob.type : typAusPfad(b.datei_pfad),
       inhalt: new Uint8Array(await blob.arrayBuffer()),

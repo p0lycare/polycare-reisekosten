@@ -10,6 +10,7 @@ import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { Suspense } from "react";
 import { MonatsListe } from "./einreichen-formular";
 import { KalenderVorschlaege } from "./kalender-vorschlaege";
+import { fehlendeAngabenText } from "@/lib/reisekosten/pflichtangaben";
 
 
 function verschiebe(monat: string, delta: number): string {
@@ -43,7 +44,7 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
   const [abrechnungen, { data: belege }, { data: fahrten }] = await Promise.all([
     Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r))),
     ids.length
-      ? supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, kategorie(bezeichnung)").in("reise_id", ids)
+      ? supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, anlass, person, kfz_kennzeichen, kategorie(bezeichnung, abschnitt, pflichtangaben)").in("reise_id", ids)
       : Promise.resolve({ data: [] as never[] }),
     ids.length ? supabase.from("fahrt").select("reise_id, datum, km, km_route").in("reise_id", ids) : Promise.resolve({ data: [] as never[] }),
   ]);
@@ -77,6 +78,7 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
           betragCent: b.betrag_cent,
           hatDatei: !!b.datei_pfad,
           beschreibung: b.beschreibung,
+          fehlendeAngaben: fehlendeAngabenText(b),
         })),
         (fahrten ?? []).filter((f) => f.reise_id === r.id),
       ),

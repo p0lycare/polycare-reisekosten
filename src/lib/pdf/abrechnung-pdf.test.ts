@@ -21,7 +21,9 @@ const dokument: AbrechnungsDokument = {
   verpflegung: [{ datum: "21.10.2026", art: "An-/Abreise", pauschale: 1400, kuerzung: 0, betrag: 1400 }],
   verpflegungBemerkung: null,
   fahrten: [{ datum: "21.10.2026", strecke: "Köln – Essen", zweck: null, km: 63 }],
-  belege: [{ nr: 1, datum: "21.10.2026", kategorie: "Zugticket", beschreibung: null, brutto: 8990, mwstProzent: 7, mitDatei: true }],
+  belege: [
+    { nr: 1, datum: "21.10.2026", kategorie: "Zugticket", beschreibung: null, brutto: 8990, mwstProzent: 7, mitDatei: true, angaben: "Anlass: Messe – Planung ".repeat(8) },
+  ],
   abrechnung: berechneAbrechnung({
     belege: [{ kategorieId: "bahn", abschnitt: "A", bezeichnung: "Zugticket", konto: "1000", betragCent: 8990, mwstProzent: 7 }],
     verpflegung: null,
@@ -92,8 +94,8 @@ describe("Abrechnungs-PDF", () => {
     anhang.addPage();
     anhang.addPage();
     const dateien: BelegDatei[] = [
-      { nr: 1, name: "1.png", contentType: "image/png", inhalt: await testbildPng() },
-      { nr: 2, name: "2.pdf", contentType: "application/pdf", inhalt: await anhang.save() },
+      { nr: 1, name: "1.png", contentType: "image/png", inhalt: await testbildPng(), beschriftung: "Übernachtung · Person: Erika Muster · Anlass: Messe" },
+      { nr: 2, name: "2.pdf", contentType: "application/pdf", inhalt: await anhang.save(), beschriftung: "Auto tanken · Kfz: K-AB 123 ".repeat(20) },
       { nr: 3, name: "3.heic", contentType: "image/heic", inhalt: new Uint8Array(10) },
     ];
     const { teile, separat } = await erzeugePdfMitBelegen(dokument, dateien, 10_000_000);

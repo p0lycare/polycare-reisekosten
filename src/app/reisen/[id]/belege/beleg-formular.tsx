@@ -13,6 +13,7 @@ import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { centAlsEingabe } from "@/lib/geld";
 import { auslagenVorschlag } from "@/lib/reisekosten/eingang";
 import { ZAHLUNGSARTEN } from "@/lib/reisekosten/zahlungsart";
+import { angabeHinweis, angabeLabel, istPflichtangabe, type Pflichtangabe } from "@/lib/reisekosten/pflichtangaben";
 
 export type BelegWerte = {
   id?: string;
@@ -28,6 +29,10 @@ export type BelegWerte = {
   lieferant: string;
   kostenstelle: string;
   zahlungsart: string;
+  /** Pflichtangaben je Kategorie, vorbelegt aus der Reise */
+  anlass: string;
+  person: string;
+  kfzKennzeichen: string;
 };
 
 const feld =
@@ -69,6 +74,7 @@ export function BelegFormular({
   const [datum, setDatum] = useState(werte.datum);
   const [beschreibung, setBeschreibung] = useState(werte.beschreibung);
   const [lieferant, setLieferant] = useState(werte.lieferant);
+  const [angaben, setAngaben] = useState<Record<Pflichtangabe, string>>({ anlass: werte.anlass, person: werte.person, kfz: werte.kfzKennzeichen });
   const [ki, setKi] = useState<{ laeuft: boolean; ergebnis?: AusgelesenerBeleg; fehler?: string }>({ laeuft: false, ergebnis: kiStart });
   const [positionenStatus, positionenAnlegen, legtAn] = useActionState<BelegStatus, FormData>(belegPositionenAnlegen, {});
   const [datei, setDatei] = useState<File | null>(null);
@@ -183,6 +189,9 @@ export function BelegFormular({
     if (eingangId) formData.set("eingang_id", eingangId);
     formData.set("positionen", JSON.stringify(e.positionen));
     formData.set("waehrung", e.waehrung);
+    formData.set("anlass", angaben.anlass);
+    formData.set("person", angaben.person);
+    formData.set("kfz_kennzeichen", angaben.kfz);
     startTransition(() => positionenAnlegen(formData));
   }
 
@@ -191,6 +200,15 @@ export function BelegFormular({
   const mehrerePositionen = !auslagen && !werte.id && (ki.ergebnis?.positionen.length ?? 0) > 1;
   const ueberKleinbetrag = auslagen && (parseEuro(betrag) ?? 0) > KLEINBETRAG_CENT;
   const katName = (id: string) => kategorien.find((k) => k.id === id)?.bezeichnung ?? id;
+  // Pflichtangaben der gewählten Kategorie – beim Anlegen mehrerer Positionen die aller erkannten Kategorien
+  const pflichtKategorien = mehrerePositionen
+    ? kategorien.filter((k) => ki.ergebnis!.positionen.some((p) => p.kategorieId === k.id))
+    : kategorie
+      ? [kategorie]
+      : [];
+  const pflicht = [...new Set(pflichtKategorien.flatMap((k) => k.pflichtangaben).filter(istPflichtangabe))];
+  const pflichtAbschnitt = pflichtKategorien[0]?.abschnitt ?? "";
+  const ANGABE_FELD: Record<Pflichtangabe, string> = { anlass: "anlass", person: "person", kfz: "kfz_kennzeichen" };
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
@@ -290,6 +308,26 @@ export function BelegFormular({
           <span className="text-sm font-medium">Beschreibung</span>
           <input name="beschreibung" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="optional, z. B. Hotel Name, Strecke" className={feld} />
         </label>
+      )}
+
+      {pflicht.length > 0 && (
+        <div className="grid gap-5 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <p className="-mb-2 text-xs text-neutral-500">Pflicht für die Buchhaltung, damit die Ausgabe nachvollziehbar ist – aus der Reise vorbelegt.</p>
+          {pflicht.map((a) => (
+            <label key={a} className="flex flex-col gap-1">
+              <span className="text-sm font-medium">{angabeLabel(a, pflichtAbschnitt)}</span>
+              <input
+                name={ANGABE_FELD[a]}
+                required
+                maxLength={a === "kfz" ? 20 : a === "person" ? 200 : 300}
+                value={angaben[a]}
+                onChange={(e) => setAngaben((alt) => ({ ...alt, [a]: e.target.value }))}
+                placeholder={angabeHinweis(a, pflichtAbschnitt)}
+                className={feld}
+              />
+            </label>
+          ))}
+        </div>
       )}
 
       {kategorie?.abschnitt === "E" && (

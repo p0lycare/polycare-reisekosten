@@ -20,6 +20,7 @@ import { istAusland, landName } from "@/lib/reisekosten/laender";
 import { projektName } from "@/lib/reisekosten/projekte";
 import { monatsname } from "@/lib/reisekosten/monat";
 import { Bereich } from "@/app/bereich";
+import { fehlendeAngabenText } from "@/lib/reisekosten/pflichtangaben";
 
 export default async function ReisePage({
   params,
@@ -92,7 +93,7 @@ export default async function ReisePage({
   const zeigeHinweise = rechte.einreichen || rechte.genehmigen || rechte.pruefen;
   const [{ data: plausiBelege }, { data: plausiFahrten }] = zeigeHinweise
     ? await Promise.all([
-        supabase.from("beleg").select("kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, kategorie(bezeichnung)").eq("reise_id", reise.id),
+        supabase.from("beleg").select("kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, anlass, person, kfz_kennzeichen, kategorie(bezeichnung, abschnitt, pflichtangaben)").eq("reise_id", reise.id),
         supabase.from("fahrt").select("datum, km, km_route").eq("reise_id", reise.id),
       ])
     : [{ data: null }, { data: null }];
@@ -114,6 +115,7 @@ export default async function ReisePage({
           betragCent: b.betrag_cent,
           hatDatei: !!b.datei_pfad,
           beschreibung: b.beschreibung,
+          fehlendeAngaben: fehlendeAngabenText(b),
         })),
         plausiFahrten ?? [],
       )

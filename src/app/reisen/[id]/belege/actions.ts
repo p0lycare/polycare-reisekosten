@@ -8,7 +8,8 @@ import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { liesGespeichertenBeleg } from "@/lib/ki/auslesen-server";
 import { istBelegPfad } from "@/lib/belegpfad";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
-import { positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { ladePflichtangaben, positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { angabenSpalten, type Angaben } from "@/lib/reisekosten/pflichtangaben";
 import { istZahlungsart } from "@/lib/reisekosten/zahlungsart";
 
 export type BelegStatus = { fehler?: string };
@@ -25,6 +26,15 @@ async function artDerAbrechnung(supabase: Supabase, reiseId: string): Promise<"r
 
 function text(formData: FormData, feld: string): string {
   return String(formData.get(feld) ?? "").trim();
+}
+
+/** Pflichtangaben aus dem Formular (Person, Anlass, Kfz-Kennzeichen) */
+function angabenAus(formData: FormData): Angaben {
+  return {
+    anlass: text(formData, "anlass") || null,
+    person: text(formData, "person") || null,
+    kfzKennzeichen: text(formData, "kfz_kennzeichen") || null,
+  };
 }
 
 /** Mehrere Positionen einer Hotelrechnung teilen sich ein Foto – nur löschen, wenn es niemand mehr nutzt. */
@@ -67,13 +77,13 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
 
   const fehler = await pruefePositionen(
     supabase,
-    [{ kategorieId, betragCent: betrag, mwstProzent: mwst, bewirtungAnlass: anlass, bewirtungTeilnehmer: teilnehmer }],
+    [{ kategorieId, betragCent: betrag, mwstProzent: mwst, bewirtungAnlass: anlass, bewirtungTeilnehmer: teilnehmer, angaben: angabenAus(formData) }],
     !!id,
     art,
   );
   if (fehler) return { fehler };
 
-  const { data: kategorie } = await supabase.from("kategorie").select("abschnitt").eq("id", kategorieId).single();
+  const { data: kategorie } = await supabase.from("kategorie").select("abschnitt, pflichtangaben").eq("id", kategorieId).single();
   const daten = {
     reise_id: reiseId,
     kategorie_id: kategorieId,
@@ -87,6 +97,7 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
     lieferant: art === "auslagen" ? text(formData, "lieferant").slice(0, 120) || null : null,
     kostenstelle: art === "auslagen" ? text(formData, "kostenstelle").slice(0, 40) || null : null,
     zahlungsart: art === "auslagen" ? zahlungsart : null,
+    ...angabenSpalten(kategorie?.pflichtangaben ?? [], angabenAus(formData)),
   };
 
   // RLS erlaubt Änderungen nur an Belegen eigener, bearbeitbarer Reisen
@@ -172,10 +183,13 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
   if ("fehler" in passend) return passend;
   const { positionen } = passend;
 
-  // Bewirtungen brauchen Anlass und Teilnehmende – dafür gibt es im Sammelanlegen keine Felder
+  // Bewirtungen brauchen Anlass und Teilnehmende – dafür gibt es im Sammelanlegen keine Felder.
+  // Die übrigen Pflichtangaben (z. B. Person und Anlass der Hotelrechnung) gelten für alle Positionen.
+  const angaben = angabenAus(formData);
+  const pflicht = await ladePflichtangaben(supabase, positionen.map((p) => p.kategorieId));
   const fehler = await pruefePositionen(
     supabase,
-    positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
+    positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null, angaben })),
     false,
     art,
   );
@@ -196,6 +210,7 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
         betrag_cent: p.betragCent,
         mwst_prozent: p.mwstProzent,
         datei_pfad: dateiPfad,
+        ...angabenSpalten(pflicht.get(p.kategorieId) ?? [], angaben),
       })),
     )
     .select("id");

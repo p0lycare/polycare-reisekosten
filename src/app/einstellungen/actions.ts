@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
 import { erinnerungenSenden } from "@/lib/erinnerungen/senden";
 import { appUrl } from "@/lib/mail/benachrichtigen";
+import { istPflichtangabe } from "@/lib/reisekosten/pflichtangaben";
 
 export type AktionStatus = { fehler?: string; gespeichert?: boolean };
 
@@ -47,9 +48,12 @@ export async function kategorieSpeichern(_vorher: AktionStatus, formData: FormDa
 
   const supabase = await createClient();
   const daten = { bezeichnung, mwst_prozent: mwst, konto, aktiv: formData.get("aktiv") === "on" };
+  const pflichtangaben = formData.getAll("pflichtangaben").map(String).filter(istPflichtangabe);
 
   if (id) {
-    const { data, error } = await supabase.from("kategorie").update(daten).eq("id", id).select("id");
+    // Pflichtangaben nur aus Formularen, die sie anbieten (nicht bei Bewirtung, Auslagen, System-Kategorien)
+    const mitPflicht = formData.has("pflicht_formular") ? { pflichtangaben } : {};
+    const { data, error } = await supabase.from("kategorie").update({ ...daten, ...mitPflicht }).eq("id", id).select("id");
     if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
   } else {
     const abschnitt = text(formData, "abschnitt") as Abschnitt;

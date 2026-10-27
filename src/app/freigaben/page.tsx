@@ -13,6 +13,7 @@ import type { Reise } from "@/lib/reisekosten/reise";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { VorschussEntscheiden, type OffenerVorschuss } from "@/app/vorschuss/formulare";
 import { SammelListe, type PersonGruppe } from "./sammel-liste";
+import { fehlendeAngabenText } from "@/lib/reisekosten/pflichtangaben";
 
 type Eintrag = Reise & { mitarbeiter: { name: string } | null };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -23,7 +24,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
   const ids = reisen.map((r) => r.id);
   const [abrechnungen, { data: belege }, { data: fahrten }] = await Promise.all([
     Promise.all(reisen.map((r) => ladeAbrechnung(supabase, r))),
-    supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, kategorie(bezeichnung)").in("reise_id", ids),
+    supabase.from("beleg").select("reise_id, kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, anlass, person, kfz_kennzeichen, kategorie(bezeichnung, abschnitt, pflichtangaben)").in("reise_id", ids),
     supabase.from("fahrt").select("reise_id, datum, km, km_route").in("reise_id", ids),
   ]);
 
@@ -48,6 +49,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
           betragCent: b.betrag_cent,
           hatDatei: !!b.datei_pfad,
           beschreibung: b.beschreibung,
+          fehlendeAngaben: fehlendeAngabenText(b),
         })),
       (fahrten ?? []).filter((f) => f.reise_id === r.id),
     ).length;

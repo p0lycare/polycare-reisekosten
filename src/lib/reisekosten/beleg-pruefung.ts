@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { abschnitteFuer, passendeKategorie, type Abschnitt } from "./kategorie";
+import { angabeLabel, fehlendeAngaben, type Angaben } from "./pflichtangaben";
 
 export const MAX_BETRAG_CENT = 10_000_000; // 100.000 €
 
@@ -10,7 +11,15 @@ export type Position = {
   mwstProzent: number;
   bewirtungAnlass: string | null;
   bewirtungTeilnehmer: string | null;
+  /** Pflichtangaben (Person, Anlass, Kfz-Kennzeichen) – welche nötig sind, bestimmt die Kategorie */
+  angaben: Angaben;
 };
+
+/** Verlangte Angaben je Kategorie */
+export async function ladePflichtangaben(supabase: SupabaseClient<Database>, ids: string[]): Promise<Map<string, string[]>> {
+  const { data } = await supabase.from("kategorie").select("id, pflichtangaben").in("id", ids);
+  return new Map((data ?? []).map((k) => [k.id, k.pflichtangaben]));
+}
 
 /** Gemeinsame Prüfung für einzelne Belege und für mehrere Positionen auf einmal. */
 export async function pruefePositionen(
@@ -20,7 +29,7 @@ export async function pruefePositionen(
   art: "reise" | "auslagen",
 ): Promise<string | null> {
   const ids = [...new Set(positionen.map((p) => p.kategorieId))];
-  const { data: kategorien } = await supabase.from("kategorie").select("id, abschnitt, beleg_erfassbar, aktiv").in("id", ids);
+  const { data: kategorien } = await supabase.from("kategorie").select("id, abschnitt, beleg_erfassbar, aktiv, pflichtangaben").in("id", ids);
   const nachId = new Map((kategorien ?? []).map((k) => [k.id, k]));
 
   for (const p of positionen) {
@@ -37,6 +46,8 @@ export async function pruefePositionen(
     if (k.abschnitt === "E" && (!p.bewirtungAnlass || !p.bewirtungTeilnehmer)) {
       return "Bei Bewirtungen sind Anlass und Teilnehmende Pflicht.";
     }
+    const fehlt = fehlendeAngaben(k.pflichtangaben, p.angaben);
+    if (fehlt.length) return `Bitte angeben: ${fehlt.map((a) => angabeLabel(a, k.abschnitt)).join(", ")}.`;
   }
   return null;
 }

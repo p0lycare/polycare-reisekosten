@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       beleg: {
         Row: {
+          anlass: string | null
           beschreibung: string | null
           betrag_cent: number
           bewirtung_anlass: string | null
@@ -25,14 +26,17 @@ export type Database = {
           datum: string
           id: string
           kategorie_id: string
+          kfz_kennzeichen: string | null
           kostenstelle: string | null
           lieferant: string | null
           mwst_prozent: number
+          person: string | null
           reise_id: string
           waehrung: string
           zahlungsart: string | null
         }
         Insert: {
+          anlass?: string | null
           beschreibung?: string | null
           betrag_cent: number
           bewirtung_anlass?: string | null
@@ -42,14 +46,17 @@ export type Database = {
           datum: string
           id?: string
           kategorie_id: string
+          kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           lieferant?: string | null
           mwst_prozent: number
+          person?: string | null
           reise_id: string
           waehrung?: string
           zahlungsart?: string | null
         }
         Update: {
+          anlass?: string | null
           beschreibung?: string | null
           betrag_cent?: number
           bewirtung_anlass?: string | null
@@ -59,9 +66,11 @@ export type Database = {
           datum?: string
           id?: string
           kategorie_id?: string
+          kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           lieferant?: string | null
           mwst_prozent?: number
+          person?: string | null
           reise_id?: string
           waehrung?: string
           zahlungsart?: string | null
@@ -236,6 +245,7 @@ export type Database = {
           id: string
           konto: string | null
           mwst_prozent: number | null
+          pflichtangaben: string[]
           sortierung: number
         }
         Insert: {
@@ -246,6 +256,7 @@ export type Database = {
           id: string
           konto?: string | null
           mwst_prozent?: number | null
+          pflichtangaben?: string[]
           sortierung?: number
         }
         Update: {
@@ -256,6 +267,7 @@ export type Database = {
           id?: string
           konto?: string | null
           mwst_prozent?: number | null
+          pflichtangaben?: string[]
           sortierung?: number
         }
         Relationships: []
