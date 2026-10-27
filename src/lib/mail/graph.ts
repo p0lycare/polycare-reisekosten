@@ -80,7 +80,9 @@ export async function sendeMail(mail: Mail): Promise<void> {
     });
     if (!antwort.ok) {
       const details = await antwort.text().catch(() => "");
-      throw new Error(`Mailversand fehlgeschlagen (${antwort.status}) ${details.slice(0, 200)}`);
+      // Bei mehreren Teilen sind die vorherigen schon angekommen – das muss beim erneuten Senden klar sein
+      const teil = pakete.length > 1 ? ` bei Teil ${i + 1}/${pakete.length}${i > 0 ? ` – Teil 1${i > 1 ? `–${i}` : ""} ist bereits zugestellt` : ""}` : "";
+      throw new Error(`Mailversand fehlgeschlagen${teil} (${antwort.status}) ${details.slice(0, 200)}`);
     }
   }
 }

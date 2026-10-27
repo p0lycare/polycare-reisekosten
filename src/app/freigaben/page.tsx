@@ -1,4 +1,7 @@
 import Link from "next/link";
+
+// Sammel-Prüfen schickt je Abrechnung ein PDF an DATEV – dafür mehr Zeit als die Standardlaufzeit
+export const maxDuration = 300;
 import { SeitenHilfe } from "@/app/seiten-hilfe";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -74,7 +77,7 @@ function Abschnitt({ titel, anzahl, summe, children }: { titel: string; anzahl: 
       <h2 className="font-medium">
         {titel}{" "}
         <span className="text-sm font-normal text-neutral-500 tabular-nums">
-          {anzahl} {anzahl === 1 ? "Reise" : "Reisen"} · {formatEuro(summe)}
+          {anzahl} {anzahl === 1 ? "Abrechnung" : "Abrechnungen"} · {formatEuro(summe)}
         </span>
       </h2>
       {children}
@@ -138,8 +141,8 @@ export default async function FreigabenPage() {
       </div>
       <SeitenHilfe anker={buchhaltung ? "buchhaltung" : "fuehrungskraefte"}>
         {buchhaltung
-          ? "Hier wartet, was du tun musst: Reisen deines Teams genehmigen, Belege prüfen (damit gehen sie an DATEV) und nach der Überweisung in DATEV als ausgezahlt markieren. Reisen sind je Person gebündelt."
-          : "Hier genehmigst du die eingereichten Reisen deines Teams – je Person gebündelt, meist in einem Schritt pro Monat. Danach prüft die Buchhaltung die Belege."}
+          ? "Hier wartet, was du tun musst: Reisen und Auslagen deines Teams genehmigen, Belege prüfen (damit gehen sie an DATEV) und nach der Überweisung in DATEV als ausgezahlt markieren. Alles ist je Person gebündelt."
+          : "Hier genehmigst du die eingereichten Reisen und Auslagen deines Teams – je Person gebündelt, meist in einem Schritt pro Monat. Danach prüft die Buchhaltung die Belege."}
       </SeitenHilfe>
 
       {(vGenehmigen.length > 0 || vAuszahlen.length > 0) && (
@@ -158,17 +161,17 @@ export default async function FreigabenPage() {
 
       {(freigebend || genehmigen.length > 0) && (
         <Abschnitt titel="Zur Genehmigung" anzahl={anzahlVon(genehmigen)} summe={summeVon(genehmigen)}>
-          <SammelListe gruppen={genehmigen} art="genehmigen" leer="Keine Reisen zu genehmigen." />
+          <SammelListe gruppen={genehmigen} art="genehmigen" leer="Nichts zu genehmigen." />
         </Abschnitt>
       )}
       {buchhaltung && (
         <Abschnitt titel="Zur Belegprüfung" anzahl={anzahlVon(pruefen)} summe={summeVon(pruefen)}>
-          <SammelListe gruppen={pruefen} art="pruefen" leer="Keine Reisen zu prüfen." />
+          <SammelListe gruppen={pruefen} art="pruefen" leer="Nichts zu prüfen." />
         </Abschnitt>
       )}
       {buchhaltung && (
         <Abschnitt titel="Zur Auszahlung" anzahl={anzahlVon(auszahlen)} summe={summeVon(auszahlen)}>
-          <SammelListe gruppen={auszahlen} art="auszahlen" leer="Keine Reisen auszuzahlen." />
+          <SammelListe gruppen={auszahlen} art="auszahlen" leer="Nichts auszuzahlen." />
         </Abschnitt>
       )}
     </main>

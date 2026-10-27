@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orteOhneReise, reiseVorschlaege, reiseZeiten, zielAus, type Termin } from "./vorschlaege";
+import { kalenderPostfach, orteOhneReise, reiseVorschlaege, reiseZeiten, zielAus, type Termin } from "./vorschlaege";
 
 function termin(teil: Partial<Termin>): Termin {
   return {
@@ -150,5 +150,13 @@ describe("Orte ohne Reise je Person (Standort der ersten Tätigkeitsstätte + Wo
     expect(reiseVorschlaege(termine, { bueroOrte: orte, reisen: [] })).toEqual([
       { terminId: "a", betreff: "Workshop", ort: "Köln", beginn: "2026-10-21T06:00", ende: "2026-10-21T21:00" },
     ]);
+  });
+});
+
+describe("kalenderPostfach", () => {
+  it("nur bei gleicher Anmelde- und Profiladresse", () => {
+    expect(kalenderPostfach("A.Muster@example.de", "a.muster@example.de")).toBe("A.Muster@example.de");
+    expect(kalenderPostfach("a.muster@example.de", "chef@example.de")).toBeNull();
+    expect(kalenderPostfach(undefined, "a.muster@example.de")).toBeNull();
   });
 });

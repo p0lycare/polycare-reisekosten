@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useBereich } from "./bereich";
 
@@ -12,9 +13,15 @@ export function KopfzeileReiter({ reiter }: { reiter: Reiter[] }) {
   const bereich = useBereich();
   const aktiv = (r: Reiter) =>
     bereich ? r.aktivBei === bereich : r.aktivBei === "/" ? pfad === "/" || pfad.startsWith("/reisen") : pfad.startsWith(r.aktivBei);
+  const leiste = useRef<HTMLElement>(null);
+
+  // Am Handy passen nicht alle Reiter in die Zeile – den aktiven immer ins Bild holen
+  useEffect(() => {
+    leiste.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [pfad, bereich]);
 
   return (
-    <nav aria-label="Bereiche" className="-mb-px flex gap-6 overflow-x-auto text-sm [scrollbar-width:none]">
+    <nav ref={leiste} aria-label="Bereiche" className="-mb-px flex gap-6 overflow-x-auto text-sm [scrollbar-width:none]">
       {reiter.map((r) => (
         <Link
           key={r.href}

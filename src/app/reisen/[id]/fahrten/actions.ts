@@ -34,6 +34,8 @@ export async function fahrtSpeichern(_vorher: FahrtStatus, formData: FormData): 
 
   const daten = { reise_id: reiseId, datum, strecke, zweck: text(formData, "zweck") || null, km: Math.round(km * 10) / 10 };
   const supabase = await createClient();
+  const { data: reise } = await supabase.from("reise").select("art").eq("id", reiseId).maybeSingle();
+  if (reise?.art !== "reise") return { fehler: "Fahrten gibt es nur bei Reisen." };
   // RLS erlaubt Änderungen nur in eigenen, bearbeitbaren Reisen
   const { data, error } = id
     ? await supabase.from("fahrt").update(daten).eq("id", id).select("id")

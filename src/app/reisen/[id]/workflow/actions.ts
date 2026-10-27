@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { benachrichtige } from "@/lib/mail/benachrichtigen";
 import { sendeAnDatev } from "@/lib/datev/senden";
+import { verpflegungFestschreiben } from "@/lib/reisekosten/verpflegung-fest";
 
 export type WorkflowStatus = { fehler?: string };
 
@@ -35,7 +36,10 @@ export async function einreichen(_vorher: WorkflowStatus, formData: FormData): P
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_einreichen", { p_id: id });
-  if (!error) await benachrichtige(supabase, id, "eingereicht");
+  if (!error) {
+    await verpflegungFestschreiben([id]);
+    await benachrichtige(supabase, id, "eingereicht");
+  }
   aktualisieren(id);
   return meldung(error);
 }

@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { VERKEHRSMITTEL, type Verkehrsmittel } from "@/lib/reisekosten/reise";
-import { parseEuro } from "@/lib/geld";
 import { eingangZuordnen } from "@/app/belege/actions";
 import { z } from "zod";
 
@@ -63,20 +62,6 @@ export async function reiseSpeichern(
   const pkwKm = !id && verkehrsmittel.includes("eigener_pkw") && kmEingabe ? Math.round(Number(kmEingabe) * 10) / 10 : null;
   if (pkwKm !== null && !(pkwKm > 0 && pkwKm < 10000)) return { fehler: "Bitte die gefahrenen Kilometer als Zahl angeben, z. B. 494,2." };
 
-  const vorschussEingabe = text(formData, "vorschuss");
-  let vorschuss = vorschussEingabe ? parseEuro(vorschussEingabe) : 0;
-  if (vorschuss === null) return { fehler: "Bitte den Vorschuss als Betrag angeben, z. B. 100,00." };
-  // Läuft ein Vorschussantrag im Tool, gilt nur dessen ausgezahlter Betrag (die Datenbank hält ihn zusätzlich fest)
-  if (id) {
-    const { data: antrag } = await (await createClient())
-      .from("vorschuss")
-      .select("status, betrag_cent")
-      .eq("reise_id", id)
-      .neq("status", "abgelehnt")
-      .maybeSingle();
-    if (antrag) vorschuss = antrag.status === "ausgezahlt" ? antrag.betrag_cent : 0;
-  }
-
   let mahlzeiten: Record<string, Mahlzeiten>;
   try {
     mahlzeiten = MahlzeitenSchema.parse(JSON.parse(text(formData, "mahlzeiten") || "{}"));
@@ -117,12 +102,13 @@ export async function reiseSpeichern(
     // Nur gültige IDs; ob das Projekt existiert, prüft der Fremdschlüssel
     projekt_id: /^[0-9a-f-]{36}$/.test(text(formData, "projekt_id")) ? text(formData, "projekt_id") : null,
     verpflegung_bemerkung: text(formData, "verpflegung_bemerkung") || null,
-    vorschuss_cent: vorschuss,
+    // vorschuss_cent setzt nur der Vorschuss-Ablauf (Antrag → Auszahlung), nicht das Formular
   };
 
   if (id) {
     // RLS lässt nicht bearbeitbare Reisen still aus – daher die geänderten Zeilen prüfen
-    const { data, error } = await supabase.from("reise").update(daten).eq("id", id).select("id");
+    // Auslagenabrechnungen haben keine Reisedaten (die Datenbank sperrt den Monat zusätzlich)
+    const { data, error } = await supabase.from("reise").update(daten).eq("id", id).eq("art", "reise").select("id");
     if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
     revalidatePath(`/reisen/${id}`);
     revalidatePath("/");
