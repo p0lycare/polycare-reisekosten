@@ -41,7 +41,7 @@ function Einreichen({ id, betrag, monat }: { id: string; betrag: string; monat: 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-neutral-700 dark:text-neutral-300">
-        <span className="font-medium">Empfohlen:</span> Sammle alle Reisen eines Monats und reiche sie am Monatsende gemeinsam
+        <span className="font-medium">Empfohlen:</span> Sammle alle Reisen und Auslagen eines Monats und reiche sie am Monatsende gemeinsam
         ein – deine Führungskraft genehmigt dann alles in einem Schritt.
       </p>
       <div>
@@ -50,7 +50,7 @@ function Einreichen({ id, betrag, monat }: { id: string; betrag: string; monat: 
         </Link>
       </div>
       <details className="text-sm">
-        <summary className="cursor-pointer text-neutral-600 underline dark:text-neutral-400">Diese Reise jetzt einzeln einreichen</summary>
+        <summary className="cursor-pointer text-neutral-600 underline dark:text-neutral-400">Jetzt einzeln einreichen</summary>
         <form onSubmit={ohneZuruecksetzen(absenden)} className="mt-3 flex flex-col gap-3">
           <input type="hidden" name="id" value={id} />
           <label className="flex items-start gap-2 text-sm">
@@ -152,7 +152,7 @@ function Zurueckziehen({ id }: { id: string }) {
   return (
     <form
       onSubmit={(e) => {
-        if (!confirm("Einreichung zurückziehen? Die Reise wird wieder zum Entwurf und kann bearbeitet werden.")) {
+        if (!confirm("Einreichung zurückziehen? Die Abrechnung wird wieder zum Entwurf und kann bearbeitet werden.")) {
           e.preventDefault();
           return;
         }
@@ -161,7 +161,7 @@ function Zurueckziehen({ id }: { id: string }) {
       className="flex flex-col gap-3"
     >
       <input type="hidden" name="id" value={id} />
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">Zurückziehen macht die Reise wieder zum Entwurf, den du korrigieren kannst.</p>
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">Zurückziehen macht die Abrechnung wieder zum Entwurf, den du korrigieren kannst.</p>
       <Fehler status={status} />
       <div>
         <button type="submit" disabled={laeuft} className={knopfSekundaer}>

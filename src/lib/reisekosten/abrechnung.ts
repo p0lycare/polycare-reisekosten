@@ -48,7 +48,7 @@ export type AbrechnungInput = {
   vorschussCent: number;
 };
 
-const REIHENFOLGE: Abschnitt[] = ["A", "B", "C", "D", "E", "F"];
+const REIHENFOLGE: Abschnitt[] = ["A", "B", "C", "D", "E", "F", "G"];
 
 function addiere(betraege: Betrag[]): Betrag {
   return betraege.reduce(

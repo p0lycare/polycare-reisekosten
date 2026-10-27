@@ -14,6 +14,18 @@ const basis: AbrechnungInput = {
 };
 
 describe("berechneAbrechnung", () => {
+  it("Auslagen (Abschnitt G) zählen zur Auszahlung", () => {
+    const r = berechneAbrechnung({
+      ...basis,
+      belege: [
+        { kategorieId: "aus_material", abschnitt: "G", bezeichnung: "Material", konto: "3000", betragCent: 11878, mwstProzent: 19 },
+        { kategorieId: "aus_material", abschnitt: "G", bezeichnung: "Material", konto: "3000", betragCent: 30081, mwstProzent: 19 },
+      ],
+    });
+    expect(r.abschnitte.map((a) => a.abschnitt)).toEqual(["G"]);
+    expect(r.auszuzahlen).toBe(41959);
+  });
+
   it("leere Reise ergibt 0", () => {
     const r = berechneAbrechnung(basis);
     expect(r.abschnitte).toEqual([]);
