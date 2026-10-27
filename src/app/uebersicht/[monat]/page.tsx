@@ -33,15 +33,17 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
   if (!istFreigebend(profil?.rolle)) redirect("/");
   const buchhaltung = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
 
-  // Entwürfe gehören den Reisenden; eigene Reisen stehen unter "Meine Reisen"
-  const { data: reisen } = await supabase
+  // Entwürfe gehören den Reisenden. Führungskräfte sehen ihr Team (eigene Reisen stehen unter "Meine Reisen"),
+  // Buchhaltung und Admin die Gesamtsicht über alle Kosten – einschließlich der eigenen
+  let abfrage = supabase
     .from("reise")
     .select("*, mitarbeiter:profile!reise_mitarbeiter_id_fkey(name)")
     .neq("status", "entwurf")
-    .neq("mitarbeiter_id", user!.id)
     .gte("beginn", grenzen.von)
     .lt("beginn", grenzen.bis)
     .order("beginn");
+  if (!buchhaltung) abfrage = abfrage.neq("mitarbeiter_id", user!.id);
+  const { data: reisen } = await abfrage;
 
   const ids = (reisen ?? []).map((r) => r.id);
   const [abrechnungen, { data: datev }] = await Promise.all([

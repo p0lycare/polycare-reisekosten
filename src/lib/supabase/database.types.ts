@@ -120,21 +120,18 @@ export type Database = {
       }
       einstellungen: {
         Row: {
-          buero_orte: string[]
           id: boolean
           km_satz_cent: number
           km_steuerfrei_cent: number
           updated_at: string
         }
         Insert: {
-          buero_orte?: string[]
           id?: boolean
           km_satz_cent?: number
           km_steuerfrei_cent?: number
           updated_at?: string
         }
         Update: {
-          buero_orte?: string[]
           id?: boolean
           km_satz_cent?: number
           km_steuerfrei_cent?: number
@@ -415,7 +412,6 @@ export type Database = {
       }
       profile: {
         Row: {
-          buero_ist_taetigkeitsstaette: boolean
           created_at: string
           email: string
           erste_taetigkeitsstaette_id: string | null
@@ -428,7 +424,6 @@ export type Database = {
           vorgesetzter_id: string | null
         }
         Insert: {
-          buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email: string
           erste_taetigkeitsstaette_id?: string | null
@@ -441,7 +436,6 @@ export type Database = {
           vorgesetzter_id?: string | null
         }
         Update: {
-          buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email?: string
           erste_taetigkeitsstaette_id?: string | null
