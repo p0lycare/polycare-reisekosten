@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       beleg: {
         Row: {
+          anlass: string | null
           beschreibung: string | null
           betrag_cent: number
           bewirtung_anlass: string | null
@@ -24,18 +25,18 @@ export type Database = {
           datei_pfad: string | null
           datum: string
           id: string
-          anlass: string | null
-          person: string | null
-          kfz_kennzeichen: string | null
           kategorie_id: string
+          kfz_kennzeichen: string | null
           kostenstelle: string | null
           lieferant: string | null
           mwst_prozent: number
+          person: string | null
           reise_id: string
           waehrung: string
           zahlungsart: string | null
         }
         Insert: {
+          anlass?: string | null
           beschreibung?: string | null
           betrag_cent: number
           bewirtung_anlass?: string | null
@@ -44,18 +45,18 @@ export type Database = {
           datei_pfad?: string | null
           datum: string
           id?: string
-          anlass?: string | null
-          person?: string | null
-          kfz_kennzeichen?: string | null
           kategorie_id: string
+          kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           lieferant?: string | null
           mwst_prozent: number
+          person?: string | null
           reise_id: string
           waehrung?: string
           zahlungsart?: string | null
         }
         Update: {
+          anlass?: string | null
           beschreibung?: string | null
           betrag_cent?: number
           bewirtung_anlass?: string | null
@@ -64,13 +65,12 @@ export type Database = {
           datei_pfad?: string | null
           datum?: string
           id?: string
-          anlass?: string | null
-          person?: string | null
-          kfz_kennzeichen?: string | null
           kategorie_id?: string
+          kfz_kennzeichen?: string | null
           kostenstelle?: string | null
           lieferant?: string | null
           mwst_prozent?: number
+          person?: string | null
           reise_id?: string
           waehrung?: string
           zahlungsart?: string | null
