@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { MAX_ANHANG_BYTES_PRO_MAIL, type Anhang } from "@/lib/mail/anhaenge";
+import { DATEV_MAX_BYTES } from "@/lib/mail/anhaenge";
 import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { erzeugePdfMitBelegen } from "@/lib/pdf/abrechnung-pdf";
 import { dateiBasis, ladeDokument } from "@/lib/pdf/dokument-laden";
@@ -50,22 +50,20 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
       return { fehler: "E-Mail-Versand ist nicht eingerichtet." };
     }
 
-    const { teile, separat } = await erzeugePdfMitBelegen(dokument, dateien, MAX_ANHANG_BYTES_PRO_MAIL);
-    const anhaenge: Anhang[] = [
-      ...teile.map((inhalt, i) => ({
-        name: teile.length > 1 ? `${basis}_Teil${i + 1}.pdf` : `${basis}.pdf`,
-        contentType: "application/pdf",
-        inhalt,
-      })),
-      ...separat.map((d) => ({ name: `${basis}_${d.name}`, contentType: d.contentType, inhalt: d.inhalt })),
-    ];
+    // Genau ein PDF je Abrechnung = ein Beleg in DATEV (Deckblatt + Originale)
+    const { pdf, nichtEingebettet } = await erzeugePdfMitBelegen(dokument, dateien);
+    if (pdf.byteLength > DATEV_MAX_BYTES) {
+      const mb = (pdf.byteLength / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+      throw new Error(`Die Abrechnung ist mit ${mb} MB zu groß für DATEV (höchstens 14 MB) – bitte große PDF-Belege verkleinern.`);
+    }
+    const hinweis = nichtEingebettet.length ? ` Beleg ${nichtEingebettet.join(", ")} konnte nicht eingebettet werden.` : "";
 
     await sendeMail({
       an,
       betreff,
-      text: `${titel} ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).`,
-      html: `<p>${titel} ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)} mit ${dateien.length} Beleg(en).</p>`,
-      anhaenge,
+      text: `${titel} ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).${hinweis}`,
+      html: `<p>${titel} ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)} mit ${dateien.length} Beleg(en).${escapeHtml(hinweis)}</p>`,
+      anhaenge: [{ name: `${basis}.pdf`, contentType: "application/pdf", inhalt: pdf }],
     });
     await protokoll("gesendet");
     return {};

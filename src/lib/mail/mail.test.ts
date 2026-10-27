@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { teileAnhaenge, type Anhang } from "./anhaenge";
+import { brauchtUploadSession, uploadBereiche, type Anhang } from "./anhaenge";
 import { alsMail, alsSammelMail } from "./vorlagen";
 
 const datei = (name: string, bytes: number): Anhang => ({ name, contentType: "image/jpeg", inhalt: new Uint8Array(bytes) });
 
-describe("teileAnhaenge", () => {
-  it("ohne Anhänge eine Mail", () => {
-    expect(teileAnhaenge([])).toEqual([[]]);
+describe("Anhänge", () => {
+  it("kleine Mails direkt, große über die Upload-Session", () => {
+    expect(brauchtUploadSession([])).toBe(false);
+    expect(brauchtUploadSession([datei("a", 1_000_000), datei("b", 1_000_000)])).toBe(false);
+    expect(brauchtUploadSession([datei("a", 2_000_000), datei("b", 1_000_000)])).toBe(true);
   });
 
-  it("verteilt auf mehrere Mails unter der Grenze", () => {
-    const pakete = teileAnhaenge([datei("a", 600), datei("b", 500), datei("c", 300), datei("d", 900)], 1000);
-    expect(pakete.map((p) => p.map((a) => a.name))).toEqual([["a"], ["b", "c"], ["d"]]);
-  });
-
-  it("zu große Einzeldatei landet allein in einer Mail", () => {
-    expect(teileAnhaenge([datei("gross", 5000), datei("klein", 10)], 1000).map((p) => p.length)).toEqual([1, 1]);
+  it("teilt den Upload in lückenlose Stücke", () => {
+    expect(uploadBereiche(10, 4)).toEqual([
+      { von: 0, bis: 4 },
+      { von: 4, bis: 8 },
+      { von: 8, bis: 10 },
+    ]);
+    expect(uploadBereiche(0)).toEqual([]);
   });
 });
 

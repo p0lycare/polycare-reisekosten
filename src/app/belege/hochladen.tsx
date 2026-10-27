@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { verkleinereBild } from "@/lib/bild";
+import { formatFehler, verkleinereBild } from "@/lib/bild";
 import { ablegen, entfernen, istNetzfehler, wartende } from "@/lib/offline/warteschlange";
 import { eingangAnlegen } from "./actions";
 
@@ -109,6 +109,8 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
       let verkleinert: File | null = null;
       try {
         verkleinert = await verkleinereBild(datei);
+        const format = formatFehler(verkleinert);
+        if (format) throw new Error(`${datei.name}: ${format}`);
         if (verkleinert.size > MAX_DATEI_BYTES) throw new Error(`${datei.name}: größer als 2,8 MB`);
         await hochladen(userId, verkleinert, verkleinert.name);
       } catch (e) {

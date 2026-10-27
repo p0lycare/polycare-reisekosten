@@ -7,7 +7,7 @@ import { formatDatum, formatDatumZeit } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
 import { monatsname } from "@/lib/reisekosten/monat";
-import { angabenText } from "@/lib/reisekosten/pflichtangaben";
+import { angabenListe } from "@/lib/reisekosten/pflichtangaben";
 import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
 
 const AKTION: Record<string, string> = {
@@ -49,10 +49,15 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     ? await supabase.from("projekt").select("bezeichnung, nummer, foerderkennzeichen").eq("id", reise.projekt_id).maybeSingle()
     : { data: null };
   const verpflegung = verpflegungFuer(reise);
+  // Positionen einer Rechnung teilen ein Foto: auf dem Deckblatt verweisen alle auf dieselbe Originalseite
+  const erstePosition = new Map<string, number>();
+  (belege ?? []).forEach((b, i) => {
+    if (b.datei_pfad && !erstePosition.has(b.datei_pfad)) erstePosition.set(b.datei_pfad, i + 1);
+  });
   const nummeriert = (belege ?? []).map((b, i) => ({
     ...b,
     nr: i + 1,
-    angaben: angabenText({
+    angaben: angabenListe({
       anlass: b.anlass,
       person: b.person,
       kfzKennzeichen: b.kfz_kennzeichen,
@@ -112,7 +117,8 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
       lieferant: b.lieferant,
       kostenstelle: b.kostenstelle,
       zahlungsart: b.zahlungsart,
-      angaben: b.angaben || null,
+      angaben: b.angaben,
+      dateiNr: b.datei_pfad ? (erstePosition.get(b.datei_pfad) ?? null) : null,
     })),
     abrechnung,
     verlauf: (verlauf ?? []).map((v) => ({
@@ -132,16 +138,8 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     const { data: blob } = await supabase.storage.from("belege").download(b.datei_pfad);
     if (!blob) continue;
     const endung = b.datei_pfad.split(".").pop();
-    // Beschriftung für die Belegseite: Kategorie und Angaben aller Positionen, die dieses Foto teilen
-    const teile = nummeriert.filter((x) => x.datei_pfad === b.datei_pfad);
-    const beschriftung = [
-      ...new Set(teile.map((x) => x.kategorie?.bezeichnung).filter(Boolean)),
-      ...new Set(teile.map((x) => x.angaben).filter(Boolean)),
-      ...(dokument.art === "auslagen" ? teile.map((x) => [x.lieferant, x.beschreibung].filter(Boolean).join(" · ")).filter(Boolean) : []),
-    ].join(" · ");
     dateien.push({
       nr: b.nr,
-      beschriftung,
       name: `Beleg_${String(b.nr).padStart(2, "0")}.${endung}`,
       contentType: blob.type && blob.type !== "application/octet-stream" ? blob.type : typAusPfad(b.datei_pfad),
       inhalt: new Uint8Array(await blob.arrayBuffer()),

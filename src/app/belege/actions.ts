@@ -48,7 +48,7 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
 
   const [{ data: eintrag }, { data: reise }, { data: profil }] = await Promise.all([
     supabase.from("beleg_eingang").select("*").eq("id", eingangId).maybeSingle(),
-    supabase.from("reise").select("id, mitarbeiter_id, status, art, begruendung, reiseweg, kfz_kennzeichen").eq("id", reiseId).maybeSingle(),
+    supabase.from("reise").select("id, mitarbeiter_id, status, art, begruendung, reiseweg, kfz_kennzeichen, verkehrsmittel").eq("id", reiseId).maybeSingle(),
     supabase.from("profile").select("name").eq("id", user.id).maybeSingle(),
   ]);
   if (!eintrag) return { fehler: "Beleg nicht gefunden." };

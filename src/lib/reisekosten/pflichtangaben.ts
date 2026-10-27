@@ -30,12 +30,19 @@ export function fehlendeAngaben(pflicht: readonly string[], angaben: Angaben): P
   return pflicht.filter(istPflichtangabe).filter((a) => !wert[a]?.trim());
 }
 
-/** Vorbelegung aus der Reise: Anlass der Reise, die reisende Person, das Kennzeichen des eigenen PKW */
-export function vorbelegung(reise: { begruendung: string; reiseweg: string; kfz_kennzeichen: string | null }, name: string): Angaben {
+/**
+ * Vorbelegung aus der Reise: Anlass der Reise, die reisende Person, das Kennzeichen des eigenen PKW.
+ * Mit Mietwagen kein Kennzeichen vorbelegen – getankt wird dann meist der Mietwagen, dessen Kennzeichen
+ * das Tool nicht kennt.
+ */
+export function vorbelegung(
+  reise: { begruendung: string; reiseweg: string; kfz_kennzeichen: string | null; verkehrsmittel?: string[] },
+  name: string,
+): Angaben {
   return {
     anlass: [reise.begruendung, reise.reiseweg].filter(Boolean).join(" – ") || null,
     person: name || null,
-    kfzKennzeichen: reise.kfz_kennzeichen,
+    kfzKennzeichen: reise.verkehrsmittel?.includes("mietwagen") ? null : reise.kfz_kennzeichen,
   };
 }
 
@@ -55,23 +62,28 @@ export function angabenSpalten(pflicht: readonly string[], angaben: Angaben) {
   return { anlass: a.anlass, person: a.person, kfz_kennzeichen: a.kfzKennzeichen };
 }
 
-/** Eine Zeile für PDF und Belegliste, z. B. "Übernachtung: Erika Muster · Anlass: Messe" */
-export function angabenText(b: {
+type AngabenQuelle = {
   anlass?: string | null;
   person?: string | null;
   kfzKennzeichen?: string | null;
   bewirtungAnlass?: string | null;
   bewirtungTeilnehmer?: string | null;
-}): string {
+};
+
+/** Angaben als beschriftete Einträge, z. B. ["Person: Erika Muster", "Anlass: Messe"] – fürs Deckblatt */
+export function angabenListe(b: AngabenQuelle): string[] {
   return [
     b.person && `Person: ${b.person}`,
     b.anlass && `Anlass: ${b.anlass}`,
-    b.kfzKennzeichen && `Kfz: ${b.kfzKennzeichen}`,
+    b.kfzKennzeichen && `Kfz-Kennzeichen: ${b.kfzKennzeichen}`,
     b.bewirtungAnlass && `Anlass: ${b.bewirtungAnlass}`,
-    b.bewirtungTeilnehmer && `Bewirtet: ${b.bewirtungTeilnehmer}`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+    b.bewirtungTeilnehmer && `Bewirtete Personen: ${b.bewirtungTeilnehmer}`,
+  ].filter((z): z is string => !!z);
+}
+
+/** Eine Zeile für die Belegliste im Tool, z. B. "Person: Erika Muster · Anlass: Messe" */
+export function angabenText(b: AngabenQuelle): string {
+  return angabenListe(b).join(" · ");
 }
 
 /** Für die Plausibilitätsprüfung: Bezeichnungen der fehlenden Angaben eines gespeicherten Belegs */

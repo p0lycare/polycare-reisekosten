@@ -1,5 +1,6 @@
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-const DATEI = new RegExp(`^(${UUID})/(${UUID}|eingang)/${UUID}\\.(jpe?g|png|webp|heic|pdf)$`);
+// Nur Formate, die sich ins Abrechnungs-PDF für DATEV einbetten lassen (siehe formatFehler in lib/bild)
+const DATEI = new RegExp(`^(${UUID})/(${UUID}|eingang)/${UUID}\\.(jpe?g|png|pdf)$`);
 
 /**
  * Prüft, ob ein Speicherpfad genau dem Schema <user>/<reise>/<uuid>.<endung> entspricht

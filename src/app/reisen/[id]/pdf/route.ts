@@ -10,9 +10,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const geladen = await ladeDokument(supabase, id);
   if (!geladen) return new NextResponse("Nicht gefunden", { status: 404 });
 
-  const { teile } = await erzeugePdfMitBelegen(geladen.dokument, geladen.dateien, Number.POSITIVE_INFINITY);
+  const { pdf } = await erzeugePdfMitBelegen(geladen.dokument, geladen.dateien);
   const name = `${dateiBasis(geladen.reise.beleg_nr, geladen.dokument.reisende.name, geladen.reise.art)}.pdf`;
-  return new NextResponse(Buffer.from(teile[0]), {
+  return new NextResponse(Buffer.from(pdf), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${name}"`,
