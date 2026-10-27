@@ -20,10 +20,18 @@ export type Person = {
   email: string;
   rolle: keyof typeof ROLLE_TEXT;
   vorgesetzter_id: string | null;
-  buero_ist_taetigkeitsstaette: boolean;
+  erste_taetigkeitsstaette_id: string | null;
 };
 
-export function PersonZeile({ person, fuehrungskraefte }: { person: Person; fuehrungskraefte: Person[] }) {
+export function PersonZeile({
+  person,
+  fuehrungskraefte,
+  standorte,
+}: {
+  person: Person;
+  fuehrungskraefte: Person[];
+  standorte: { id: string; name: string }[];
+}) {
   const [status, absenden, laeuft] = useActionState<PersonStatus, FormData>(personSpeichern, {});
 
   return (
@@ -56,14 +64,16 @@ export function PersonZeile({ person, fuehrungskraefte }: { person: Person; fueh
             ))}
         </select>
       </label>
-      <label className="flex items-start gap-2 text-sm sm:col-span-3 sm:col-start-1">
-        <input type="checkbox" name="buero_ist_taetigkeitsstaette" defaultChecked={person.buero_ist_taetigkeitsstaette} className="mt-0.5 size-4" />
-        <span>
-          Büro ist erste Tätigkeitsstätte
-          <span className="block text-xs text-neutral-500">
-            Aus: Die Person kommt von woanders ins Büro – Fahrten dorthin werden als Reise vorgeschlagen.
-          </span>
-        </span>
+      <label className="flex flex-col gap-1 sm:col-span-2 sm:col-start-2">
+        <span className="text-xs text-neutral-500">Erste Tätigkeitsstätte</span>
+        <select name="erste_taetigkeitsstaette_id" defaultValue={person.erste_taetigkeitsstaette_id ?? ""} className={feld}>
+          <option value="">keine (z. B. Homeoffice)</option>
+          {standorte.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
       </label>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={laeuft} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800">

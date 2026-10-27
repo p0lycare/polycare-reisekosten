@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ABSCHNITT_TEXT, ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategorie";
-import { BueroOrteFormular, ErinnerungTesten, KategorieZeile, NeueKategorie, ProjektZeile, SaetzeFormular } from "./formulare";
+import { ErinnerungTesten, KategorieZeile, NeueKategorie, ProjektZeile, SaetzeFormular, StandortZeile } from "./formulare";
 import { TestmailKnopf } from "./mail/mail-bereich";
 import { DatevAdresse } from "./mail/datev-adresse";
 import { mailKonfiguration } from "@/lib/mail/graph";
@@ -16,12 +16,13 @@ export default async function EinstellungenPage() {
   const { data: profil } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (profil?.rolle !== "admin" && profil?.rolle !== "buchhaltung") redirect("/");
 
-  const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }, { data: intern }, { data: projekte }] = await Promise.all([
+  const [{ data: kategorien }, { data: einstellungen }, { data: protokoll }, { data: intern }, { data: projekte }, { data: standorte }] = await Promise.all([
     supabase.from("kategorie").select("*").order("abschnitt").order("sortierung").order("bezeichnung"),
-    supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent, buero_orte").single(),
+    supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent").single(),
     supabase.from("mail_protokoll").select("id, zeit, art, an, betreff, status, fehler").order("zeit", { ascending: false }).limit(10),
     supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle(),
     supabase.from("projekt").select("*").order("aktiv", { ascending: false }).order("bezeichnung"),
+    supabase.from("standort").select("id, name, orte, aktiv").order("sortierung").order("name"),
   ]);
   const { count: offeneMeldungen } =
     profil?.rolle === "admin" ? await supabase.from("meldung").select("id", { count: "exact", head: true }).neq("status", "erledigt") : { count: 0 };
@@ -95,11 +96,22 @@ export default async function EinstellungenPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-medium">Kalendervorschläge</h2>
-        <BueroOrteFormular orte={einstellungen?.buero_orte ?? []} />
-        <p className="text-xs text-neutral-500">
-          Eine Angabe je Zeile. Termine, deren Ort einen dieser Texte enthält, gelten als Bürotermin und werden nicht als Reise vorgeschlagen.
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-medium">Standorte</h2>
+          <Link href="/einstellungen/personen" className="text-sm underline">
+            Zuordnung je Person →
+          </Link>
+        </div>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Betriebliche Standorte, die als erste Tätigkeitsstätte zugeordnet werden können. Fahrten zum eigenen Standort sind
+          Arbeitsweg und keine Reise; andere Standorte gelten als Reiseziel. Homeoffice ist keine erste Tätigkeitsstätte.
         </p>
+        <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 px-4 dark:divide-neutral-800 dark:border-neutral-800">
+          {(standorte ?? []).map((st) => (
+            <StandortZeile key={st.id} standort={st} />
+          ))}
+          <StandortZeile />
+        </div>
       </section>
 
       <section className="flex flex-col gap-3">

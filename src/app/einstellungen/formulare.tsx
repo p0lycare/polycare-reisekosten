@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import type { Abschnitt, Kategorie } from "@/lib/reisekosten/kategorie";
-import { bueroOrteSpeichern, erinnerungTesten, kategorieSpeichern, projektSpeichern, saetzeSpeichern, type AktionStatus } from "./actions";
+import { erinnerungTesten, kategorieSpeichern, projektSpeichern, saetzeSpeichern, standortSpeichern, type AktionStatus } from "./actions";
 
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -111,17 +111,39 @@ export function SaetzeFormular({ kmSatzCent, kmSteuerfreiCent }: { kmSatzCent: n
   );
 }
 
-export function BueroOrteFormular({ orte }: { orte: string[] }) {
-  const [status, absenden, laeuft] = useActionState(bueroOrteSpeichern, {});
+export type StandortWerte = { id: string; name: string; orte: string[]; aktiv: boolean };
+
+/** Ein Standort (erste Tätigkeitsstätte) bearbeiten bzw. ohne Werte neu anlegen */
+export function StandortZeile({ standort }: { standort?: StandortWerte }) {
+  const [status, absenden, laeuft] = useActionState(standortSpeichern, {});
+  const neu = !standort;
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (neu && status.gespeichert) formRef.current?.reset();
+  }, [neu, status]);
 
   return (
-    <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-2">
+    <form ref={formRef} onSubmit={ohneZuruecksetzen(absenden)} className="grid grid-cols-1 items-end gap-2 py-3 sm:grid-cols-[12rem_1fr_auto_auto]">
+      {standort && <input type="hidden" name="id" value={standort.id} />}
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Orte der ersten Tätigkeitsstätte</span>
-        <textarea name="buero_orte" rows={3} defaultValue={orte.join("\n")} placeholder={"Straße des Büros\nOrt"} className={feld} />
+        <span className="text-xs text-neutral-500">Name</span>
+        <input name="name" defaultValue={standort?.name} required placeholder={neu ? "Neuer Standort" : undefined} className={feld} />
       </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-neutral-500">Adresse bzw. Suchbegriffe, eine je Zeile</span>
+        <textarea name="orte" rows={2} defaultValue={standort?.orte.join("\n")} placeholder={"Musterstraße 1\n12345 Musterstadt"} className={feld} />
+      </label>
+      {standort ? (
+        <label className="flex items-center gap-2 pb-2 text-sm">
+          <input type="checkbox" name="aktiv" defaultChecked={standort.aktiv} className="size-4" />
+          aktiv
+        </label>
+      ) : (
+        <span />
+      )}
       <div className="flex items-center gap-3">
-        <Knopf laeuft={laeuft}>Speichern</Knopf>
+        <Knopf laeuft={laeuft}>{neu ? "Anlegen" : "Speichern"}</Knopf>
         <Meldung status={status} />
       </div>
     </form>

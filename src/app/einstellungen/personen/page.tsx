@@ -11,8 +11,9 @@ export default async function PersonenPage() {
   const { data: ich } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (ich?.rolle !== "admin") redirect("/einstellungen");
 
-  const { data } = await supabase.from("profile").select("id, name, email, rolle, vorgesetzter_id, buero_ist_taetigkeitsstaette").order("name");
+  const { data } = await supabase.from("profile").select("id, name, email, rolle, vorgesetzter_id, erste_taetigkeitsstaette_id").order("name");
   const personen = (data ?? []) as Person[];
+  const { data: standorte } = await supabase.from("standort").select("id, name").eq("aktiv", true).order("sortierung").order("name");
   // Genehmigen kann jede Person außer Mitarbeiter/innen ohne weitere Rolle
   const fuehrungskraefte = personen.filter((p) => p.rolle !== "mitarbeiter");
 
@@ -30,7 +31,7 @@ export default async function PersonenPage() {
       </div>
       <div className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 px-4 dark:divide-neutral-800 dark:border-neutral-800">
         {personen.map((p) => (
-          <PersonZeile key={p.id} person={p} fuehrungskraefte={fuehrungskraefte} />
+          <PersonZeile key={p.id} person={p} fuehrungskraefte={fuehrungskraefte} standorte={standorte ?? []} />
         ))}
       </div>
     </main>

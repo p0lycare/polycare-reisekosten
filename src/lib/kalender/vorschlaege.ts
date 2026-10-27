@@ -33,19 +33,11 @@ export function reiseZeiten(t: Pick<Termin, "beginn" | "ende" | "ganztaegig">): 
 }
 
 /**
- * Orte, zu denen eine Fahrt keine Reise ist: der eigene Wohnort und – wenn das Büro die erste
- * Tätigkeitsstätte ist – die Büro-Orte aus den Einstellungen.
+ * Orte, zu denen eine Fahrt keine Reise ist: der eigene Wohnort und die erste Tätigkeitsstätte
+ * (Adresse bzw. Suchbegriffe des zugeordneten Standorts). Andere Standorte bleiben Reiseziele.
  */
-export function orteOhneReise({
-  bueroOrte,
-  wohnort,
-  bueroIstTaetigkeitsstaette,
-}: {
-  bueroOrte: string[];
-  wohnort: string | null | undefined;
-  bueroIstTaetigkeitsstaette: boolean;
-}): string[] {
-  return [...(bueroIstTaetigkeitsstaette ? bueroOrte : []), ...(wohnort?.trim() ? [wohnort.trim()] : [])];
+export function orteOhneReise({ standortOrte, wohnort }: { standortOrte: string[]; wohnort: string | null | undefined }): string[] {
+  return [...standortOrte.map((o) => o.trim()).filter(Boolean), ...(wohnort?.trim() ? [wohnort.trim()] : [])];
 }
 
 /** Ort fällt unter einen der Begriffe ("Messe Köln" ↔ "Köln", "Kassel" ↔ "34117 Kassel") */

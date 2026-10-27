@@ -167,7 +167,7 @@ export function FuerBuchhaltung() {
       </Schritt>
       <Schritt nr={4} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>
         <p>
-          Kategorien mit Konto und MwSt-Satz, Km-Sätze, Projekte und Förderprojekte, Büro-Orte für die Kalendervorschläge und die
+          Kategorien mit Konto und MwSt-Satz, Km-Sätze, Projekte und Förderprojekte, Standorte (erste Tätigkeitsstätten) und die
           DATEV-Upload-Adresse pflegst du hier. Unter „Freigaben → Projekte“ siehst du die Reisekosten je Projekt und Zeitraum.
         </p>
       </Schritt>

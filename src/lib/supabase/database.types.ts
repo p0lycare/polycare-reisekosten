@@ -406,6 +406,7 @@ export type Database = {
           buero_ist_taetigkeitsstaette: boolean
           created_at: string
           email: string
+          erste_taetigkeitsstaette_id: string | null
           id: string
           kalender_vorschlaege: boolean
           kfz_kennzeichen: string | null
@@ -418,6 +419,7 @@ export type Database = {
           buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email: string
+          erste_taetigkeitsstaette_id?: string | null
           id: string
           kalender_vorschlaege?: boolean
           kfz_kennzeichen?: string | null
@@ -430,6 +432,7 @@ export type Database = {
           buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email?: string
+          erste_taetigkeitsstaette_id?: string | null
           id?: string
           kalender_vorschlaege?: boolean
           kfz_kennzeichen?: string | null
@@ -439,6 +442,13 @@ export type Database = {
           vorgesetzter_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profile_erste_taetigkeitsstaette_id_fkey"
+            columns: ["erste_taetigkeitsstaette_id"]
+            isOneToOne: false
+            referencedRelation: "standort"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profile_vorgesetzter_id_fkey"
             columns: ["vorgesetzter_id"]
@@ -660,6 +670,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      standort: {
+        Row: {
+          aktiv: boolean
+          created_at: string
+          id: string
+          name: string
+          orte: string[]
+          sortierung: number
+        }
+        Insert: {
+          aktiv?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          orte?: string[]
+          sortierung?: number
+        }
+        Update: {
+          aktiv?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          orte?: string[]
+          sortierung?: number
+        }
+        Relationships: []
       }
       vorschuss: {
         Row: {
