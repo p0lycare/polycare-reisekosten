@@ -56,13 +56,14 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
       const mb = (pdf.byteLength / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 1 });
       throw new Error(`Die Abrechnung ist mit ${mb} MB zu groß für DATEV (höchstens 14 MB) – bitte große PDF-Belege verkleinern.`);
     }
+    const umfang = `${dokument.belege.length} ${dokument.belege.length === 1 ? "Position" : "Positionen"}, ${dateien.length} ${dateien.length === 1 ? "Originalbeleg" : "Originalbelege"} im PDF`;
     const hinweis = nichtEingebettet.length ? ` Beleg ${nichtEingebettet.join(", ")} konnte nicht eingebettet werden.` : "";
 
     await sendeMail({
       an,
       betreff,
-      text: `${titel} ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).${hinweis}`,
-      html: `<p>${titel} ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)} mit ${dateien.length} Beleg(en).${escapeHtml(hinweis)}</p>`,
+      text: `${titel} ${reise.beleg_nr} (${dokument.reisende.name}): ${umfang}.${hinweis}`,
+      html: `<p>${titel} ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)}: ${umfang}.${escapeHtml(hinweis)}</p>`,
       anhaenge: [{ name: `${basis}.pdf`, contentType: "application/pdf", inhalt: pdf }],
     });
     await protokoll("gesendet");

@@ -402,14 +402,24 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument, seiten: Seit
 }
 
 /** PDF-Belege vorab laden (Seitenzahl fürs Deckblatt); Fotos belegen immer eine Seite */
-async function vorbereiten(datei: BelegDatei) {
-  if (datei.contentType === "image/jpeg" || datei.contentType === "image/png") return { art: "bild" as const, seiten: 1 };
-  if (datei.contentType !== "application/pdf") return null;
+type Vorbereitet =
+  | { art: "bild"; seiten: 1 }
+  | { art: "pdf"; quelle: PDFDocument; seiten: number }
+  | { art: "fehlt"; seiten: 1; grund: string };
+
+async function vorbereiten(datei: BelegDatei): Promise<Vorbereitet> {
+  if (!datei.inhalt.byteLength) return { art: "fehlt", seiten: 1, grund: "konnte nicht aus dem Speicher geladen werden" };
+  if (datei.contentType === "image/jpeg" || datei.contentType === "image/png") return { art: "bild", seiten: 1 };
+  if (datei.contentType !== "application/pdf") return { art: "fehlt", seiten: 1, grund: "hat ein Format, das sich nicht einbetten lässt" };
   try {
     const quelle = await PDFDocument.load(datei.inhalt, { ignoreEncryption: true });
-    return { art: "pdf" as const, quelle, seiten: quelle.getPageCount() };
+    // Verschlüsselte PDFs lassen sich nicht lesbar übernehmen – lieber eine klare Hinweisseite als leere Seiten
+    if (quelle.isEncrypted) return { art: "fehlt", seiten: 1, grund: "ist verschlüsselt und kann nicht eingebettet werden" };
+    // Probe-Kopie: scheitert das Übernehmen, steht schon jetzt fest, dass eine Hinweisseite nötig ist (Seitenverweise!)
+    await (await PDFDocument.create()).copyPages(quelle, quelle.getPageIndices());
+    return { art: "pdf", quelle, seiten: quelle.getPageCount() };
   } catch {
-    return null;
+    return { art: "fehlt", seiten: 1, grund: "konnte nicht gelesen werden" };
   }
 }
 
@@ -435,7 +445,7 @@ export type AbrechnungsPdf = {
 export async function erzeugePdfMitBelegen(d: AbrechnungsDokument, dateien: BelegDatei[]): Promise<AbrechnungsPdf> {
   const probe = await erzeugeAbrechnungsPdf(d);
   const vorbereitet = await Promise.all(dateien.map(vorbereiten));
-  const seitenJeDatei = vorbereitet.map((v) => v?.seiten ?? 1);
+  const seitenJeDatei = vorbereitet.map((v) => v.seiten);
 
   // Seitenzahlen hängen von der Länge des Deckblatts ab – das bleibt mit Verweisen gleich lang, sonst erneut rechnen
   const verweise = (deckblatt: number): Seitenverweise => {
@@ -458,14 +468,14 @@ export async function erzeugePdfMitBelegen(d: AbrechnungsDokument, dateien: Bele
   const nichtEingebettet: number[] = [];
   for (const [i, datei] of dateien.entries()) {
     const v = vorbereitet[i];
-    if (v?.art === "pdf") {
+    if (v.art === "pdf") {
       const seiten = await doc.copyPages(v.quelle, v.quelle.getPageIndices());
       seiten.forEach((s) => doc.addPage(s));
       continue;
     }
     const seite = doc.addPage(A4);
     seite.drawText(winAnsi(`Beleg ${datei.nr}`), { x: RAND, y: A4[1] - RAND, size: 9, font, color: GRAU });
-    const bild = v?.art === "bild" ? await bildEinbetten(doc, datei) : null;
+    const bild = v.art === "bild" ? await bildEinbetten(doc, datei) : null;
     if (bild) {
       const maxB = A4[0] - 2 * RAND;
       const maxH = A4[1] - 2 * RAND - 20;
@@ -473,7 +483,8 @@ export async function erzeugePdfMitBelegen(d: AbrechnungsDokument, dateien: Bele
       seite.drawImage(bild, { x: RAND, y: A4[1] - RAND - 20 - bild.height * f, width: bild.width * f, height: bild.height * f });
     } else {
       nichtEingebettet.push(datei.nr);
-      seite.drawText(winAnsi(`Die Datei „${datei.name}“ konnte nicht eingebettet werden – das Original liegt im Reisekosten-Tool.`), {
+      const grund = v.art === "fehlt" ? v.grund : "konnte nicht eingebettet werden";
+      seite.drawText(winAnsi(`Die Datei „${datei.name}“ ${grund} – bitte das Original im Reisekosten-Tool ansehen.`), {
         x: RAND,
         y: A4[1] - RAND - 24,
         size: 9,

@@ -22,6 +22,9 @@ import { monatsname } from "@/lib/reisekosten/monat";
 import { Bereich } from "@/app/bereich";
 import { fehlendeAngabenText } from "@/lib/reisekosten/pflichtangaben";
 
+// Belegprüfung und erneuter DATEV-Versand laufen von hier: PDF bauen und große Mails hochladen braucht Zeit
+export const maxDuration = 300;
+
 export default async function ReisePage({
   params,
   searchParams,

@@ -136,8 +136,12 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     if (!b.datei_pfad || gesehen.has(b.datei_pfad)) continue;
     gesehen.add(b.datei_pfad);
     const { data: blob } = await supabase.storage.from("belege").download(b.datei_pfad);
-    if (!blob) continue;
     const endung = b.datei_pfad.split(".").pop();
+    // Fehlt die Datei im Speicher, kommt eine Hinweisseite ins PDF statt einer stillen Lücke
+    if (!blob) {
+      dateien.push({ nr: b.nr, name: `Beleg_${String(b.nr).padStart(2, "0")}.${endung}`, contentType: typAusPfad(b.datei_pfad), inhalt: new Uint8Array() });
+      continue;
+    }
     dateien.push({
       nr: b.nr,
       name: `Beleg_${String(b.nr).padStart(2, "0")}.${endung}`,

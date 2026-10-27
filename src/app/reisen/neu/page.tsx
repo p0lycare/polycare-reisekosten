@@ -71,13 +71,8 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
           land: "DE",
           beginn: vorschlag?.beginn ?? terminZeiten?.beginn ?? "",
           ende: vorschlag?.ende ?? terminZeiten?.ende ?? "",
-          mitUebernachtung: vorlage
-            ? vorlage.mit_uebernachtung
-            : eingang
-              ? mitHotel
-              : terminZeiten
-                ? terminZeiten.beginn.slice(0, 10) !== terminZeiten.ende.slice(0, 10)
-                : true,
+          // Sonst leitet das Formular die Übernachtung aus Beginn und Ende ab; eine Hotelrechnung belegt sie sicher
+          mitUebernachtung: mitHotel,
           mahlzeiten: {},
           verkehrsmittel: vorlage?.verkehrsmittel ?? [],
           kfzKennzeichen: vorlage?.kfz_kennzeichen ?? profil?.kfz_kennzeichen ?? "",
