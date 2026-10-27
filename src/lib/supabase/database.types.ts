@@ -16,9 +16,6 @@ export type Database = {
     Tables: {
       beleg: {
         Row: {
-          kostenstelle: string | null
-          lieferant: string | null
-          zahlungsart: string | null
           beschreibung: string | null
           betrag_cent: number
           bewirtung_anlass: string | null
@@ -28,14 +25,14 @@ export type Database = {
           datum: string
           id: string
           kategorie_id: string
+          kostenstelle: string | null
+          lieferant: string | null
           mwst_prozent: number
           reise_id: string
           waehrung: string
+          zahlungsart: string | null
         }
         Insert: {
-          kostenstelle?: string | null
-          lieferant?: string | null
-          zahlungsart?: string | null
           beschreibung?: string | null
           betrag_cent: number
           bewirtung_anlass?: string | null
@@ -45,14 +42,14 @@ export type Database = {
           datum: string
           id?: string
           kategorie_id: string
+          kostenstelle?: string | null
+          lieferant?: string | null
           mwst_prozent: number
           reise_id: string
           waehrung?: string
+          zahlungsart?: string | null
         }
         Update: {
-          kostenstelle?: string | null
-          lieferant?: string | null
-          zahlungsart?: string | null
           beschreibung?: string | null
           betrag_cent?: number
           bewirtung_anlass?: string | null
@@ -62,9 +59,12 @@ export type Database = {
           datum?: string
           id?: string
           kategorie_id?: string
+          kostenstelle?: string | null
+          lieferant?: string | null
           mwst_prozent?: number
           reise_id?: string
           waehrung?: string
+          zahlungsart?: string | null
         }
         Relationships: [
           {
@@ -499,8 +499,8 @@ export type Database = {
       }
       reise: {
         Row: {
-          art: Database["public"]["Enums"]["abrechnung_art"]
           ablehnungsgrund: string | null
+          art: Database["public"]["Enums"]["abrechnung_art"]
           ausgezahlt_am: string | null
           ausgezahlt_von: string | null
           beginn: string
@@ -533,8 +533,8 @@ export type Database = {
           vorschuss_cent: number
         }
         Insert: {
-          art?: Database["public"]["Enums"]["abrechnung_art"]
           ablehnungsgrund?: string | null
+          art?: Database["public"]["Enums"]["abrechnung_art"]
           ausgezahlt_am?: string | null
           ausgezahlt_von?: string | null
           beginn: string
@@ -567,8 +567,8 @@ export type Database = {
           vorschuss_cent?: number
         }
         Update: {
-          art?: Database["public"]["Enums"]["abrechnung_art"]
           ablehnungsgrund?: string | null
+          art?: Database["public"]["Enums"]["abrechnung_art"]
           ausgezahlt_am?: string | null
           ausgezahlt_von?: string | null
           beginn?: string
@@ -841,6 +841,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: {
           ablehnungsgrund: string | null
+          art: Database["public"]["Enums"]["abrechnung_art"]
           ausgezahlt_am: string | null
           ausgezahlt_von: string | null
           beginn: string
