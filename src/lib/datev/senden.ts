@@ -6,6 +6,7 @@ import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { erzeugePdfMitBelegen } from "@/lib/pdf/abrechnung-pdf";
 import { dateiBasis, ladeDokument } from "@/lib/pdf/dokument-laden";
 import { protokolliereMail } from "@/lib/supabase/admin";
+import { datevAdresseFuer } from "./adresse";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -26,14 +27,18 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
     protokolliereMail({ reiseId, art: "datev", an, betreff, status, fehler, personId: user?.id });
 
   try {
-    const { data: intern } = await supabase.from("einstellungen_intern").select("datev_upload_mail").maybeSingle();
-    if (!intern?.datev_upload_mail) return { fehler: "Keine DATEV-Upload-Mail-Adresse hinterlegt (Einstellungen)." };
-    an = [intern.datev_upload_mail];
-
     const geladen = await ladeDokument(supabase, reiseId);
     if (!geladen) return { fehler: "Reise nicht gefunden." };
     const { reise, dokument, dateien } = geladen;
     if (reise.status !== "geprueft" && reise.status !== "ausgezahlt") return { fehler: "Reise ist noch nicht geprüft." };
+
+    const { data: intern } = await supabase
+      .from("einstellungen_intern")
+      .select("datev_upload_mail, datev_upload_mail_auslagen")
+      .maybeSingle();
+    const adresse = datevAdresseFuer(reise.art, intern);
+    if (!adresse) return { fehler: "Keine DATEV-Upload-Mail-Adresse hinterlegt (Einstellungen)." };
+    an = [adresse];
 
     const auslagen = reise.art === "auslagen";
     const basis = dateiBasis(reise.beleg_nr, dokument.reisende.name, reise.art);

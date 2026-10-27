@@ -41,12 +41,14 @@ export type DatevAdresseStatus = { fehler?: string; gespeichert?: boolean };
 
 export async function datevAdresseSpeichern(_vorher: DatevAdresseStatus, formData: FormData): Promise<DatevAdresseStatus> {
   const adresse = String(formData.get("datev_upload_mail") ?? "").trim() || null;
-  if (adresse && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adresse)) return { fehler: "Bitte eine gültige E-Mail-Adresse angeben." };
+  const auslagen = String(formData.get("datev_upload_mail_auslagen") ?? "").trim() || null;
+  const gueltig = (a: string | null) => !a || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a);
+  if (!gueltig(adresse) || !gueltig(auslagen)) return { fehler: "Bitte gültige E-Mail-Adressen angeben." };
   const supabase = await createClient();
   // RLS: nur Buchhaltung/Admin
   const { data, error } = await supabase
     .from("einstellungen_intern")
-    .update({ datev_upload_mail: adresse, updated_at: new Date().toISOString() })
+    .update({ datev_upload_mail: adresse, datev_upload_mail_auslagen: auslagen, updated_at: new Date().toISOString() })
     .eq("id", true)
     .select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };

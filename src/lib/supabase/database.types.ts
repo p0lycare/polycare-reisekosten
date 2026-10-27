@@ -145,16 +145,19 @@ export type Database = {
       einstellungen_intern: {
         Row: {
           datev_upload_mail: string | null
+          datev_upload_mail_auslagen: string | null
           id: boolean
           updated_at: string
         }
         Insert: {
           datev_upload_mail?: string | null
+          datev_upload_mail_auslagen?: string | null
           id?: boolean
           updated_at?: string
         }
         Update: {
           datev_upload_mail?: string | null
+          datev_upload_mail_auslagen?: string | null
           id?: boolean
           updated_at?: string
         }
