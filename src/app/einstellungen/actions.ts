@@ -88,23 +88,27 @@ export async function saetzeSpeichern(_vorher: AktionStatus, formData: FormData)
   return { gespeichert: true };
 }
 
-/** Büro-Orte: eine Angabe je Zeile, z. B. Straße oder Ort der ersten Tätigkeitsstätte */
-export async function bueroOrteSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
-  const orte = text(formData, "buero_orte")
-    .split(/\r?\n|,/)
+/** Standort anlegen oder ändern; Adresse bzw. Suchbegriffe eine je Zeile */
+export async function standortSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
+  const id = text(formData, "id");
+  const name = text(formData, "name").slice(0, 80);
+  if (!name) return { fehler: "Name fehlt." };
+  const orte = text(formData, "orte")
+    .split(/\r?\n/)
     .map((o) => o.trim())
     .filter(Boolean)
-    .slice(0, 20);
+    .slice(0, 10);
+  if (!orte.length) return { fehler: "Bitte mindestens die Adresse angeben." };
+  const daten = { name, orte, aktiv: id ? formData.get("aktiv") === "on" : true };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("einstellungen")
-    .update({ buero_orte: orte, updated_at: new Date().toISOString() })
-    .eq("id", true)
-    .select("id");
+  const { data, error } = id
+    ? await supabase.from("standort").update(daten).eq("id", id).select("id")
+    : await supabase.from("standort").insert({ ...daten, sortierung: 100 }).select("id");
   if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
 
   revalidatePath("/einstellungen");
+  revalidatePath("/einstellungen/personen");
   return { gespeichert: true };
 }
 

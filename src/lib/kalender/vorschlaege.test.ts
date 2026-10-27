@@ -111,7 +111,7 @@ describe("Fahrten ohne Ortsfeld (aus dem Betreff)", () => {
   });
 });
 
-describe("Orte ohne Reise je Person", () => {
+describe("Orte ohne Reise je Person (Standort der ersten Tätigkeitsstätte + Wohnort)", () => {
   const bueroOrte = ["Musterstraße 1", "Heumarkt"];
   const fahrtNachKoeln = [
     termin({ id: "a", betreff: "Fahrt nach Köln", ort: "", beginn: "2026-10-20T07:00", ende: "2026-10-20T09:30" }),
@@ -119,23 +119,36 @@ describe("Orte ohne Reise je Person", () => {
     termin({ id: "c", betreff: "Rückfahrt nach Frankfurt", ort: "", beginn: "2026-10-20T16:30", ende: "2026-10-20T19:00" }),
   ];
 
-  it("dem Büro zugeordnet, wohnt am Büro-Ort: Fahrten in der eigenen Stadt und ins Büro sind keine Reise", () => {
-    const orte = orteOhneReise({ bueroOrte, wohnort: "Köln", bueroIstTaetigkeitsstaette: true });
+  it("dem Standort Köln zugeordnet, wohnt in Köln: Fahrten in der eigenen Stadt und ins Büro sind keine Reise", () => {
+    const orte = orteOhneReise({ standortOrte: bueroOrte, wohnort: "Köln" });
     expect(orte).toEqual(["Musterstraße 1", "Heumarkt", "Köln"]);
     const kundenterminInKoeln = termin({ ort: "Kunde GmbH, Köln-Deutz" });
     expect(reiseVorschlaege([kundenterminInKoeln], { bueroOrte: orte, reisen: [] })).toEqual([]);
   });
 
-  it("reist von woanders ins Büro: die Fahrt ins Büro wird als Reise vorgeschlagen", () => {
-    const orte = orteOhneReise({ bueroOrte, wohnort: "60311 Frankfurt am Main", bueroIstTaetigkeitsstaette: false });
+  it("keine erste Tätigkeitsstätte (Homeoffice Frankfurt): die Fahrt zum Standort Köln ist eine Reise", () => {
+    const orte = orteOhneReise({ standortOrte: [], wohnort: "60311 Frankfurt am Main" });
     expect(orte).toEqual(["60311 Frankfurt am Main"]);
     expect(reiseVorschlaege(fahrtNachKoeln, { bueroOrte: orte, reisen: [] })).toEqual([
       { terminId: "a", betreff: "Teamtag", ort: "Köln", beginn: "2026-10-20T07:00", ende: "2026-10-20T19:00" },
     ]);
   });
 
-  it("dem Büro zugeordnet: dieselbe Fahrt ins Büro ist keine Reise", () => {
-    const orte = orteOhneReise({ bueroOrte, wohnort: "Köln", bueroIstTaetigkeitsstaette: true });
+  it("dem Standort Köln zugeordnet: dieselbe Fahrt ins Büro ist keine Reise", () => {
+    const orte = orteOhneReise({ standortOrte: bueroOrte, wohnort: "Köln" });
     expect(reiseVorschlaege(fahrtNachKoeln, { bueroOrte: orte, reisen: [] })).toEqual([]);
+  });
+
+  it("Standort Gehlberg: Fahrt zum Standort Köln ist eine Reise, Termine in Gehlberg nicht", () => {
+    const orte = orteOhneReise({ standortOrte: ["Glasmacherstraße 11", "98528 Suhl", "Gehlberg"], wohnort: "Suhl" });
+    const termine = [
+      termin({ id: "a", betreff: "Fahrt nach Köln", ort: "", beginn: "2026-10-21T06:00", ende: "2026-10-21T10:30" }),
+      termin({ id: "b", betreff: "Workshop", ort: "Büro Musterstraße 1, Köln", beginn: "2026-10-21T11:00", ende: "2026-10-21T16:00" }),
+      termin({ id: "c", betreff: "Rückfahrt", ort: "", beginn: "2026-10-21T16:30", ende: "2026-10-21T21:00" }),
+      termin({ id: "d", betreff: "Teamrunde", ort: "Glasmacherstraße 11, Gehlberg", beginn: "2026-10-22T09:00", ende: "2026-10-22T12:00" }),
+    ];
+    expect(reiseVorschlaege(termine, { bueroOrte: orte, reisen: [] })).toEqual([
+      { terminId: "a", betreff: "Workshop", ort: "Köln", beginn: "2026-10-21T06:00", ende: "2026-10-21T21:00" },
+    ]);
   });
 });

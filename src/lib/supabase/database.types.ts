@@ -403,6 +403,7 @@ export type Database = {
       }
       profile: {
         Row: {
+          erste_taetigkeitsstaette_id: string | null
           buero_ist_taetigkeitsstaette: boolean
           created_at: string
           email: string
@@ -415,6 +416,7 @@ export type Database = {
           vorgesetzter_id: string | null
         }
         Insert: {
+          erste_taetigkeitsstaette_id?: string | null
           buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email: string
@@ -427,6 +429,7 @@ export type Database = {
           vorgesetzter_id?: string | null
         }
         Update: {
+          erste_taetigkeitsstaette_id?: string | null
           buero_ist_taetigkeitsstaette?: boolean
           created_at?: string
           email?: string
@@ -660,6 +663,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      standort: {
+        Row: {
+          aktiv: boolean
+          created_at: string
+          id: string
+          name: string
+          orte: string[]
+          sortierung: number
+        }
+        Insert: {
+          aktiv?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          orte?: string[]
+          sortierung?: number
+        }
+        Update: {
+          aktiv?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          orte?: string[]
+          sortierung?: number
+        }
+        Relationships: []
       }
       vorschuss: {
         Row: {
