@@ -66,6 +66,14 @@ export default async function EinfuehrungPage({ searchParams }: { searchParams: 
           Hier erfasst du Dienstreisen, fotografierst Belege und reichst einmal im Monat ein – ohne Excel und ohne Papierstapel.
           {genehmigt && " Weiter unten steht, was für deine Rolle dazukommt."}
         </p>
+        <div>
+          <Link
+            href={rolle !== eigeneRolle ? `/einfuehrung/tour?ansicht=${rolle}` : "/einfuehrung/tour"}
+            className="inline-block rounded-md bg-primaer px-4 py-2 text-sm font-medium text-white hover:bg-primaer-hover dark:text-neutral-950"
+          >
+            Tour starten (2 Minuten)
+          </Link>
+        </div>
         {eigeneRolle === "admin" && (
           <nav aria-label="Ansicht für Rolle" className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-neutral-500">Ansicht für:</span>

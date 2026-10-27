@@ -71,12 +71,12 @@ export default async function Home() {
 
       {!startklar && (
         <Link
-          href="/einfuehrung"
+          href="/einfuehrung/tour"
           className="flex items-center justify-between gap-4 border-l-4 border-marke bg-flaeche p-4 text-sm hover:bg-marke-hell"
         >
           <span>
             <span className="block font-medium">Neu hier? In 2 Minuten startklar</span>
-            <span className="text-neutral-600 dark:text-neutral-400">Kurze Einführung für deine Rolle und was du einmalig im Profil einträgst.</span>
+            <span className="text-neutral-600 dark:text-neutral-400">Kurze Tour durch das Tool für deine Rolle – danach einmalig das Profil ausfüllen.</span>
           </span>
           <span aria-hidden>→</span>
         </Link>
