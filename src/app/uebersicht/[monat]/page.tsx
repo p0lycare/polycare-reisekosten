@@ -119,7 +119,7 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
                       <span className="min-w-0">
                         <span className="block truncate">{r.begruendung}</span>
                         <span className="block truncate text-xs text-neutral-500">
-                          {formatDatum(r.beginn)} · {r.reiseweg}
+                          {r.reiseweg ? `${formatDatum(r.beginn)} · ${r.reiseweg}` : "Auslagen ohne Reise"}
                           {r.beleg_nr && ` · ${r.beleg_nr}`}
                           {buchhaltung && (r.status === "geprueft" || r.status === "ausgezahlt") && (
                             <span className={datevStatus.get(r.id) === "gesendet" ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400"}>

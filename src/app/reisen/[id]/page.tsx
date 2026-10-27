@@ -18,6 +18,7 @@ import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { istAusland, landName } from "@/lib/reisekosten/laender";
 import { projektName } from "@/lib/reisekosten/projekte";
+import { monatsname } from "@/lib/reisekosten/auslagen";
 
 export default async function ReisePage({
   params,
@@ -36,6 +37,8 @@ export default async function ReisePage({
     data: { user },
   } = await supabase.auth.getUser();
   const eigene = reise.mitarbeiter_id === user?.id;
+  // Auslagenabrechnung (FB 21): nur Belege – ohne Reiseweg, Fahrten, Verpflegung und Vorschuss
+  const istAuslagen = reise.art === "auslagen";
   const verpflegung = verpflegungFuer(reise);
   const [abrechnung, { data: profil }] = await Promise.all([
     ladeAbrechnung(supabase, reise),
@@ -88,7 +91,7 @@ export default async function ReisePage({
   const zeigeHinweise = rechte.einreichen || rechte.genehmigen || rechte.pruefen;
   const [{ data: plausiBelege }, { data: plausiFahrten }] = zeigeHinweise
     ? await Promise.all([
-        supabase.from("beleg").select("kategorie_id, datum, betrag_cent, datei_pfad, kategorie(bezeichnung)").eq("reise_id", reise.id),
+        supabase.from("beleg").select("kategorie_id, datum, betrag_cent, datei_pfad, beschreibung, kategorie(bezeichnung)").eq("reise_id", reise.id),
         supabase.from("fahrt").select("datum, km, km_route").eq("reise_id", reise.id),
       ])
     : [{ data: null }, { data: null }];
@@ -97,6 +100,7 @@ export default async function ReisePage({
         {
           beginn: reise.beginn,
           land: reise.land,
+          art: reise.art,
           ende: reise.ende,
           mitUebernachtung: reise.mit_uebernachtung,
           verkehrsmittel: reise.verkehrsmittel,
@@ -108,6 +112,7 @@ export default async function ReisePage({
           datum: b.datum,
           betragCent: b.betrag_cent,
           hatDatei: !!b.datei_pfad,
+          beschreibung: b.beschreibung,
         })),
         plausiFahrten ?? [],
       )
@@ -139,10 +144,10 @@ export default async function ReisePage({
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 font-sans sm:p-6">
       <Link
-        href={eigene ? `/monat/${reise.beginn.slice(0, 7)}` : "/freigaben"}
+        href={eigene ? (istAuslagen ? "/auslagen" : `/monat/${reise.beginn.slice(0, 7)}`) : "/freigaben"}
         className="text-sm text-neutral-600 underline dark:text-neutral-400"
       >
-        {eigene ? "← Monatsübersicht" : "← Freigaben"}
+        {eigene ? (istAuslagen ? "← Meine Auslagen" : "← Monatsübersicht") : "← Freigaben"}
       </Link>
 
       {gespeichert && GESPEICHERT[gespeichert] && (
@@ -161,7 +166,7 @@ export default async function ReisePage({
             </div>
             <h1 className="mt-2 text-2xl font-semibold">{reise.begruendung}</h1>
             <p className="text-neutral-600 dark:text-neutral-400">
-              {reise.reiseweg}
+              {istAuslagen ? "Auslagenabrechnung" : reise.reiseweg}
               {istAusland(reise.land) && ` · ${landName(reise.land, Number(reise.beginn.slice(0, 4)))}`}
               {reise.besuchte_stellen && ` · ${reise.besuchte_stellen}`}
             </p>
@@ -174,13 +179,22 @@ export default async function ReisePage({
           </div>
         </div>
         <dl className="mt-4 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
-          <dt className="text-neutral-500">Zeitraum</dt>
-          <dd>
-            {zeitraum}
-            {reise.mit_uebernachtung ? " · mit Übernachtung" : ""}
-          </dd>
-          <dt className="text-neutral-500">Verkehrsmittel</dt>
-          <dd>{verkehrsmittelText}</dd>
+          {istAuslagen ? (
+            <>
+              <dt className="text-neutral-500">Monat</dt>
+              <dd>{monatsname(reise.beginn.slice(0, 7))}</dd>
+            </>
+          ) : (
+            <>
+              <dt className="text-neutral-500">Zeitraum</dt>
+              <dd>
+                {zeitraum}
+                {reise.mit_uebernachtung ? " · mit Übernachtung" : ""}
+              </dd>
+              <dt className="text-neutral-500">Verkehrsmittel</dt>
+              <dd>{verkehrsmittelText}</dd>
+            </>
+          )}
           {reise.kostenstelle && (
             <>
               <dt className="text-neutral-500">Kostenstelle</dt>
@@ -200,17 +214,19 @@ export default async function ReisePage({
           {bearbeitbar && (
             <>
               <Link href={`/reisen/${reise.id}/belege/neu`} className="rounded-md bg-primaer hover:bg-primaer-hover px-3 py-1.5 text-sm font-medium text-white dark:text-neutral-950">
-                Beleg hinzufügen
+                {istAuslagen ? "Auslage hinzufügen" : "Beleg hinzufügen"}
               </Link>
-              <Link href={`/reisen/${reise.id}/bearbeiten`} className={knopfSekundaer}>
-                Bearbeiten
-              </Link>
+              {!istAuslagen && (
+                <Link href={`/reisen/${reise.id}/bearbeiten`} className={knopfSekundaer}>
+                  Bearbeiten
+                </Link>
+              )}
             </>
           )}
           <a href={`/reisen/${reise.id}/pdf`} target="_blank" rel="noreferrer" className={knopfSekundaer}>
             PDF
           </a>
-          {eigene && (
+          {eigene && !istAuslagen && (
             <Link href={`/reisen/neu?vorlage=${reise.id}`} className={knopfSekundaer}>
               Als Vorlage
             </Link>
@@ -219,7 +235,7 @@ export default async function ReisePage({
         </div>
       </section>
 
-      <WorkflowTracker status={reise.status} />
+      <WorkflowTracker status={reise.status} auslagen={istAuslagen} />
 
       {reise.status === "abgelehnt" && reise.ablehnungsgrund && (
         <p className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
@@ -229,7 +245,7 @@ export default async function ReisePage({
 
       <WorkflowPanel id={reise.id} rechte={rechte} betrag={formatEuro(abrechnung.auszuzahlen)} hinweise={hinweise} monat={reise.beginn.slice(0, 7)} />
 
-      {(vorschuss || (eigene && reise.status === "entwurf")) && (
+      {!istAuslagen && (vorschuss || (eigene && reise.status === "entwurf")) && (
         <section className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
           <h2 className="font-medium">Vorschuss</h2>
           {vorschuss?.status === "beantragt" && (
@@ -277,39 +293,41 @@ export default async function ReisePage({
 
       <BelegListe reiseId={reise.id} bearbeitbar={bearbeitbar} />
 
-      <FahrtenListe reise={reise} bearbeitbar={bearbeitbar} />
+      {!istAuslagen && <FahrtenListe reise={reise} bearbeitbar={bearbeitbar} />}
 
-      <details className="group rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-        <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
-          <span>Verpflegungspauschale</span>
-          <span className="tabular-nums">
-            {verpflegung ? formatEuro(verpflegung.summe) : "–"} <span className="text-neutral-400 group-open:rotate-90">›</span>
-          </span>
-        </summary>
-        {verpflegung ? (
-          <table className="mt-3 w-full text-sm">
-            <tbody>
-              {verpflegung.tage.map((t) => (
-                <tr key={t.datum} className="border-t border-neutral-100 first:border-0 dark:border-neutral-800">
-                  <td className="py-2">
-                    {wochentag(t.datum)} {formatDatum(t.datum)}
-                  </td>
-                  <td className="py-2 text-neutral-500">
-                    {t.art === "voll" ? "24 h" : t.art === "klein" ? "An-/Abreise bzw. > 8 h" : "unter 8 h"}
-                    {t.kuerzung > 0 && ` · Mahlzeiten −${formatEuro(t.kuerzung)}`}
-                  </td>
-                  <td className="py-2 text-right tabular-nums">{formatEuro(t.betrag)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="mt-2 text-sm text-neutral-500">Für dieses Land ist noch keine Pauschale hinterlegt.</p>
-        )}
-        {reise.verpflegung_bemerkung && (
-          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Bemerkung: {reise.verpflegung_bemerkung}</p>
-        )}
-      </details>
+      {!istAuslagen && (
+        <details className="group rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
+            <span>Verpflegungspauschale</span>
+            <span className="tabular-nums">
+              {verpflegung ? formatEuro(verpflegung.summe) : "–"} <span className="text-neutral-400 group-open:rotate-90">›</span>
+            </span>
+          </summary>
+          {verpflegung ? (
+            <table className="mt-3 w-full text-sm">
+              <tbody>
+                {verpflegung.tage.map((t) => (
+                  <tr key={t.datum} className="border-t border-neutral-100 first:border-0 dark:border-neutral-800">
+                    <td className="py-2">
+                      {wochentag(t.datum)} {formatDatum(t.datum)}
+                    </td>
+                    <td className="py-2 text-neutral-500">
+                      {t.art === "voll" ? "24 h" : t.art === "klein" ? "An-/Abreise bzw. > 8 h" : "unter 8 h"}
+                      {t.kuerzung > 0 && ` · Mahlzeiten −${formatEuro(t.kuerzung)}`}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">{formatEuro(t.betrag)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-2 text-sm text-neutral-500">Für dieses Land ist noch keine Pauschale hinterlegt.</p>
+          )}
+          {reise.verpflegung_bemerkung && (
+            <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Bemerkung: {reise.verpflegung_bemerkung}</p>
+          )}
+        </details>
+      )}
 
       <AbrechnungUebersicht abrechnung={abrechnung} zeigeKonten={zeigeKonten} />
 

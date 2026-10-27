@@ -17,6 +17,14 @@ function dauer(r: ReiseKurz): number {
   return new Date(r.ende).getTime() - new Date(r.beginn).getTime();
 }
 
+/** Für Auslagen: Summe aller Positionen, wenn der Beleg nur einen Steuersatz hat (Baumarkt-Bon) */
+export function auslagenVorschlag(e: AusgelesenerBeleg): { betragCent: number; mwstProzent: number } | null {
+  const erste = e.positionen[0];
+  if (!erste) return null;
+  if (e.positionen.some((p) => p.mwstProzent !== erste.mwstProzent)) return { betragCent: erste.betragCent, mwstProzent: erste.mwstProzent };
+  return { betragCent: e.positionen.reduce((s, p) => s + p.betragCent, 0), mwstProzent: erste.mwstProzent };
+}
+
 /** Summe aller Positionen eines ausgelesenen Belegs in Cent */
 export function summeAusErgebnis(e: AusgelesenerBeleg | null | undefined): number | null {
   if (!e?.positionen.length) return null;

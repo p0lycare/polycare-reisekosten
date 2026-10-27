@@ -97,7 +97,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                 <span className="min-w-0">
                   <span className="block truncate">{r.begruendung}</span>
                   <span className="block truncate text-xs text-neutral-500">
-                    {zeitraum(r)} · {r.reiseweg}
+                    {r.reiseweg ? `${zeitraum(r)} · ${r.reiseweg}` : "Auslagen ohne Reise"}
                     {r.belegNr && ` · ${r.belegNr}`}
                     {r.hinweise > 0 && <span className="text-amber-700 dark:text-amber-400"> · {r.hinweise} Hinweis{r.hinweise > 1 ? "e" : ""}</span>}
                   </span>

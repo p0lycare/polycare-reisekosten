@@ -51,11 +51,12 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
                       <>
                         <div className="min-w-0">
                           <p className="truncate">
-                            {b.kategorie!.bezeichnung}
+                            {b.lieferant ?? b.kategorie!.bezeichnung}
                             {b.beschreibung && <span className="text-neutral-500"> · {b.beschreibung}</span>}
                           </p>
                           <p className="text-xs text-neutral-500 tabular-nums">
                             {formatDatum(b.datum)} · netto {formatEuro(netto)} + {String(Number(b.mwst_prozent)).replace(".", ",")} % {formatEuro(mwst)}
+                            {b.kostenstelle && ` · KSt ${b.kostenstelle}`}
                             {!b.datei_pfad && " · ohne Beleg"}
                           </p>
                         </div>

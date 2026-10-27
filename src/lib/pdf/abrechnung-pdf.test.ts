@@ -58,6 +58,35 @@ describe("Abrechnungs-PDF", () => {
     expect(doc.getPageCount()).toBe(1);
   });
 
+  it("Auslagenabrechnung nach FB 21", async () => {
+    const auslagen: AbrechnungsDokument = {
+      ...dokument,
+      art: "auslagen",
+      monat: "Oktober 2026",
+      belegNr: "AL-2026-0001",
+      reiseweg: "",
+      fahrten: [],
+      verpflegung: [],
+      belege: [
+        {
+          nr: 1,
+          datum: "17.10.2026",
+          kategorie: "Material",
+          beschreibung: "Aufbau Mockup",
+          brutto: 30081,
+          mwstProzent: 19,
+          mitDatei: true,
+          lieferant: "Baumarkt Beispiel",
+          kostenstelle: "100",
+          zahlungsart: "ec",
+        },
+      ],
+    };
+    const doc = await erzeugeAbrechnungsPdf(auslagen);
+    expect(doc.getTitle()).toBe("Auslagenabrechnung AL-2026-0001 Erika Muster");
+    expect(doc.getPageCount()).toBe(1);
+  });
+
   it("hängt Bilder und PDFs an, HEIC separat", async () => {
     const anhang = await PDFDocument.create();
     anhang.addPage();

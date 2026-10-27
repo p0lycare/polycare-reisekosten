@@ -8,12 +8,12 @@ export type MonatStatus = { fehler?: string; eingereicht?: number; benachrichtig
 
 const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
-/** Reicht die ausgewählten Reisen eines Monats mit einer Bestätigung ein – eine Mail an die genehmigende Person. */
+/** Reicht die ausgewählten Reisen und Auslagen eines Monats mit einer Bestätigung ein – eine Mail an die genehmigende Person. */
 export async function monatEinreichen(_vorher: MonatStatus, formData: FormData): Promise<MonatStatus> {
   const monat = String(formData.get("monat") ?? "");
   const ids = formData.getAll("ids").map(String).filter(Boolean);
   if (formData.get("richtigkeit") !== "on") return { fehler: "Bitte bestätige die Richtigkeit deiner Angaben." };
-  if (!ids.length) return { fehler: "Bitte mindestens eine Reise auswählen." };
+  if (!ids.length) return { fehler: "Bitte mindestens eine Abrechnung auswählen." };
 
   const supabase = await createClient();
   const { data: anzahl, error } = await supabase.rpc("reisen_einreichen", { p_ids: ids });

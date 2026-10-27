@@ -1,12 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { eingangPfad } from "@/lib/belegpfad";
 import { liesGespeichertenBeleg } from "@/lib/ki/auslesen-server";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
+import { auslagenAbrechnungHolen } from "@/lib/reisekosten/auslagen";
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
 
 export type EingangStatus = { fehler?: string; ok?: boolean };
 
@@ -44,7 +47,7 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
 
   const [{ data: eintrag }, { data: reise }] = await Promise.all([
     supabase.from("beleg_eingang").select("*").eq("id", eingangId).maybeSingle(),
-    supabase.from("reise").select("id, mitarbeiter_id, status").eq("id", reiseId).maybeSingle(),
+    supabase.from("reise").select("id, mitarbeiter_id, status, art").eq("id", reiseId).maybeSingle(),
   ]);
   if (!eintrag) return { fehler: "Beleg nicht gefunden." };
   if (!reise || reise.mitarbeiter_id !== user.id || !istBearbeitbar(reise.status)) {
@@ -61,6 +64,7 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
     supabase,
     e.positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
     false,
+    reise.art,
   );
   if (fehler) {
     return { fehler: fehler.startsWith("Bei Bewirtungen") ? "Bewirtungen bitte von Hand mit Anlass und Teilnehmenden erfassen." : fehler };
@@ -83,6 +87,31 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
   revalidatePath("/belege");
   revalidatePath(`/reisen/${reiseId}`);
   return { ok: true };
+}
+
+/**
+ * Beleg als Auslage (ohne Reise) erfassen: in die Auslagenabrechnung des Belegmonats – ist die schon
+ * eingereicht, in die des laufenden Monats. Zweck und Lieferant ergänzt die Person im Formular.
+ */
+export async function eingangAlsAuslage(eingangId: string): Promise<EingangStatus> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { fehler: "Bitte neu anmelden." };
+
+  const { data: eintrag } = await supabase.from("beleg_eingang").select("id, ki_ergebnis").eq("id", eingangId).maybeSingle();
+  if (!eintrag) return { fehler: "Beleg nicht gefunden." };
+
+  const datum = (eintrag.ki_ergebnis as AusgelesenerBeleg | null)?.datum;
+  const aktuell = aktuellerMonatBerlin();
+  const belegMonat = datum && datum.slice(0, 7) <= aktuell ? datum.slice(0, 7) : aktuell;
+  let ergebnis = await auslagenAbrechnungHolen(supabase, user.id, belegMonat);
+  if ("fehler" in ergebnis && belegMonat !== aktuell) ergebnis = await auslagenAbrechnungHolen(supabase, user.id, aktuell);
+  if ("fehler" in ergebnis) return { fehler: ergebnis.fehler };
+
+  revalidatePath("/auslagen");
+  redirect(`/reisen/${ergebnis.id}/belege/neu?eingang=${eingangId}`);
 }
 
 export async function eingangLoeschen(eingangId: string): Promise<EingangStatus> {

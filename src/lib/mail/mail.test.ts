@@ -32,7 +32,7 @@ describe("alsMail", () => {
 
   it("Einreichung nennt Reisende, Reise und Betrag", () => {
     const m = alsMail("eingereicht", daten);
-    expect(m.betreff).toBe("Reisekosten zur Genehmigung: Erika Muster – Messe <BAU>");
+    expect(m.betreff).toBe("Abrechnung zur Genehmigung: Erika Muster – Messe <BAU>");
     expect(m.text).toContain("248,60 €");
     expect(m.text).toContain("https://example.invalid/reisen/1");
   });
@@ -59,7 +59,7 @@ describe("alsSammelMail", () => {
       gesamt: "150,00 €",
       link: "https://example.invalid/freigaben",
     });
-    expect(m.betreff).toBe("Reisekosten zur Genehmigung: Erika Muster – Oktober 2026 (2 Reisen, 150,00 €)");
+    expect(m.betreff).toBe("Abrechnung zur Genehmigung: Erika Muster – Oktober 2026 (2 Abrechnungen, 150,00 €)");
     expect(m.text).toContain("• 21.10. – Kunde: 30,00 €");
     expect(m.html).toContain("Messe &lt;A&gt;");
   });

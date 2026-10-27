@@ -29,7 +29,10 @@ async function benachrichtige(vorschussId: string, schritt: Schritt, grund?: str
     .eq("id", vorschussId)
     .maybeSingle();
   if (!v) return;
-  const an = await mailEmpfaenger(v.reise_id, EMPFAENGER[schritt]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const an = await mailEmpfaenger(v.reise_id, EMPFAENGER[schritt], user?.email);
   if (!an.length) return;
 
   const betrag = formatEuro(v.betrag_cent);
@@ -64,9 +67,6 @@ async function benachrichtige(vorschussId: string, schritt: Schritt, grund?: str
   }[schritt];
   const mail = alsKurzmail(inhalt);
   const art = `vorschuss_${schritt}`;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!mailKonfiguration()) {
     await protokolliereMail({ reiseId: v.reise_id, art, an, betreff: mail.betreff, status: "nicht_eingerichtet", personId: user?.id });

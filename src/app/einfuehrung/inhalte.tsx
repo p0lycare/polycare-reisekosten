@@ -79,9 +79,19 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
           Tankbelege für den eigenen PKW nicht zusätzlich einreichen.
         </p>
       </Schritt>
-      <Schritt nr={5} titel="Gesammelt einreichen">
+      <Schritt nr={5} titel="Auslagen ohne Reise" link={{ href: "/auslagen", text: "Meine Auslagen" }}>
         <p>
-          Auf „Monat abrechnen“ alle fertigen Reisen auswählen und einreichen. Gelbe Hinweise zeigen typische Fehler (fehlende
+          Privat vorgestreckte Einkäufe ohne Reise (z. B. Baumarkt, Büromaterial, Porto) genauso fotografieren und im Eingang „Als
+          Auslage erfassen“ wählen. Je Monat gibt es eine Auslagenabrechnung; zu jedem Beleg den Zweck angeben.
+        </p>
+        <p>
+          Ab 250 € brutto muss die Rechnung auf Polycare Research Technology GmbH ausgestellt sein, sonst kann die Vorsteuer nicht
+          gezogen werden. Eingereicht wird zusammen mit den Reisen unter „Monat abrechnen“ – der Ablauf danach ist derselbe.
+        </p>
+      </Schritt>
+      <Schritt nr={6} titel="Gesammelt einreichen">
+        <p>
+          Auf „Monat abrechnen“ alle fertigen Reisen und Auslagen auswählen und einreichen. Gelbe Hinweise zeigen typische Fehler (fehlende
           Hotelrechnung, Beleg außerhalb des Zeitraums …) – kurz prüfen, dann geht es ohne Rückfragen durch.
         </p>
         <p>
@@ -93,13 +103,13 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
           der Reise – korrigieren und erneut einreichen.
         </p>
       </Schritt>
-      <Schritt nr={6} titel="Vorschuss für größere Ausgaben">
+      <Schritt nr={7} titel="Vorschuss für größere Ausgaben">
         <p>
           Stehen hohe Kosten an (z. B. Hotel oder Flug), kannst du in der geplanten Reise einen Vorschuss beantragen. Deine
           Führungskraft genehmigt, die Buchhaltung zahlt aus – bei der Abrechnung wird er automatisch abgezogen.
         </p>
       </Schritt>
-      <Schritt nr={7} titel="Erinnerung am Monatsende">
+      <Schritt nr={8} titel="Erinnerung am Monatsende">
         <p>
           Am vorletzten Werktag des Monats bekommst du eine Mail, falls noch Entwürfe oder Belege im Eingang offen sind. Ist alles
           eingereicht, kommt nichts.

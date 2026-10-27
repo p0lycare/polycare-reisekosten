@@ -59,7 +59,7 @@ export function freigabeText(a: Aufgaben): { betreff: string; zeilen: string[] }
   if (!teile.length) return null;
   const n = a.genehmigen + a.pruefen + a.auszahlen;
   return {
-    betreff: `Erinnerung: ${n} ${n === 1 ? "Reisekostenabrechnung wartet" : "Reisekostenabrechnungen warten"} auf dich`,
-    zeilen: [`Diese Reisekostenabrechnungen warten auf dich: ${teile.join(", ")}.`],
+    betreff: `Erinnerung: ${n} ${n === 1 ? "Abrechnung wartet" : "Abrechnungen warten"} auf dich`,
+    zeilen: [`Diese Abrechnungen warten auf dich: ${teile.join(", ")}.`],
   };
 }

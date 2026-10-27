@@ -32,6 +32,8 @@ export function istBearbeitbar(status: ReiseStatus): boolean {
 
 /** Verpflegungspauschale einer gespeicherten Reise; null, falls nicht berechenbar. */
 export function verpflegungFuer(reise: Reise): VerpflegungErgebnis | null {
+  // Auslagenabrechnungen haben keine Verpflegungspauschale
+  if (reise.art === "auslagen") return null;
   try {
     return berechneVerpflegung({
       beginn: reise.beginn.slice(0, 16),

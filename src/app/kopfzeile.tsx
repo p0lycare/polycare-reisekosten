@@ -20,9 +20,10 @@ function aktuellerMonat(): string {
 /** Kopfzeile in zwei Ebenen: oben Logo und Konto, darunter die Bereiche als Reiter */
 export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
   const reiter: Reiter[] = [
-    // Reihenfolge wie der Ablauf: Belege sammeln → Reisen anlegen → Monat gesammelt einreichen
+    // Reihenfolge wie der Ablauf: Belege sammeln → Reisen und Auslagen erfassen → Monat gesammelt einreichen
     { href: "/belege", text: "Belege", aktivBei: "/belege", zaehler: daten.eingang },
     { href: "/", text: "Meine Reisen", aktivBei: "/" },
+    { href: "/auslagen", text: "Meine Auslagen", aktivBei: "/auslagen" },
     { href: `/monat/${aktuellerMonat()}`, text: "Monat abrechnen", aktivBei: "/monat" },
     ...(daten.zeigeFreigaben
       ? [

@@ -35,8 +35,10 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
     const { reise, dokument, dateien } = geladen;
     if (reise.status !== "geprueft" && reise.status !== "ausgezahlt") return { fehler: "Reise ist noch nicht geprüft." };
 
-    const basis = dateiBasis(reise.beleg_nr, dokument.reisende.name);
-    betreff = `Reisekosten ${reise.beleg_nr} ${dokument.reisende.name}`;
+    const auslagen = reise.art === "auslagen";
+    const basis = dateiBasis(reise.beleg_nr, dokument.reisende.name, reise.art);
+    betreff = `${auslagen ? "Auslagen" : "Reisekosten"} ${reise.beleg_nr} ${dokument.reisende.name}`;
+    const titel = auslagen ? "Auslagenabrechnung" : "Reisekostenabrechnung";
 
     if (!mailKonfiguration()) {
       await protokoll("nicht_eingerichtet");
@@ -56,8 +58,8 @@ export async function sendeAnDatev(supabase: SupabaseClient<Database>, reiseId: 
     await sendeMail({
       an,
       betreff,
-      text: `Reisekostenabrechnung ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).`,
-      html: `<p>Reisekostenabrechnung ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)} mit ${dateien.length} Beleg(en).</p>`,
+      text: `${titel} ${reise.beleg_nr} (${dokument.reisende.name}) mit ${dateien.length} Beleg(en).`,
+      html: `<p>${titel} ${escapeHtml(`${reise.beleg_nr} (${dokument.reisende.name})`)} mit ${dateien.length} Beleg(en).</p>`,
       anhaenge,
     });
     await protokoll("gesendet");

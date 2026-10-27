@@ -10,6 +10,8 @@ export type PlausiReise = {
   mahlzeiten: Record<string, Mahlzeiten>;
   /** Reiseland; ohne Angabe wird die Pauschale nicht geprüft */
   land?: string;
+  /** Auslagenabrechnung: nur die Belegprüfungen, keine Reiselogik */
+  art?: "reise" | "auslagen";
 };
 
 export type PlausiBeleg = {
@@ -18,6 +20,8 @@ export type PlausiBeleg = {
   datum: string;
   betragCent: number;
   hatDatei: boolean;
+  /** Zweck / Beschreibung (bei Auslagen Pflicht) */
+  beschreibung?: string | null;
 };
 
 /** km_route: per Routing berechnete Strecke, falls bekannt */
@@ -26,11 +30,43 @@ export type PlausiFahrt = { datum: string; km?: number | string; km_route?: numb
 /** Kategorien, für die es üblicherweise keinen Beleg gibt */
 const OHNE_BELEG_UEBLICH = new Set(["trinkgeld"]);
 
+/** Grenze für Kleinbetragsrechnungen (§ 33 UStDV): darüber muss die Rechnung auf Polycare lauten */
+const KLEINBETRAG_CENT = 25000;
+
+/** Prüfungen für eine Auslagenabrechnung (Monat, Belege mit Zweck) */
+function pruefeAuslagen(reise: PlausiReise, belege: PlausiBeleg[]): string[] {
+  const hinweise: string[] = [];
+  const von = reise.beginn.slice(0, 10);
+  const bis = reise.ende.slice(0, 10);
+  if (!belege.length) hinweise.push("Es ist noch kein Beleg erfasst.");
+  const ausserhalb = belege.filter((b) => b.datum < von || b.datum > bis);
+  if (ausserhalb.length) {
+    hinweise.push(`${ausserhalb.length === 1 ? "Ein Beleg liegt" : `${ausserhalb.length} Belege liegen`} außerhalb des Abrechnungsmonats (nachgereicht?).`);
+  }
+  const ohneZweck = belege.filter((b) => !b.beschreibung?.trim());
+  if (ohneZweck.length) {
+    hinweise.push(`${ohneZweck.length === 1 ? "Bei einem Beleg fehlt" : `Bei ${ohneZweck.length} Belegen fehlt`} der Zweck (wofür wurde gekauft?).`);
+  }
+  const gross = belege.filter((b) => b.betragCent > KLEINBETRAG_CENT);
+  if (gross.length) {
+    hinweise.push(
+      `${gross.length === 1 ? "Ein Beleg ist" : `${gross.length} Belege sind`} über 250 €: Die Rechnung muss auf Polycare ausgestellt sein (Name und Anschrift), sonst ist kein Vorsteuerabzug möglich.`,
+    );
+  }
+  const gruppen = new Map<string, number>();
+  for (const b of belege) gruppen.set(`${b.datum}|${b.betragCent}`, (gruppen.get(`${b.datum}|${b.betragCent}`) ?? 0) + 1);
+  if ([...gruppen.values()].some((n) => n > 1)) hinweise.push("Möglicher Doppelbeleg: zwei Belege am selben Tag mit gleichem Betrag.");
+  const ohneDatei = belege.filter((b) => !b.hatDatei);
+  if (ohneDatei.length) hinweise.push(`Ohne Belegfoto: ${ohneDatei.map((b) => b.beschreibung || b.bezeichnung).join(", ")}.`);
+  return hinweise;
+}
+
 /**
  * Prüft eine Reise vor dem Einreichen auf typische Fehler, die sonst zu Rückfragen der
  * Buchhaltung führen. Liefert Hinweise; das Einreichen bleibt möglich.
  */
 export function pruefePlausibilitaet(reise: PlausiReise, belege: PlausiBeleg[], fahrten: PlausiFahrt[]): string[] {
+  if (reise.art === "auslagen") return pruefeAuslagen(reise, belege);
   const hinweise: string[] = [];
   if (reise.land) {
     try {

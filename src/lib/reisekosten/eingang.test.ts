@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { passendeReise, reiseVorschlagAusBeleg, summeAusErgebnis } from "./eingang";
+import { auslagenVorschlag, passendeReise, reiseVorschlagAusBeleg, summeAusErgebnis } from "./eingang";
 
 const reisen = [
   { id: "woche", begruendung: "Messe", reiseweg: "Köln – Berlin", beginn: "2026-10-19T07:00:00", ende: "2026-10-23T18:00:00" },
@@ -39,5 +39,18 @@ describe("Vorschläge aus dem Beleg", () => {
     expect(reiseVorschlagAusBeleg(ergebnis)).toEqual({ beginn: "2026-10-22T08:00", ende: "2026-10-22T18:00", reiseweg: "Berlin" });
     expect(reiseVorschlagAusBeleg({ ...ergebnis, datum: null })).toBeNull();
     expect(reiseVorschlagAusBeleg({ ...ergebnis, anreise: "2026-10-20" })?.beginn).toBe("2026-10-20T08:00");
+  });
+
+  it("Auslage: Gesamtbetrag bei einem Steuersatz, sonst erste Position", () => {
+    const baumarkt = {
+      ...ergebnis,
+      positionen: [
+        { kategorieId: "aus_material", beschreibung: "", betragCent: 11878, mwstProzent: 19 },
+        { kategorieId: "aus_material", beschreibung: "", betragCent: 30081, mwstProzent: 19 },
+      ],
+    };
+    expect(auslagenVorschlag(baumarkt)).toEqual({ betragCent: 41959, mwstProzent: 19 });
+    expect(auslagenVorschlag(ergebnis)).toEqual({ betragCent: 10700, mwstProzent: 7 });
+    expect(auslagenVorschlag({ ...ergebnis, positionen: [] })).toBeNull();
   });
 });

@@ -23,11 +23,12 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
         <BelegLoeschenButton id={beleg.id} reiseId={id} />
       </div>
       <BelegFormular
+        auslagen={reise.art === "auslagen"}
         reiseId={reise.id}
         userId={user.id}
         // Deaktivierte Kategorie des bestehenden Belegs weiter anzeigen
         kategorien={kategorien.filter((k) => k.aktiv || k.id === beleg.kategorie_id)}
-        reiseVon={reise.beginn.slice(0, 10)}
+        reiseVon={reise.art === "auslagen" ? "" : reise.beginn.slice(0, 10)}
         reiseBis={reise.ende.slice(0, 10)}
         kiAktiv={kiVerfuegbar()}
         werte={{
@@ -41,6 +42,9 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
           dateiUrl: signiert?.signedUrl,
           bewirtungAnlass: beleg.bewirtung_anlass ?? "",
           bewirtungTeilnehmer: beleg.bewirtung_teilnehmer ?? "",
+          lieferant: beleg.lieferant ?? "",
+          kostenstelle: beleg.kostenstelle ?? "",
+          zahlungsart: beleg.zahlungsart ?? "",
         }}
       />
     </main>

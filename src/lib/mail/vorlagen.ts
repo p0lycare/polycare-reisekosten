@@ -21,24 +21,24 @@ export function vorlage(art: Benachrichtigung, d: VorlageDaten): { betreff: stri
   switch (art) {
     case "eingereicht":
       return {
-        betreff: `Reisekosten zur Genehmigung: ${d.reisende} – ${d.begruendung}`,
-        zeilen: [`${d.reisende} hat die Reisekostenabrechnung ${reise} zur Genehmigung eingereicht.`],
+        betreff: `Abrechnung zur Genehmigung: ${d.reisende} – ${d.begruendung}`,
+        zeilen: [`${d.reisende} hat die Abrechnung ${reise} zur Genehmigung eingereicht.`],
         knopf: "Abrechnung prüfen",
       };
     case "genehmigt":
       return {
-        betreff: `Reisekosten zur Belegprüfung: ${d.reisende} – ${d.begruendung}`,
+        betreff: `Abrechnung zur Belegprüfung: ${d.reisende} – ${d.begruendung}`,
         zeilen: [
-          `${d.handelnde} hat die Reisekostenabrechnung ${reise} von ${d.reisende} genehmigt. Bitte Belege prüfen.`,
+          `${d.handelnde} hat die Abrechnung ${reise} von ${d.reisende} genehmigt. Bitte Belege prüfen.`,
           ...(d.grund ? [`Kommentar: ${d.grund}`] : []),
         ],
         knopf: "Belege prüfen",
       };
     case "abgelehnt":
       return {
-        betreff: `Reisekosten abgelehnt: ${d.begruendung}`,
+        betreff: `Abrechnung abgelehnt: ${d.begruendung}`,
         zeilen: [
-          `${d.handelnde} hat deine Reisekostenabrechnung ${reise} abgelehnt.`,
+          `${d.handelnde} hat deine Abrechnung ${reise} abgelehnt.`,
           `Grund: ${d.grund}`,
           "Du kannst die Abrechnung korrigieren und erneut einreichen.",
         ],
@@ -46,14 +46,14 @@ export function vorlage(art: Benachrichtigung, d: VorlageDaten): { betreff: stri
       };
     case "geprueft":
       return {
-        betreff: `Reisekosten geprüft: ${d.begruendung}`,
-        zeilen: [`Deine Reisekostenabrechnung ${reise} ist geprüft (Beleg-Nr. ${d.belegNr}) und wird ausgezahlt.`],
+        betreff: `Abrechnung geprüft: ${d.begruendung}`,
+        zeilen: [`Deine Abrechnung ${reise} ist geprüft (Beleg-Nr. ${d.belegNr}) und wird ausgezahlt.`],
         knopf: "Abrechnung öffnen",
       };
     case "ausgezahlt":
       return {
-        betreff: `Reisekosten ausgezahlt: ${d.begruendung}`,
-        zeilen: [`Deine Reisekostenabrechnung ${reise} wurde ausgezahlt.`],
+        betreff: `Abrechnung ausgezahlt: ${d.begruendung}`,
+        zeilen: [`Deine Abrechnung ${reise} wurde ausgezahlt.`],
         knopf: "Abrechnung öffnen",
       };
   }
@@ -81,30 +81,30 @@ export type SammelDaten = {
   kommentar?: string;
 };
 
-/** Eine Mail für mehrere Reisen derselben Person, die gemeinsam einen Workflow-Schritt durchlaufen haben */
+/** Eine Mail für mehrere Abrechnungen derselben Person, die gemeinsam einen Workflow-Schritt durchlaufen haben */
 export function alsSammelMail(d: SammelDaten): { betreff: string; text: string; html: string } {
   const art = d.art ?? "eingereicht";
   const n = d.reisen.length;
-  const was = `${n} Reisekostenabrechnungen${d.zeitraum ? ` für ${d.zeitraum}` : ""}`;
+  const was = `${n} Abrechnungen${d.zeitraum ? ` für ${d.zeitraum}` : ""}`;
   const texte = {
     eingereicht: {
-      betreff: `Reisekosten zur Genehmigung: ${d.reisende} – ${d.zeitraum} (${n} Reisen, ${d.gesamt})`,
+      betreff: `Abrechnung zur Genehmigung: ${d.reisende} – ${d.zeitraum} (${n} Abrechnungen, ${d.gesamt})`,
       kopf: `${d.reisende} hat ${was} zur Genehmigung eingereicht, zusammen ${d.gesamt}:`,
       knopf: "Freigaben öffnen",
     },
     genehmigt: {
-      betreff: `Reisekosten zur Belegprüfung: ${d.reisende} (${n} Reisen, ${d.gesamt})`,
-      kopf: `${d.handelnde} hat ${n} Reisekostenabrechnungen von ${d.reisende} genehmigt, zusammen ${d.gesamt}. Bitte Belege prüfen:`,
+      betreff: `Abrechnung zur Belegprüfung: ${d.reisende} (${n} Abrechnungen, ${d.gesamt})`,
+      kopf: `${d.handelnde} hat ${n} Abrechnungen von ${d.reisende} genehmigt, zusammen ${d.gesamt}. Bitte Belege prüfen:`,
       knopf: "Freigaben öffnen",
     },
     geprueft: {
-      betreff: `Reisekosten geprüft: ${n} Reisen, ${d.gesamt}`,
-      kopf: `Deine ${n} Reisekostenabrechnungen sind geprüft und werden ausgezahlt, zusammen ${d.gesamt}:`,
+      betreff: `Abrechnung geprüft: ${n} Abrechnungen, ${d.gesamt}`,
+      kopf: `Deine ${n} Abrechnungen sind geprüft und werden ausgezahlt, zusammen ${d.gesamt}:`,
       knopf: "Meine Reisen öffnen",
     },
     ausgezahlt: {
-      betreff: `Reisekosten ausgezahlt: ${n} Reisen, ${d.gesamt}`,
-      kopf: `Deine ${n} Reisekostenabrechnungen wurden ausgezahlt, zusammen ${d.gesamt}:`,
+      betreff: `Abrechnung ausgezahlt: ${n} Abrechnungen, ${d.gesamt}`,
+      kopf: `Deine ${n} Abrechnungen wurden ausgezahlt, zusammen ${d.gesamt}:`,
       knopf: "Meine Reisen öffnen",
     },
   }[art];

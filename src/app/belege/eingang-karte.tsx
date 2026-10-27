@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { formatDatum, formatEuro } from "@/lib/format";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { belegDatumFuerZuordnung, passendeReise, summeAusErgebnis, type ReiseKurz } from "@/lib/reisekosten/eingang";
-import { eingangLoeschen, eingangNeuAuslesen, eingangZuordnen, type EingangStatus } from "./actions";
+import { eingangAlsAuslage, eingangLoeschen, eingangNeuAuslesen, eingangZuordnen, type EingangStatus } from "./actions";
 
 export type EingangEintrag = {
   id: string;
@@ -27,7 +27,9 @@ export function EingangKarte({
   kategorieName: Record<string, string>;
 }) {
   const e = eintrag.ergebnis;
-  const vorschlag = passendeReise(belegDatumFuerZuordnung(e), reisen) ?? passendeReise(e?.datum, reisen);
+  // Die KI erkennt Baumarkt, Bürobedarf usw. als Auslagen-Kategorie – dann ist das der naheliegende Weg
+  const istAuslage = !!e?.positionen.length && e.positionen.every((p) => p.kategorieId.startsWith("aus_"));
+  const vorschlag = istAuslage ? null : (passendeReise(belegDatumFuerZuordnung(e), reisen) ?? passendeReise(e?.datum, reisen));
   const [reiseId, setReiseId] = useState(vorschlag?.id ?? "");
   const [status, setStatus] = useState<EingangStatus>({});
   const [laeuft, starten] = useTransition();
@@ -108,6 +110,14 @@ export function EingangKarte({
           <Link href={`/reisen/neu?eingang=${eintrag.id}`} className={`${knopf} border border-neutral-300 dark:border-neutral-700`}>
             Neue Reise daraus
           </Link>
+          <button
+            type="button"
+            disabled={laeuft}
+            onClick={() => ausfuehren(() => eingangAlsAuslage(eintrag.id))}
+            className={`${knopf} ${istAuslage ? "bg-primaer hover:bg-primaer-hover text-white dark:text-neutral-950" : "border border-neutral-300 dark:border-neutral-700"}`}
+          >
+            Als Auslage erfassen
+          </button>
         </div>
 
         <div className="flex gap-4 text-xs">

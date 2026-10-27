@@ -15,6 +15,13 @@ export type BelegStatus = { fehler?: string };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 const MAX_POSITIONEN = 20;
+const ZAHLUNGSARTEN = ["bar", "ec", "kreditkarte", "ueberweisung", "sonstige"];
+
+/** Art der Abrechnung (Reise oder Auslagen) – bestimmt die zulässigen Kategorien */
+async function artDerAbrechnung(supabase: Supabase, reiseId: string): Promise<"reise" | "auslagen"> {
+  const { data } = await supabase.from("reise").select("art").eq("id", reiseId).maybeSingle();
+  return data?.art ?? "reise";
+}
 
 function text(formData: FormData, feld: string): string {
   return String(formData.get(feld) ?? "").trim();
@@ -52,10 +59,17 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
   if (betrag === null) return { fehler: "Bitte einen gültigen Betrag angeben, z. B. 12,50." };
   if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId)) return { fehler: "Ungültige Datei." };
 
+  const art = await artDerAbrechnung(supabase, reiseId);
+  const beschreibung = text(formData, "beschreibung") || null;
+  const zahlungsart = text(formData, "zahlungsart") || null;
+  if (art === "auslagen" && !beschreibung) return { fehler: "Bitte den Zweck angeben, z. B. „Aufbau Mockup Köln“." };
+  if (zahlungsart && !ZAHLUNGSARTEN.includes(zahlungsart)) return { fehler: "Bitte eine Zahlungsart wählen." };
+
   const fehler = await pruefePositionen(
     supabase,
     [{ kategorieId, betragCent: betrag, mwstProzent: mwst, bewirtungAnlass: anlass, bewirtungTeilnehmer: teilnehmer }],
     !!id,
+    art,
   );
   if (fehler) return { fehler };
 
@@ -64,12 +78,15 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
     reise_id: reiseId,
     kategorie_id: kategorieId,
     datum,
-    beschreibung: text(formData, "beschreibung") || null,
+    beschreibung,
     betrag_cent: betrag,
     mwst_prozent: mwst,
     datei_pfad: dateiPfad,
     bewirtung_anlass: kategorie?.abschnitt === "E" ? anlass : null,
     bewirtung_teilnehmer: kategorie?.abschnitt === "E" ? teilnehmer : null,
+    lieferant: art === "auslagen" ? text(formData, "lieferant").slice(0, 120) || null : null,
+    kostenstelle: art === "auslagen" ? text(formData, "kostenstelle").slice(0, 40) || null : null,
+    zahlungsart: art === "auslagen" ? zahlungsart : null,
   };
 
   // RLS erlaubt Änderungen nur an Belegen eigener, bearbeitbarer Reisen
@@ -154,6 +171,7 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
     supabase,
     positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
     false,
+    await artDerAbrechnung(supabase, reiseId),
   );
   if (fehler) {
     return {
