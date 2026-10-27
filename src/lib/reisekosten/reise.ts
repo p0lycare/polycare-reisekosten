@@ -30,9 +30,19 @@ export function istBearbeitbar(status: ReiseStatus): boolean {
   return status === "entwurf" || status === "abgelehnt";
 }
 
-/** Verpflegungspauschale einer gespeicherten Reise; null, falls nicht berechenbar. */
+/**
+ * Verpflegungspauschale einer gespeicherten Reise; null, falls nicht berechenbar. Nach dem Einreichen gilt
+ * der festgeschriebene Stand – spätere Änderungen an den Pauschalentabellen ändern genehmigte Beträge nicht.
+ */
 export function verpflegungFuer(reise: Reise): VerpflegungErgebnis | null {
   // Auslagenabrechnungen haben keine Verpflegungspauschale
+  if (reise.art === "auslagen") return null;
+  if (!istBearbeitbar(reise.status) && reise.verpflegung_fest) return reise.verpflegung_fest as unknown as VerpflegungErgebnis;
+  return verpflegungBerechnen(reise);
+}
+
+/** Pauschale nach den aktuellen Tabellen berechnen (zum Anzeigen von Entwürfen und zum Festschreiben) */
+export function verpflegungBerechnen(reise: Reise): VerpflegungErgebnis | null {
   if (reise.art === "auslagen") return null;
   try {
     return berechneVerpflegung({

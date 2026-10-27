@@ -48,7 +48,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
     return (
       <li className="rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
         <p role="status" className="text-amber-800 dark:text-amber-300">
-          {gruppe.name}: {ablehnStatus.erledigt} {ablehnStatus.erledigt === 1 ? "Reise" : "Reisen"} abgelehnt – die Person wurde per Mail informiert.
+          {gruppe.name}: {ablehnStatus.erledigt} {ablehnStatus.erledigt === 1 ? "Abrechnung" : "Abrechnungen"} abgelehnt – die Person wurde per Mail informiert.
         </p>
       </li>
     );
@@ -58,7 +58,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
     return (
       <li className="rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
         <p role="status" className="text-green-700 dark:text-green-400">
-          {gruppe.name}: {status.erledigt} {status.erledigt === 1 ? "Reise" : "Reisen"} erledigt.
+          {gruppe.name}: {status.erledigt} {status.erledigt === 1 ? "Abrechnung" : "Abrechnungen"} erledigt.
         </p>
         {status.hinweis && <p className="mt-1 text-amber-700 dark:text-amber-400">{status.hinweis}</p>}
       </li>
@@ -133,7 +133,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
             disabled={laeuft || !auswahl.size}
             className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-neutral-950"
           >
-            {laeuft ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Reise" : "Reisen"} ${KNOPF[art]}`}
+            {laeuft ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Abrechnung" : "Abrechnungen"} ${KNOPF[art]}`}
           </button>
         </div>
         {status.fehler && (
@@ -162,7 +162,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                 disabled={lehntAb || !auswahl.size}
                 className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               >
-                {lehntAb ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Reise" : "Reisen"} ablehnen`}
+                {lehntAb ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Abrechnung" : "Abrechnungen"} ablehnen`}
               </button>
               <button type="button" onClick={() => setAblehnenOffen(false)} className="text-sm underline">
                 Abbrechen

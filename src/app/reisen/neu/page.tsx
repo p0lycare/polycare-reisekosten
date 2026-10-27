@@ -3,7 +3,7 @@ import { ReiseFormular } from "../reise-formular";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { reiseVorschlagAusBeleg } from "@/lib/reisekosten/eingang";
 import { ladeTermin, ladeTermine } from "@/lib/kalender/graph";
-import { reiseVorschlaege, reiseZeiten } from "@/lib/kalender/vorschlaege";
+import { kalenderPostfach, reiseVorschlaege, reiseZeiten } from "@/lib/kalender/vorschlaege";
 import { ladeOrteOhneReise } from "@/lib/kalender/orte";
 import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
 
@@ -30,9 +30,10 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
     ? await supabase.from("reise").select("*").eq("id", vorlageId).eq("mitarbeiter_id", user!.id).maybeSingle()
     : { data: null };
   // Aus einem Outlook-Termin: Betreff, Ort und Zeiten vorbelegen (nur mit Zustimmung im Profil)
-  const einzel = terminId && profil?.kalender_vorschlaege && user?.email ? await ladeTermin(user.email, terminId) : null;
+  const postfach = profil?.kalender_vorschlaege ? kalenderPostfach(user?.email, profil.email) : null;
+  const einzel = terminId && postfach ? await ladeTermin(postfach, terminId) : null;
   // Wie auf der Monatsseite: der Vorschlag kann mehrere Termine umfassen (Hinfahrt bis Rückfahrt)
-  const termin = einzel ? await vorschlagZuTermin(supabase, user!.email!, einzel) : null;
+  const termin = einzel && postfach ? await vorschlagZuTermin(supabase, postfach, einzel) : null;
   const terminZeiten = termin ? { beginn: termin.beginn, ende: termin.ende } : null;
   const { data: privat } = termin
     ? await supabase.from("profil_privat").select("wohnort").eq("id", user!.id).maybeSingle()

@@ -54,7 +54,8 @@ export function Kopfzeile({ daten }: { daten: KopfzeileDaten }) {
                 <span className="hidden rounded bg-flaeche px-2 py-0.5 text-xs text-neutral-600 sm:inline dark:text-neutral-400">{daten.rolle}</span>
               )}
             </Link>
-            <form action="/auth/logout" method="post">
+            {/* Am Handy ist dafür kein Platz – Abmelden steht dann im Profil */}
+            <form action="/auth/logout" method="post" className="hidden sm:block">
               <button type="submit" className="whitespace-nowrap text-neutral-500 hover:text-neutral-900 hover:underline dark:hover:text-neutral-100">
                 Abmelden
               </button>

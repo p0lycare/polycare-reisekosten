@@ -139,3 +139,12 @@ export function reiseVorschlaege(
   }
   return vorschlaege.sort((a, b) => a.beginn.localeCompare(b.beginn));
 }
+
+/**
+ * Postfach für die Kalender-Vorschläge: nur wenn Anmelde- und Profiladresse übereinstimmen. So kann weder
+ * die eigene Anmeldeadresse noch ein geändertes Profil auf einen fremden Kalender zeigen.
+ */
+export function kalenderPostfach(anmeldung: string | null | undefined, profil: string | null | undefined): string | null {
+  if (!anmeldung || !profil || anmeldung.toLowerCase() !== profil.toLowerCase()) return null;
+  return anmeldung;
+}

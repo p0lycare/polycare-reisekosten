@@ -3,7 +3,6 @@ import type { Database } from "@/lib/supabase/database.types";
 import { monatsgrenzen, monatsname } from "./monat";
 import { istBearbeitbar } from "./reise";
 
-
 /**
  * Eine Auslagenabrechnung umfasst genau einen Kalendermonat (wie das Formblatt FB 21):
  * vom Ersten 00:00 bis zum Letzten 23:59.

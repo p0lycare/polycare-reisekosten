@@ -27,9 +27,8 @@ export type ReiseWerte = {
   kostenstelle: string;
   projektId: string;
   verpflegungBemerkung: string;
+  /** Bereits ausgezahlter Vorschuss, nur zur Anzeige (z. B. "250,00"), sonst leer */
   vorschuss: string;
-  /** Vorschuss läuft über einen Antrag im Tool – Feld nicht änderbar */
-  vorschussFest?: boolean;
 };
 
 const AUSWAHL = laenderAuswahl();
@@ -57,7 +56,11 @@ export function ReiseFormular({
   const [land, setLand] = useState(werte.land);
   const [beginn, setBeginn] = useState(werte.beginn);
   const [ende, setEnde] = useState(werte.ende);
-  const [mitUebernachtung, setMitUebernachtung] = useState(werte.mitUebernachtung);
+  // Bei neuen Reisen ohne Vorbelegung folgt "Übernachtung" den Daten (mehrtägig = ja), bis man es selbst anklickt
+  const [uebernachtungGewaehlt, setUebernachtungGewaehlt] = useState<boolean | null>(
+    werte.id || werte.beginn ? werte.mitUebernachtung : null,
+  );
+  const mitUebernachtung = uebernachtungGewaehlt ?? (!!beginn && !!ende && beginn.slice(0, 10) !== ende.slice(0, 10));
   const [mahlzeiten, setMahlzeiten] = useState(werte.mahlzeiten);
   const [verkehrsmittel, setVerkehrsmittel] = useState(werte.verkehrsmittel);
   const [reiseweg, setReiseweg] = useState(werte.reiseweg);
@@ -164,16 +167,13 @@ export function ReiseFormular({
           <span className="text-sm font-medium">Kostenstelle</span>
           <input name="kostenstelle" defaultValue={werte.kostenstelle} className={feld} />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Erhaltener Vorschuss (€)</span>
-          {werte.vorschussFest ? (
-            <span className="py-2 text-sm text-neutral-600 dark:text-neutral-400">
-              {werte.vorschuss || "0,00"} € – über den Vorschussantrag
-            </span>
-          ) : (
-            <input name="vorschuss" inputMode="decimal" defaultValue={werte.vorschuss} placeholder="0,00" className={`${feld} tabular-nums`} />
-          )}
-        </label>
+        {/* Vorschüsse laufen über den Antrag in der Reise und werden automatisch abgezogen */}
+        {werte.vorschuss && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Vorschuss</span>
+            <span className="py-2 text-sm text-neutral-600 dark:text-neutral-400">{werte.vorschuss} € – wird bei der Abrechnung abgezogen</span>
+          </div>
+        )}
         {!!projekte.length && (
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="text-sm font-medium">Projekt / Förderprojekt (optional)</span>
@@ -190,7 +190,7 @@ export function ReiseFormular({
       </div>
 
       <label className="flex items-center gap-2">
-        <input type="checkbox" name="mit_uebernachtung" checked={mitUebernachtung} onChange={(e) => setMitUebernachtung(e.target.checked)} className="size-4" />
+        <input type="checkbox" name="mit_uebernachtung" checked={mitUebernachtung} onChange={(e) => setUebernachtungGewaehlt(e.target.checked)} className="size-4" />
         <span>Mit auswärtiger Übernachtung</span>
       </label>
 

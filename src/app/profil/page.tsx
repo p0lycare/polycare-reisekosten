@@ -28,6 +28,12 @@ export default async function ProfilPage() {
           kalenderVorschlaege: profil?.kalender_vorschlaege ?? false,
         }}
       />
+      {/* Am Handy steht Abmelden nicht in der Kopfzeile */}
+      <form action="/auth/logout" method="post" className="border-t border-neutral-200 pt-6 sm:hidden dark:border-neutral-800">
+        <button type="submit" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">
+          Abmelden
+        </button>
+      </form>
     </main>
   );
 }

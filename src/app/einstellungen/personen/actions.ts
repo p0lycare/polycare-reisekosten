@@ -25,6 +25,22 @@ export async function personSpeichern(_vorher: PersonStatus, formData: FormData)
     return { fehler: "Du kannst dir die Admin-Rolle nicht selbst entziehen." };
   }
 
+  // Wer genehmigt, braucht eine genehmigende Rolle – sonst kommen Mails, aber keine Freigaben-Seite
+  if (vorgesetzter) {
+    const { data: genehmigend } = await supabase.from("profile").select("name, rolle").eq("id", vorgesetzter).maybeSingle();
+    if (genehmigend?.rolle === "mitarbeiter") {
+      return { fehler: `${genehmigend.name} hat die Rolle Mitarbeiter/in und kann nicht genehmigen – erst die Rolle ändern.` };
+    }
+  }
+  if (rolle === "mitarbeiter") {
+    const { data: abhaengig } = await supabase.from("profile").select("name").eq("vorgesetzter_id", id);
+    if (abhaengig?.length) {
+      return {
+        fehler: `Diese Person genehmigt noch für ${abhaengig.map((p) => p.name).join(", ")} – dort erst eine andere genehmigende Person eintragen.`,
+      };
+    }
+  }
+
   // RLS und Trigger lassen nur Admins diese Felder ändern
   const { data, error } = await supabase
     .from("profile")

@@ -527,6 +527,7 @@ export type Database = {
           status: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung: string | null
+          verpflegung_fest: Json | null
           vorschuss_cent: number
         }
         Insert: {
@@ -561,6 +562,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung?: string | null
+          verpflegung_fest?: Json | null
           vorschuss_cent?: number
         }
         Update: {
@@ -595,6 +597,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel?: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung?: string | null
+          verpflegung_fest?: Json | null
           vorschuss_cent?: number
         }
         Relationships: [
@@ -868,6 +871,7 @@ export type Database = {
           status: Database["public"]["Enums"]["reise_status"]
           verkehrsmittel: Database["public"]["Enums"]["verkehrsmittel"][]
           verpflegung_bemerkung: string | null
+          verpflegung_fest: Json | null
           vorschuss_cent: number
         }
         SetofOptions: {

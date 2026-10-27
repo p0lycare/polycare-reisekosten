@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { benachrichtigeSammel } from "@/lib/mail/benachrichtigen";
 import { monatsname } from "@/lib/reisekosten/monat";
+import { verpflegungFestschreiben } from "@/lib/reisekosten/verpflegung-fest";
 
 export type MonatStatus = { fehler?: string; eingereicht?: number; benachrichtigt?: number };
 
@@ -22,6 +23,7 @@ export async function monatEinreichen(_vorher: MonatStatus, formData: FormData):
     return { fehler: error.code === "P0001" ? error.message : "Das Einreichen hat nicht geklappt. Bitte Seite neu laden." };
   }
 
+  await verpflegungFestschreiben(ids);
   const zeitraum = /^\d{4}-\d{2}$/.test(monat) ? monatsname(monat) : "";
   const benachrichtigt = await benachrichtigeSammel(supabase, ids, zeitraum);
 

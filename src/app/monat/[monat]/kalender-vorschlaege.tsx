@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDatum, wochentag } from "@/lib/format";
 import { ladeTermine } from "@/lib/kalender/graph";
-import { KALENDER_AB, reiseVorschlaege } from "@/lib/kalender/vorschlaege";
+import { KALENDER_AB, kalenderPostfach, reiseVorschlaege } from "@/lib/kalender/vorschlaege";
 import { ladeOrteOhneReise } from "@/lib/kalender/orte";
 import { vorschlaegeEinblenden, vorschlagAusblenden } from "./kalender-actions";
 
@@ -58,9 +58,9 @@ export async function KalenderVorschlaege({
     );
   }
 
-  // Postfach aus der Microsoft-Anmeldung (auth), nicht aus dem Profil, das Admins ändern können
-  if (!user?.email) return null;
-  const antwort = await ladeTermine(user.email, von, bis);
+  const postfach = kalenderPostfach(user?.email, profil.email);
+  if (!postfach) return null;
+  const antwort = await ladeTermine(postfach, von, bis);
   if ("fehler" in antwort) {
     if (stillWennLeer) return null;
     // Technische Hinweise nur für Admins; alle anderen sehen einfach keine Vorschläge

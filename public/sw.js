@@ -1,4 +1,4 @@
-// Polycare Reisekosten – Service Worker für die Offline-Nutzung (v2)
+// Polycare Reisekosten – Service Worker für die Offline-Nutzung (v3)
 // Nur die Seite "Belege" wird vorgehalten (Belege fotografieren im Funkloch), keine Seiten mit Reise- oder Kontodaten.
 // Beim Abmelden oder wenn die Anmeldeseite erscheint (Sitzung abgelaufen, Personenwechsel), wird sie gelöscht.
 // Statische Dateien von Next.js sind unveränderlich und werden dauerhaft vorgehalten.
@@ -55,8 +55,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((antwort) => {
-          // Nur echte Seiten vorhalten, keine Umleitungen zur Anmeldung
-          if (antwort.ok && !antwort.redirected) {
+          // Nur echte Seiten vorhalten. Umleitung zur Anmeldung = Sitzung abgelaufen: alte Seite löschen,
+          // damit sie offline nicht der nächsten Person am Gerät erscheint
+          if (antwort.redirected) {
+            caches.delete(SEITEN);
+          } else if (antwort.ok) {
             const kopie = antwort.clone();
             caches.open(SEITEN).then((c) => c.put(url.pathname, kopie));
           }

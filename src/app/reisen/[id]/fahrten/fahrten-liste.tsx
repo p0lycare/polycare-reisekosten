@@ -54,8 +54,10 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
           <tbody>
             {(fahrten ?? []).map((f) => (
               <tr key={f.id} className="border-t border-neutral-100 first:border-0 dark:border-neutral-800">
-                <td className="py-2 pr-3 whitespace-nowrap">{formatDatum(f.datum)}</td>
+                {/* Am Handy steht das Datum über der Strecke, damit lange Adressen die volle Breite haben */}
+                <td className="hidden py-2 pr-3 whitespace-nowrap sm:table-cell">{formatDatum(f.datum)}</td>
                 <td className="py-2 pr-3">
+                  <span className="block text-xs text-neutral-500 sm:hidden">{formatDatum(f.datum)}</span>
                   {f.strecke}
                   {f.zweck && <span className="text-neutral-500"> · {f.zweck}</span>}
                   <KarteKnopf strecke={f.strecke} />
