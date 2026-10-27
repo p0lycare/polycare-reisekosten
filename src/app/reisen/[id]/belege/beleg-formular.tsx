@@ -7,11 +7,12 @@ import { verkleinereBild } from "@/lib/bild";
 import { formatEuro } from "@/lib/format";
 import { parseEuro } from "@/lib/geld";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
-import { ABSCHNITT_TEXT, type Abschnitt, type Kategorie } from "@/lib/reisekosten/kategorie";
+import { ABSCHNITT_TEXT, passendeKategorie, type Abschnitt, type Kategorie } from "@/lib/reisekosten/kategorie";
 import { belegPerKiAuslesen, belegPositionenAnlegen, belegSpeichern, type BelegStatus } from "./actions";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { centAlsEingabe } from "@/lib/geld";
 import { auslagenVorschlag } from "@/lib/reisekosten/eingang";
+import { ZAHLUNGSARTEN } from "@/lib/reisekosten/zahlungsart";
 
 export type BelegWerte = {
   id?: string;
@@ -37,14 +38,6 @@ const STANDARD_SAETZE = [19, 7, 0];
 const MAX_DATEI_BYTES = 2_800_000;
 /** Ab hier muss die Rechnung auf Polycare ausgestellt sein, sonst ist die Vorsteuer nicht abziehbar */
 const KLEINBETRAG_CENT = 25_000;
-
-const ZAHLUNGSARTEN = [
-  { wert: "ec", text: "EC-Karte" },
-  { wert: "kreditkarte", text: "Kreditkarte (privat)" },
-  { wert: "bar", text: "Bar" },
-  { wert: "ueberweisung", text: "Überweisung" },
-  { wert: "sonstige", text: "Sonstige (z. B. PayPal)" },
-];
 
 export function BelegFormular({
   auslagen = false,
@@ -133,25 +126,18 @@ export function BelegFormular({
   /** Füllt das Formular mit dem KI-Vorschlag (erste Position); weitere Positionen werden angeboten. */
   function vorschlagUebernehmen(e: AusgelesenerBeleg) {
     if (e.haendler) setLieferant(e.haendler);
-    if (auslagen) {
-      const v = auslagenVorschlag(e);
-      const k = e.positionen.find((p) => kategorien.some((x) => x.id === p.kategorieId));
-      if (k) setKategorieId(k.kategorieId);
-      if (v) {
-        setMwst(String(v.mwstProzent));
-        setBetrag(centAlsEingabe(v.betragCent));
-      }
-      if (e.datum && e.datum >= reiseVon && e.datum <= reiseBis) setDatum(e.datum);
-      return;
-    }
-    const erste = e.positionen[0];
-    if (erste && kategorien.some((k) => k.id === erste.kategorieId)) {
-      setKategorieId(erste.kategorieId);
-      setMwst(String(erste.mwstProzent));
-      setBetrag(centAlsEingabe(erste.betragCent));
-      setBeschreibung(erste.beschreibung || e.haendler || "");
-    }
     if (e.datum && e.datum >= reiseVon && e.datum <= reiseBis) setDatum(e.datum);
+    const erste = e.positionen[0];
+    if (!erste) return;
+    // Betrag und MwSt immer übernehmen; die Kategorie nur, wenn sie (oder ihr Gegenstück) zur Abrechnung passt
+    const k = passendeKategorie(erste, auslagen ? "auslagen" : "reise", kategorien);
+    if (k) setKategorieId(k);
+    const v = auslagen ? auslagenVorschlag(e) : erste;
+    if (v) {
+      setMwst(String(v.mwstProzent));
+      setBetrag(centAlsEingabe(v.betragCent));
+    }
+    if (!auslagen) setBeschreibung(erste.beschreibung || e.haendler || "");
   }
 
   async function dateiWaehlen(f: File | null) {

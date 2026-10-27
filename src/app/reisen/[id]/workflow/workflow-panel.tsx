@@ -1,6 +1,6 @@
 "use client";
 
-import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { aktuellerMonatBerlin, monatsname } from "@/lib/reisekosten/monat";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
@@ -29,7 +29,6 @@ function Fehler({ status }: { status: WorkflowStatus }) {
   ) : null;
 }
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 /**
  * Empfohlen: alle Reisen eines Monats gesammelt einreichen (eine Mail an die Führungskraft, ein Durchgang).
@@ -37,7 +36,7 @@ const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "nume
  */
 function Einreichen({ id, betrag, monat }: { id: string; betrag: string; monat: string }) {
   const [status, absenden, laeuft] = useActionState(einreichen, {});
-  const name = MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`));
+  const name = monatsname(monat);
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-neutral-700 dark:text-neutral-300">

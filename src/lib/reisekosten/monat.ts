@@ -13,3 +13,10 @@ export function monatsgrenzen(monat: string): { von: string; bis: string } | nul
 export function aktuellerMonatBerlin(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit" }).format(new Date());
 }
+
+const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+
+/** "2026-10" → "Oktober 2026" */
+export function monatsname(monat: string): string {
+  return MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`));
+}

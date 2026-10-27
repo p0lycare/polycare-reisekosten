@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { KalenderVorschlaege } from "./monat/[monat]/kalender-vorschlaege";
-import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { aktuellerMonatBerlin, monatsname } from "@/lib/reisekosten/monat";
 import { SeitenHilfe } from "./seiten-hilfe";
 import { createClient } from "@/lib/supabase/server";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { StatusBadge } from "./reisen/status-badge";
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 export default async function Home() {
   const supabase = await createClient();
@@ -22,7 +21,13 @@ export default async function Home() {
     .eq("mitarbeiter_id", user!.id)
     .eq("art", "reise")
     .order("beginn", { ascending: false });
-  const abrechnungen = await Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r)));
+  const [abrechnungen, { data: auslagen }] = await Promise.all([
+    Promise.all((reisen ?? []).map((r) => ladeAbrechnung(supabase, r))),
+    supabase.from("reise").select("beginn, status, beleg(count)").eq("mitarbeiter_id", user!.id).eq("art", "auslagen").in("status", ["entwurf", "abgelehnt"]),
+  ]);
+  // Offene Auslagen (mit Belegen) werden mit den Reisen des Monats eingereicht – also beim Monat mitzählen
+  const offeneAuslagen = (monat: string) =>
+    (auslagen ?? []).filter((a) => a.beginn.slice(0, 7) === monat && (a.beleg[0]?.count ?? 0) > 0).length;
   // Nach Monat des Reisebeginns gruppieren – so wird am Monatsende abgerechnet
   const monate: { monat: string; eintraege: { reise: NonNullable<typeof reisen>[number]; abrechnung: (typeof abrechnungen)[number] }[] }[] = [];
   (reisen ?? []).forEach((reise, i) => {
@@ -121,12 +126,13 @@ export default async function Home() {
         <div className="flex flex-col gap-6">
           {monate.map(({ monat, eintraege }) => {
             const summe = eintraege.reduce((s, e) => s + e.abrechnung.auszuzahlen, 0);
-            const offen = eintraege.filter((e) => e.reise.status === "entwurf" || e.reise.status === "abgelehnt").length;
+            const offen =
+              eintraege.filter((e) => e.reise.status === "entwurf" || e.reise.status === "abgelehnt").length + offeneAuslagen(monat);
             return (
               <section key={monat} className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-medium">
-                    {MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`))}{" "}
+                    {monatsname(monat)}{" "}
                     <span className="text-sm font-normal text-neutral-500 tabular-nums">{formatEuro(summe)}</span>
                   </h2>
                   <Link href={`/monat/${monat}`} className="text-sm underline">

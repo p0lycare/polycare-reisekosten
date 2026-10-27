@@ -21,14 +21,16 @@ export function EingangKarte({
   eintrag,
   reisen,
   kategorieName,
+  auslagenKategorien,
 }: {
   eintrag: EingangEintrag;
   reisen: ReiseKurz[];
   kategorieName: Record<string, string>;
+  /** Kategorien aus Abschnitt G – erkennt die KI nur solche, ist „Als Auslage erfassen“ der naheliegende Weg */
+  auslagenKategorien: string[];
 }) {
   const e = eintrag.ergebnis;
-  // Die KI erkennt Baumarkt, Bürobedarf usw. als Auslagen-Kategorie – dann ist das der naheliegende Weg
-  const istAuslage = !!e?.positionen.length && e.positionen.every((p) => p.kategorieId.startsWith("aus_"));
+  const istAuslage = !!e?.positionen.length && e.positionen.every((p) => auslagenKategorien.includes(p.kategorieId));
   const vorschlag = istAuslage ? null : (passendeReise(belegDatumFuerZuordnung(e), reisen) ?? passendeReise(e?.datum, reisen));
   const [reiseId, setReiseId] = useState(vorschlag?.id ?? "");
   const [status, setStatus] = useState<EingangStatus>({});

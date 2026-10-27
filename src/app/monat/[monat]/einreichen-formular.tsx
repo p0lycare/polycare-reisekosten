@@ -7,6 +7,7 @@ import { formatDatum, formatEuro } from "@/lib/format";
 import { StatusBadge } from "@/app/reisen/status-badge";
 import type { ReiseStatus } from "@/lib/reisekosten/reise";
 import { monatEinreichen, type MonatStatus } from "../actions";
+import { istLeereAuslage } from "@/lib/reisekosten/auslagen";
 
 export type MonatsReise = {
   id: string;
@@ -36,7 +37,8 @@ function anzahlText(n: number, mitAuslagen: boolean): string {
 /** Reisen und Auslagen eines Monats; Entwürfe sind auswählbar und werden gemeinsam eingereicht. */
 export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsReise[] }) {
   const [status, absenden, laeuft] = useActionState<MonatStatus, FormData>(monatEinreichen, {});
-  const offen = reisen.filter((r) => r.status === "entwurf" || r.status === "abgelehnt");
+  // Leere Auslagen lassen sich nicht einreichen und werden daher weder angeboten noch mitgezählt
+  const offen = reisen.filter((r) => (r.status === "entwurf" || r.status === "abgelehnt") && !istLeereAuslage(r));
   const [auswahl, setAuswahl] = useState<Set<string>>(() => new Set(offen.map((r) => r.id)));
   const summe = offen.filter((r) => auswahl.has(r.id)).reduce((s, r) => s + r.betrag, 0);
   const mitAuslagen = reisen.some((r) => r.art === "auslagen");
@@ -55,7 +57,7 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
       <input type="hidden" name="monat" value={monat} />
       <ul className="flex flex-col gap-3">
         {reisen.map((r) => {
-          const auswaehlbar = r.status === "entwurf" || r.status === "abgelehnt";
+          const auswaehlbar = (r.status === "entwurf" || r.status === "abgelehnt") && !istLeereAuslage(r);
           return (
             <li key={r.id} className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
               <div className="flex items-start gap-3">
@@ -92,6 +94,9 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
                         <li key={h}>{h}</li>
                       ))}
                     </ul>
+                  )}
+                  {istLeereAuslage(r) && (
+                    <p className="mt-2 text-xs text-neutral-500">Noch keine Belege – erst Auslagen erfassen, dann einreichen.</p>
                   )}
                   {r.art === "reise" && (
                     <div className="mt-2 flex gap-4 text-xs">

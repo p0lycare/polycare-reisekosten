@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
-import { monatsgrenzen } from "@/lib/reisekosten/monat";
+import { monatsgrenzen, monatsname } from "@/lib/reisekosten/monat";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
@@ -11,7 +11,6 @@ import { Suspense } from "react";
 import { MonatsListe } from "./einreichen-formular";
 import { KalenderVorschlaege } from "./kalender-vorschlaege";
 
-const MONATSNAME = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 function verschiebe(monat: string, delta: number): string {
   const [j, m] = monat.split("-").map(Number);
@@ -91,7 +90,7 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
     const datum = (e.ki_ergebnis as AusgelesenerBeleg | null)?.datum;
     return !datum || (datum >= grenzen.von && datum < grenzen.bis);
   }).length;
-  const titel = MONATSNAME.format(new Date(`${monat}-01T00:00:00Z`));
+  const titel = monatsname(monat);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 font-sans sm:p-6">

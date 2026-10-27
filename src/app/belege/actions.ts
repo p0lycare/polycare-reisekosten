@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { eingangPfad } from "@/lib/belegpfad";
 import { liesGespeichertenBeleg } from "@/lib/ki/auslesen-server";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
-import { pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import { auslagenAbrechnungHolen } from "@/lib/reisekosten/auslagen";
 import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
@@ -53,6 +53,8 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
   if (!reise || reise.mitarbeiter_id !== user.id || !istBearbeitbar(reise.status)) {
     return { fehler: "Die Reise kann nicht mehr bearbeitet werden." };
   }
+  // Auslagen brauchen Zweck und Lieferant – die gibt es nur im Formular
+  if (reise.art === "auslagen") return { fehler: "Auslagen bitte über „Als Auslage erfassen“ mit Zweck erfassen." };
 
   const e = eintrag.ki_ergebnis as AusgelesenerBeleg | null;
   if (!e?.istBeleg || !e.positionen.length || !e.datum) {
@@ -60,9 +62,11 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
   }
   if (e.waehrung !== "EUR") return { fehler: "Der Beleg ist nicht in Euro – bitte von Hand erfassen." };
 
+  const passend = await positionenFuerArt(supabase, e.positionen, reise.art);
+  if ("fehler" in passend) return passend;
   const fehler = await pruefePositionen(
     supabase,
-    e.positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
+    passend.positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
     false,
     reise.art,
   );
@@ -71,7 +75,7 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
   }
 
   const { error } = await supabase.from("beleg").insert(
-    e.positionen.map((p) => ({
+    passend.positionen.map((p) => ({
       reise_id: reiseId,
       kategorie_id: p.kategorieId,
       datum: e.datum!,

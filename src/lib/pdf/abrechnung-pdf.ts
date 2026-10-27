@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import type { Abrechnung } from "@/lib/reisekosten/abrechnung";
 import { ABSCHNITT_TEXT } from "@/lib/reisekosten/kategorie";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
+import { zahlungsartKurz } from "@/lib/reisekosten/zahlungsart";
 
 /** Alles, was auf der Abrechnung steht – entspricht dem Formblatt FB 06 (Reise) bzw. FB 21 (Auslagen) */
 export type AbrechnungsDokument = {
@@ -121,14 +122,6 @@ class Layout {
 
 const RECHTS = A4[0] - RAND;
 
-const ZAHLUNGSART_TEXT: Record<string, string> = {
-  bar: "bar",
-  ec: "EC",
-  kreditkarte: "Kreditkarte",
-  ueberweisung: "Überweisung",
-  sonstige: "sonstige",
-};
-
 /** Kopf der Auslagenabrechnung (FB 21): Person, Monat, keine Reisedaten */
 function auslagenKopf(l: Layout, d: AbrechnungsDokument) {
   const spalte = (A4[0] - 2 * RAND) / 4;
@@ -156,7 +149,7 @@ function auslagenPositionen(l: Layout, d: AbrechnungsDokument) {
   for (const b of d.belege) {
     l.platz(14);
     const { netto, mwst } = nettoAusBrutto(b.brutto, b.mwstProzent);
-    const zahlung = b.zahlungsart ? ` (${ZAHLUNGSART_TEXT[b.zahlungsart] ?? b.zahlungsart})` : "";
+    const zahlung = b.zahlungsart ? ` (${zahlungsartKurz(b.zahlungsart)})` : "";
     const text = [b.lieferant || b.kategorie, b.beschreibung].filter(Boolean).join(" · ") + zahlung + (b.mitDatei ? "" : " – ohne Beleg");
     l.text(`${b.nr}.`, RAND);
     l.text(b.datum, RAND + 20);

@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
-import { monatsname } from "@/lib/reisekosten/auslagen";
-import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { aktuellerMonatBerlin, monatsname } from "@/lib/reisekosten/monat";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import { formatEuro } from "@/lib/format";
 import { SeitenHilfe } from "../seiten-hilfe";
@@ -23,16 +21,16 @@ export default async function AuslagenPage() {
 
   const { data: abrechnungen } = await supabase
     .from("reise")
-    .select("*")
+    .select("id, beginn, status, beleg_nr")
     .eq("mitarbeiter_id", user!.id)
     .eq("art", "auslagen")
     .order("beginn", { ascending: false });
   const ids = (abrechnungen ?? []).map((a) => a.id);
-  const [betraege, { data: belege }] = await Promise.all([
-    Promise.all((abrechnungen ?? []).map((a) => ladeAbrechnung(supabase, a))),
-    ids.length ? supabase.from("beleg").select("reise_id").in("reise_id", ids) : Promise.resolve({ data: [] as { reise_id: string }[] }),
-  ]);
-  const anzahl = (id: string) => (belege ?? []).filter((b) => b.reise_id === id).length;
+  const { data: belege } = ids.length
+    ? await supabase.from("beleg").select("reise_id, betrag_cent").in("reise_id", ids)
+    : { data: [] as { reise_id: string; betrag_cent: number }[] };
+  // Auslagen bestehen nur aus Belegen (kein Km-Geld, keine Pauschalen, kein Vorschuss) – die Summe ist die Auszahlung
+  const eigene = (id: string) => (belege ?? []).filter((b) => b.reise_id === id);
 
   // Erfassen geht für den laufenden Monat und den Vormonat, solange dessen Abrechnung nicht eingereicht ist
   const aktuell = aktuellerMonatBerlin();
@@ -69,8 +67,8 @@ export default async function AuslagenPage() {
         <p className="text-sm text-neutral-500">Noch keine Auslagen.</p>
       ) : (
         <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-          {abrechnungen.map((a, i) => {
-            const n = anzahl(a.id);
+          {abrechnungen.map((a) => {
+            const n = eigene(a.id).length;
             const monat = a.beginn.slice(0, 7);
             return (
               <li key={a.id} className="flex items-center justify-between gap-4 p-4">
@@ -82,7 +80,7 @@ export default async function AuslagenPage() {
                   </p>
                 </Link>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="tabular-nums">{formatEuro(betraege[i].auszuzahlen)}</span>
+                  <span className="tabular-nums">{formatEuro(eigene(a.id).reduce((s, b) => s + b.betrag_cent, 0))}</span>
                   <StatusBadge status={a.status} />
                   {istBearbeitbar(a.status) && n > 0 && (
                     <Link href={`/monat/${monat}`} className="text-xs underline">

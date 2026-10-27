@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { auslagenZeitraum, monatsname } from "./auslagen";
-import { abschnitteFuer } from "./kategorie";
+import { auslagenZeitraum } from "./auslagen";
+import { monatsname } from "./monat";
+import { abschnitteFuer, passendeKategorie } from "./kategorie";
 
 describe("auslagenZeitraum", () => {
   it("umfasst den ganzen Kalendermonat", () => {
@@ -30,5 +31,33 @@ describe("abschnitteFuer", () => {
   it("trennt Reise- und Auslagenkategorien", () => {
     expect(abschnitteFuer("auslagen")).toEqual(["G"]);
     expect(abschnitteFuer("reise")).not.toContain("G");
+  });
+});
+
+describe("passendeKategorie", () => {
+  const kategorien = [
+    { id: "buerobedarf", abschnitt: "F" },
+    { id: "telefon_porto", abschnitt: "F" },
+    { id: "telefon_porto_ohne", abschnitt: "F" },
+    { id: "aus_buero", abschnitt: "G" },
+    { id: "aus_porto", abschnitt: "G" },
+    { id: "aus_material", abschnitt: "G" },
+    { id: "bahn", abschnitt: "A" },
+  ];
+
+  it("lässt passende Kategorien unverändert", () => {
+    expect(passendeKategorie({ kategorieId: "bahn", mwstProzent: 7 }, "reise", kategorien)).toBe("bahn");
+    expect(passendeKategorie({ kategorieId: "aus_material", mwstProzent: 19 }, "auslagen", kategorien)).toBe("aus_material");
+  });
+
+  it("stellt auf das Gegenstück um", () => {
+    expect(passendeKategorie({ kategorieId: "aus_buero", mwstProzent: 19 }, "reise", kategorien)).toBe("buerobedarf");
+    expect(passendeKategorie({ kategorieId: "aus_porto", mwstProzent: 0 }, "reise", kategorien)).toBe("telefon_porto_ohne");
+    expect(passendeKategorie({ kategorieId: "telefon_porto", mwstProzent: 19 }, "auslagen", kategorien)).toBe("aus_porto");
+  });
+
+  it("ohne Gegenstück: von Hand wählen", () => {
+    expect(passendeKategorie({ kategorieId: "aus_material", mwstProzent: 19 }, "reise", kategorien)).toBeNull();
+    expect(passendeKategorie({ kategorieId: "bahn", mwstProzent: 7 }, "auslagen", kategorien)).toBeNull();
   });
 });

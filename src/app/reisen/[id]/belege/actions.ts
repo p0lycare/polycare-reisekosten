@@ -8,14 +8,14 @@ import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { liesGespeichertenBeleg } from "@/lib/ki/auslesen-server";
 import { istBelegPfad } from "@/lib/belegpfad";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
-import { pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { istZahlungsart } from "@/lib/reisekosten/zahlungsart";
 
 export type BelegStatus = { fehler?: string };
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 const MAX_POSITIONEN = 20;
-const ZAHLUNGSARTEN = ["bar", "ec", "kreditkarte", "ueberweisung", "sonstige"];
 
 /** Art der Abrechnung (Reise oder Auslagen) – bestimmt die zulässigen Kategorien */
 async function artDerAbrechnung(supabase: Supabase, reiseId: string): Promise<"reise" | "auslagen"> {
@@ -63,7 +63,7 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
   const beschreibung = text(formData, "beschreibung") || null;
   const zahlungsart = text(formData, "zahlungsart") || null;
   if (art === "auslagen" && !beschreibung) return { fehler: "Bitte den Zweck angeben, z. B. „Aufbau Mockup Köln“." };
-  if (zahlungsart && !ZAHLUNGSARTEN.includes(zahlungsart)) return { fehler: "Bitte eine Zahlungsart wählen." };
+  if (zahlungsart && !istZahlungsart(zahlungsart)) return { fehler: "Bitte eine Zahlungsart wählen." };
 
   const fehler = await pruefePositionen(
     supabase,
@@ -159,19 +159,25 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
     return { fehler: "Positionen konnten nicht gelesen werden." };
   }
   if (!Array.isArray(roh) || !roh.length || roh.length > MAX_POSITIONEN) return { fehler: "Ungültige Positionen." };
-  const positionen = roh.map((p) => ({
+  const art = await artDerAbrechnung(supabase, reiseId);
+  // Auslagen werden einzeln mit Zweck erfasst; das Formular bietet das Sammelanlegen dort nicht an
+  if (art === "auslagen") return { fehler: "Auslagen bitte einzeln mit Zweck erfassen." };
+  const gelesen = roh.map((p) => ({
     kategorieId: String(p?.kategorieId ?? ""),
     beschreibung: String(p?.beschreibung ?? "").slice(0, 200),
     betragCent: Number(p?.betragCent),
     mwstProzent: Number(p?.mwstProzent),
   }));
+  const passend = await positionenFuerArt(supabase, gelesen, art);
+  if ("fehler" in passend) return passend;
+  const { positionen } = passend;
 
   // Bewirtungen brauchen Anlass und Teilnehmende – dafür gibt es im Sammelanlegen keine Felder
   const fehler = await pruefePositionen(
     supabase,
     positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
     false,
-    await artDerAbrechnung(supabase, reiseId),
+    art,
   );
   if (fehler) {
     return {

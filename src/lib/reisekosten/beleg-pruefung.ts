@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { abschnitteFuer, type Abschnitt } from "./kategorie";
+import { abschnitteFuer, passendeKategorie, type Abschnitt } from "./kategorie";
 
 export const MAX_BETRAG_CENT = 10_000_000; // 100.000 €
 
@@ -39,4 +39,26 @@ export async function pruefePositionen(
     }
   }
   return null;
+}
+
+/**
+ * Stellt KI-Positionen auf die Kategorien der Abrechnungsart um (z. B. Büromaterial G → Bürobedarf F).
+ * Fehler, wenn eine Position kein Gegenstück hat – dann von Hand erfassen.
+ */
+export async function positionenFuerArt<P extends { kategorieId: string; mwstProzent: number }>(
+  supabase: SupabaseClient<Database>,
+  positionen: P[],
+  art: "reise" | "auslagen",
+): Promise<{ positionen: P[] } | { fehler: string }> {
+  const { data: kategorien } = await supabase.from("kategorie").select("id, abschnitt").eq("beleg_erfassbar", true);
+  const umgestellt = positionen.map((p) => ({ ...p, kategorieId: passendeKategorie(p, art, kategorien ?? []) }));
+  if (umgestellt.some((p) => !p.kategorieId)) {
+    return {
+      fehler:
+        art === "auslagen"
+          ? "Der Beleg sieht nach Reisekosten aus – bitte einer Reise zuordnen oder von Hand erfassen."
+          : "Der Beleg sieht nach einer Auslage aus – bitte „Als Auslage erfassen“ oder von Hand erfassen.",
+    };
+  }
+  return { positionen: umgestellt as P[] };
 }
