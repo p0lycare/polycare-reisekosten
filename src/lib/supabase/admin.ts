@@ -43,11 +43,15 @@ export async function protokolliereMail(p: Protokoll): Promise<void> {
   }
 }
 
-/** Empfänger der Benachrichtigung zu einem Workflow-Schritt */
-export async function mailEmpfaenger(reiseId: string, art: string): Promise<string[]> {
+/**
+ * Empfänger der Benachrichtigung zu einem Workflow-Schritt – ohne die handelnde Person selbst
+ * (z. B. wer genehmigt und zugleich Buchhaltung ist, bekommt keine Mail über die eigene Genehmigung).
+ */
+export async function mailEmpfaenger(reiseId: string, art: string, ohne?: string | null): Promise<string[]> {
   const { data, error } = await createAdminClient().rpc("mail_empfaenger", { p_reise: reiseId, p_art: art });
   if (error) console.error("Mail-Empfänger konnten nicht ermittelt werden", error.message);
-  return (data ?? []).map((e) => e.email).filter(Boolean);
+  const selbst = ohne?.toLowerCase();
+  return (data ?? []).map((e) => e.email).filter((e) => e && e.toLowerCase() !== selbst);
 }
 
 /** Prüft, ob der serverseitige Zugang (Service-Rolle) funktioniert – für die Anzeige in den Einstellungen */

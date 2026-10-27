@@ -32,7 +32,7 @@ export async function benachrichtige(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    an = await mailEmpfaenger(reiseId, art);
+    an = await mailEmpfaenger(reiseId, art, user?.email);
     if (!an.length) return;
 
     const { data: reise } = await supabase.from("reise").select("*").eq("id", reiseId).single();
@@ -106,13 +106,13 @@ export async function benachrichtigeSammel(
   for (const [mitarbeiterId, gruppe] of gruppen) {
     if (gruppe.length === 1) {
       await benachrichtige(supabase, gruppe[0].id, art, { grund: extra.kommentar });
-      if ((await mailEmpfaenger(gruppe[0].id, art)).length && mailKonfiguration()) gesendet += 1;
+      if ((await mailEmpfaenger(gruppe[0].id, art, user.email)).length && mailKonfiguration()) gesendet += 1;
       continue;
     }
     let an: string[] = [];
     let betreff = `Sammelbenachrichtigung ${art}`;
     try {
-      an = await mailEmpfaenger(gruppe[0].id, art);
+      an = await mailEmpfaenger(gruppe[0].id, art, user.email);
       if (!an.length) continue;
       const { data: person } = await supabase.from("profile").select("name").eq("id", mitarbeiterId).maybeSingle();
       const abrechnungen = await Promise.all(gruppe.map((r) => ladeAbrechnung(supabase, r)));
