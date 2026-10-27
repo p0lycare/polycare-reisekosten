@@ -22,7 +22,7 @@ const dokument: AbrechnungsDokument = {
   verpflegungBemerkung: null,
   fahrten: [{ datum: "21.10.2026", strecke: "Köln – Essen", zweck: null, km: 63 }],
   belege: [
-    { nr: 1, datum: "21.10.2026", kategorie: "Zugticket", beschreibung: null, brutto: 8990, mwstProzent: 7, mitDatei: true, angaben: "Anlass: Messe – Planung ".repeat(8) },
+    { nr: 1, datum: "21.10.2026", kategorie: "Zugticket", beschreibung: null, brutto: 8990, mwstProzent: 7, mitDatei: true, angaben: ["Person: Erika Muster", "Anlass: " + "Messe – Planung ".repeat(8)] },
   ],
   abrechnung: berechneAbrechnung({
     belege: [{ kategorieId: "bahn", abschnitt: "A", bezeichnung: "Zugticket", konto: "1000", betragCent: 8990, mwstProzent: 7 }],

@@ -10,7 +10,7 @@ export async function ladeFuerBeleg(reiseId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: reise } = await supabase.from("reise").select("id, mitarbeiter_id, status, beginn, ende, art, begruendung, reiseweg, kfz_kennzeichen").eq("id", reiseId).maybeSingle();
+  const { data: reise } = await supabase.from("reise").select("id, mitarbeiter_id, status, beginn, ende, art, begruendung, reiseweg, kfz_kennzeichen, verkehrsmittel").eq("id", reiseId).maybeSingle();
   if (!reise) notFound();
   if (reise.mitarbeiter_id !== user?.id || !istBearbeitbar(reise.status)) redirect(`/reisen/${reiseId}`);
 

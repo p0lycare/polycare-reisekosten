@@ -49,7 +49,7 @@ export default async function AuslagenPage() {
       </div>
 
       <SeitenHilfe anker="reisende">
-        Für privat vorgestreckte Einkäufe ohne Reise, z. B. im Baumarkt. Beleg fotografieren und im Eingang „Als Auslage erfassen“ –
+        Für privat vorgestreckte Ausgaben ohne Reise, z. B. im Baumarkt oder ein Geschäftsessen am eigenen Standort. Beleg fotografieren und im Eingang „Als Auslage erfassen“ –
         je Monat entsteht eine Auslagenabrechnung, die du unter „Monat abrechnen“ zusammen mit deinen Reisen einreichst.
       </SeitenHilfe>
 

@@ -86,7 +86,7 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
       </Schritt>
       <Schritt nr={5} titel="Auslagen ohne Reise" link={{ href: "/auslagen", text: "Meine Auslagen" }}>
         <p>
-          Privat vorgestreckte Einkäufe ohne Reise (z. B. Baumarkt, Büromaterial, Porto) genauso fotografieren und im Eingang „Als
+          Privat vorgestreckte Ausgaben ohne Reise (z. B. Baumarkt, Büromaterial, Porto oder ein Geschäftsessen am eigenen Standort) genauso fotografieren und im Eingang „Als
           Auslage erfassen“ wählen. Je Monat gibt es eine Auslagenabrechnung; zu jedem Beleg den Zweck angeben.
         </p>
         <p>

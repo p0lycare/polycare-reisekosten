@@ -18,6 +18,11 @@ describe("Pflichtangaben", () => {
     });
   });
 
+  it("mit Mietwagen kein Kennzeichen vorbelegen", () => {
+    const reise = { begruendung: "Messe", reiseweg: "", kfz_kennzeichen: "K-AB 123", verkehrsmittel: ["eigener_pkw", "mietwagen"] };
+    expect(vorbelegung(reise, "Erika Muster").kfzKennzeichen).toBeNull();
+  });
+
   it("speichert nur verlangte Angaben", () => {
     expect(nurPflichtangaben(["kfz"], { anlass: "Messe", person: "Erika", kfzKennzeichen: " K-AB 123 " })).toEqual({
       anlass: null,
@@ -29,7 +34,7 @@ describe("Pflichtangaben", () => {
   it("Text für PDF und Liste", () => {
     expect(angabenText({ person: "Erika Muster", anlass: "Messe" })).toBe("Person: Erika Muster · Anlass: Messe");
     expect(angabenText({ bewirtungAnlass: "Projektstart", bewirtungTeilnehmer: "Max Beispiel (Beispiel GmbH)" })).toBe(
-      "Anlass: Projektstart · Bewirtet: Max Beispiel (Beispiel GmbH)",
+      "Anlass: Projektstart · Bewirtete Personen: Max Beispiel (Beispiel GmbH)",
     );
   });
 });

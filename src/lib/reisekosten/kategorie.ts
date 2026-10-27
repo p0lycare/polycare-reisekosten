@@ -18,7 +18,8 @@ export const ERFASSBARE_ABSCHNITTE: Abschnitt[] = ["A", "C", "E", "F", "G"];
 
 /** Welche Abschnitte bei welcher Art von Abrechnung erfasst werden */
 export function abschnitteFuer(art: "reise" | "auslagen"): Abschnitt[] {
-  return art === "auslagen" ? ["G"] : ["A", "C", "E", "F"];
+  // Bewirtungen gibt es auch ohne Reise (z. B. Geschäftsessen am eigenen Standort)
+  return art === "auslagen" ? ["E", "G"] : ["A", "C", "E", "F"];
 }
 
 /** Gleichwertige Kategorien in Reisekosten (F) und Auslagen (G); Porto je nach Steuersatz */

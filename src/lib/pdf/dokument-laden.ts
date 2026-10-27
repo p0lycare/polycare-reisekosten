@@ -7,7 +7,7 @@ import { formatDatum, formatDatumZeit } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { verpflegungFuer, VERKEHRSMITTEL_TEXT } from "@/lib/reisekosten/reise";
 import { monatsname } from "@/lib/reisekosten/monat";
-import { angabenText } from "@/lib/reisekosten/pflichtangaben";
+import { angabenListe } from "@/lib/reisekosten/pflichtangaben";
 import type { AbrechnungsDokument, BelegDatei } from "./abrechnung-pdf";
 
 const AKTION: Record<string, string> = {
@@ -57,7 +57,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
   const nummeriert = (belege ?? []).map((b, i) => ({
     ...b,
     nr: i + 1,
-    angaben: angabenText({
+    angaben: angabenListe({
       anlass: b.anlass,
       person: b.person,
       kfzKennzeichen: b.kfz_kennzeichen,
@@ -117,7 +117,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
       lieferant: b.lieferant,
       kostenstelle: b.kostenstelle,
       zahlungsart: b.zahlungsart,
-      angaben: b.angaben || null,
+      angaben: b.angaben,
       dateiNr: b.datei_pfad ? (erstePosition.get(b.datei_pfad) ?? null) : null,
     })),
     abrechnung,

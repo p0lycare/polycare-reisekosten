@@ -29,7 +29,7 @@ describe("auslagenZeitraum", () => {
 
 describe("abschnitteFuer", () => {
   it("trennt Reise- und Auslagenkategorien", () => {
-    expect(abschnitteFuer("auslagen")).toEqual(["G"]);
+    expect(abschnitteFuer("auslagen")).toEqual(["E", "G"]);
     expect(abschnitteFuer("reise")).not.toContain("G");
   });
 });

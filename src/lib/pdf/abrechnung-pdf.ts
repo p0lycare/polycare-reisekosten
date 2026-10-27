@@ -38,8 +38,8 @@ export type AbrechnungsDokument = {
     lieferant?: string | null;
     kostenstelle?: string | null;
     zahlungsart?: string | null;
-    /** Pflichtangaben, z. B. "Person: … · Anlass: …" */
-    angaben?: string | null;
+    /** Pflichtangaben als beschriftete Einträge, z. B. ["Person: …", "Anlass: …"] */
+    angaben?: string[];
     /** Nummer des Belegs, dessen Datei dieses Foto/PDF ist (mehrere Positionen einer Hotelrechnung teilen eine) */
     dateiNr?: number | null;
   }[];
@@ -157,40 +157,88 @@ function auslagenKopf(l: Layout, d: AbrechnungsDokument) {
   l.zeile(24);
 }
 
-/** Einzelbelege wie im FB 21: Datum, Lieferant, Zweck, Kostenstelle, Zahlungsart, Netto, MwSt, Brutto */
-function auslagenPositionen(l: Layout, d: AbrechnungsDokument, seiten: Seitenverweise) {
+const DETAIL = rgb(0.3, 0.3, 0.3);
+const FLAECHE = rgb(0.95, 0.96, 0.94);
+
+/** Eckdaten auf einen Blick: Auszahlung, Zahl der Belege, wo die Originale beginnen */
+function eckdaten(l: Layout, d: AbrechnungsDokument, seiten: Seitenverweise) {
+  const breite = RECHTS - RAND;
+  l.zeile(12);
+  l.seite.drawRectangle({ x: RAND, y: l.y - 22, width: breite, height: 36, color: FLAECHE });
+  const spalte = breite / 3;
+  const felder: [string, string][] = [
+    [d.abrechnung.auszuzahlen < 0 ? "Rückzahlung an Polycare" : "Auszuzahlen", fmt(Math.abs(d.abrechnung.auszuzahlen))],
+    ["Belege", `${d.belege.length}`],
+    ["Originale", seiten.size ? `ab Seite ${Math.min(...seiten.values())}` : "–"],
+  ];
+  felder.forEach(([label], i) => l.text(label, RAND + 10 + i * spalte, { groesse: 7, farbe: GRAU }));
+  l.zeile(13);
+  felder.forEach(([, wert], i) => l.text(wert, RAND + 10 + i * spalte, { groesse: 12, fett: true }));
+  l.zeile(28);
+}
+
+/**
+ * Einzelbelege als Tabelle (wie FB 21: Netto, MwSt, Brutto je Beleg). Unter jedem Beleg stehen die
+ * Pflichtangaben ungekürzt und beschriftet; rechts die Seite, auf der das Original im PDF liegt.
+ */
+function belegTabelle(l: Layout, d: AbrechnungsDokument, seiten: Seitenverweise) {
+  const xDatum = RAND + 20;
   const xText = RAND + 74;
-  const xKst = RAND + 282;
+  const xSeite = RAND + 318;
   const xNetto = RAND + 380;
-  const xMwst = RAND + 440;
+  const xMwst = RAND + 435;
+  const textBreite = xSeite - xText - 34;
+  const auslagen = d.art === "auslagen";
+
   l.ueberschrift(einzelbelegeTitel(seiten));
   l.text("Nr.", RAND, { groesse: 7, farbe: GRAU });
-  l.text("Datum", RAND + 20, { groesse: 7, farbe: GRAU });
-  l.text("Lieferant · Zweck (Zahlungsart)", xText, { groesse: 7, farbe: GRAU });
-  l.text("KSt", xKst, { groesse: 7, farbe: GRAU });
+  l.text("Datum", xDatum, { groesse: 7, farbe: GRAU });
+  l.text(auslagen ? "Lieferant · Zweck" : "Beleg", xText, { groesse: 7, farbe: GRAU });
+  l.text("Original", 0, { groesse: 7, farbe: GRAU, rechts: xSeite });
   l.text("Netto", 0, { groesse: 7, farbe: GRAU, rechts: xNetto });
   l.text("MwSt", 0, { groesse: 7, farbe: GRAU, rechts: xMwst });
   l.text("Brutto", 0, { groesse: 7, farbe: GRAU, rechts: RECHTS });
   l.zeile(13);
+  l.linie();
+  l.zeile(4);
+
   for (const b of d.belege) {
-    l.platz(14);
     const { netto, mwst } = nettoAusBrutto(b.brutto, b.mwstProzent);
-    const zahlung = b.zahlungsart ? ` (${zahlungsartKurz(b.zahlungsart)})` : "";
-    const text = [b.lieferant || b.kategorie, b.beschreibung].filter(Boolean).join(" · ") + zahlung + (b.mitDatei ? "" : " – ohne Beleg");
-    l.text(`${b.nr}.`, RAND);
-    l.text(b.datum, RAND + 20);
-    l.text(l.passend(text, xKst - xText - 6), xText);
-    l.text(l.passend(b.kostenstelle ?? "–", xNetto - xKst - 50), xKst, { farbe: GRAU });
-    l.text(fmt(netto), 0, { rechts: xNetto });
-    l.text(mwst ? fmt(mwst) : "–", 0, { rechts: xMwst, farbe: GRAU });
-    l.text(fmt(b.brutto), 0, { rechts: RECHTS });
-    l.zeile(12);
+    const titel = auslagen
+      ? [b.lieferant || b.kategorie, b.beschreibung].filter(Boolean).join(" · ")
+      : [b.kategorie, b.beschreibung].filter(Boolean).join(" · ");
+    const titelZeilen = l.umbrechen(titel, textBreite, 9);
+    const details = [
+      ...(auslagen ? [b.kategorie] : []),
+      ...(b.angaben ?? []),
+      [b.kostenstelle && `Kostenstelle: ${b.kostenstelle}`, b.zahlungsart && `Bezahlt: ${zahlungsartKurz(b.zahlungsart)}`].filter(Boolean).join(" · "),
+    ].filter(Boolean);
+    const detailZeilen = details.flatMap((z) => l.umbrechen(z, textBreite, 8));
+    // Beleg nicht über einen Seitenumbruch zerreißen
+    l.platz(titelZeilen.length * 12 + Math.max(detailZeilen.length, 1) * 10 + 8);
+
     const seite = b.dateiNr ? seiten.get(b.dateiNr) : undefined;
-    if (seite) {
-      l.platz(11);
-      l.text(`Original S. ${seite}`, xText, { groesse: 8, farbe: GRAU });
+    l.text(`${b.nr}.`, RAND, { fett: true });
+    l.text(b.datum, xDatum);
+    l.text(seite ? `S. ${seite}` : b.mitDatei ? "–" : "ohne Beleg", 0, { rechts: xSeite, fett: !!seite });
+    l.text(fmt(netto), 0, { rechts: xNetto });
+    l.text(mwst ? fmt(mwst) : "–", 0, { rechts: xMwst });
+    l.text(fmt(b.brutto), 0, { rechts: RECHTS, fett: true });
+    titelZeilen.forEach((z, i) => {
+      if (i) l.zeile(11);
+      l.text(z, xText, { fett: true });
+    });
+    l.zeile(11);
+    // Steuersatz klein unter dem MwSt-Betrag
+    l.text(`${String(b.mwstProzent).replace(".", ",")} %`, 0, { rechts: xMwst, groesse: 7, farbe: GRAU });
+    for (const z of detailZeilen) {
+      l.text(z, xText, { groesse: 8, farbe: DETAIL });
       l.zeile(10);
     }
+    if (!detailZeilen.length) l.zeile(10);
+    l.zeile(3);
+    l.linie();
+    l.zeile(8);
   }
 }
 
@@ -242,6 +290,7 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument, seiten: Seit
 
   if (auslagen) auslagenKopf(l, d);
   else reiseKopf(l, d);
+  eckdaten(l, d, seiten);
 
   // Abschnitte A–G
   l.ueberschrift("Abrechnung");
@@ -321,29 +370,8 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument, seiten: Seit
     }
   }
 
-  // Belegliste
-  if (auslagen && d.belege.length) {
-    auslagenPositionen(l, d, seiten);
-  } else if (d.belege.length) {
-    l.ueberschrift(einzelbelegeTitel(seiten));
-    for (const b of d.belege) {
-      l.platz(14);
-      l.text(`${b.nr}.`, RAND);
-      l.text(b.datum, RAND + 20);
-      l.text(l.passend(b.kategorie + (b.beschreibung ? ` · ${b.beschreibung}` : ""), 260), RAND + 80);
-      const seite = b.dateiNr ? seiten.get(b.dateiNr) : undefined;
-      if (seite) l.text(`S. ${seite}`, 0, { rechts: RAND + 385, farbe: GRAU });
-      l.text(b.mitDatei ? `${String(b.mwstProzent).replace(".", ",")} %` : "ohne Beleg", 0, { rechts: xMwst, farbe: GRAU });
-      l.text(fmt(b.brutto), 0, { rechts: RECHTS });
-      l.zeile(12);
-      // Pflichtangaben vollständig (umgebrochen), nicht gekürzt – sie sind für die Prüfung gedacht
-      for (const z of b.angaben ? l.umbrechen(b.angaben, RECHTS - RAND - 80, 8) : []) {
-        l.platz(11);
-        l.text(z, RAND + 80, { groesse: 8, farbe: GRAU });
-        l.zeile(10);
-      }
-    }
-  }
+  // Belegliste: alle Belege mit Pflichtangaben und Seite des Originals
+  if (d.belege.length) belegTabelle(l, d, seiten);
 
   // Freigaben (ersetzt Unterschriften)
   l.ueberschrift("Bestätigungen");
@@ -362,7 +390,7 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument, seiten: Seit
   // Seitenzahlen der Abrechnung; angehängte Belege tragen "Beleg n"
   const deckblatt = doc.getPages();
   deckblatt.forEach((s, i) =>
-    s.drawText(winAnsi(`${d.belegNr ?? ""}  Abrechnung, Seite ${i + 1}/${deckblatt.length}`.trim()), {
+    s.drawText(winAnsi(`${d.belegNr ?? ""}  Deckblatt, Seite ${i + 1}/${deckblatt.length}${seiten.size ? ` · Originale ab Seite ${Math.min(...seiten.values())}` : ""}`.trim()), {
       x: RAND,
       y: 24,
       size: 7,
