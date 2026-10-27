@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import type { Abschnitt, Kategorie } from "@/lib/reisekosten/kategorie";
 import { erinnerungTesten, kategorieSpeichern, projektSpeichern, saetzeSpeichern, standortSpeichern, type AktionStatus } from "./actions";
+import { PFLICHTANGABEN, type Pflichtangabe } from "@/lib/reisekosten/pflichtangaben";
 
 const feld =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -55,9 +56,32 @@ export function KategorieZeile({ kategorie }: { kategorie: Kategorie }) {
         <Knopf laeuft={laeuft}>Speichern</Knopf>
         <Meldung status={status} />
       </div>
+      {kategorie.beleg_erfassbar && (
+        <fieldset className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm sm:col-span-5">
+          <legend className="sr-only">Pflichtangaben</legend>
+          <span className="text-xs text-neutral-500">Pflicht:</span>
+          {kategorie.abschnitt === "E" ? (
+            <span className="text-xs text-neutral-500">Anlass und bewirtete Personen (immer)</span>
+          ) : kategorie.abschnitt === "G" ? (
+            <span className="text-xs text-neutral-500">Zweck (immer)</span>
+          ) : (
+            <>
+              <input type="hidden" name="pflicht_formular" value="1" />
+              {PFLICHTANGABEN.map((a) => (
+                <label key={a} className="flex items-center gap-1.5">
+                  <input type="checkbox" name="pflichtangaben" value={a} defaultChecked={kategorie.pflichtangaben.includes(a)} className="size-4" />
+                  {PFLICHT_TEXT[a]}
+                </label>
+              ))}
+            </>
+          )}
+        </fieldset>
+      )}
     </form>
   );
 }
+
+const PFLICHT_TEXT: Record<Pflichtangabe, string> = { anlass: "Anlass", person: "Person", kfz: "Kfz-Kennzeichen" };
 
 export function NeueKategorie({ abschnitt }: { abschnitt: Abschnitt }) {
   const [status, absenden, laeuft] = useActionState(kategorieSpeichern, {});

@@ -24,6 +24,9 @@ export type Database = {
           datei_pfad: string | null
           datum: string
           id: string
+          anlass: string | null
+          person: string | null
+          kfz_kennzeichen: string | null
           kategorie_id: string
           kostenstelle: string | null
           lieferant: string | null
@@ -41,6 +44,9 @@ export type Database = {
           datei_pfad?: string | null
           datum: string
           id?: string
+          anlass?: string | null
+          person?: string | null
+          kfz_kennzeichen?: string | null
           kategorie_id: string
           kostenstelle?: string | null
           lieferant?: string | null
@@ -58,6 +64,9 @@ export type Database = {
           datei_pfad?: string | null
           datum?: string
           id?: string
+          anlass?: string | null
+          person?: string | null
+          kfz_kennzeichen?: string | null
           kategorie_id?: string
           kostenstelle?: string | null
           lieferant?: string | null
@@ -236,6 +245,7 @@ export type Database = {
           id: string
           konto: string | null
           mwst_prozent: number | null
+          pflichtangaben: string[]
           sortierung: number
         }
         Insert: {
@@ -246,6 +256,7 @@ export type Database = {
           id: string
           konto?: string | null
           mwst_prozent?: number | null
+          pflichtangaben?: string[]
           sortierung?: number
         }
         Update: {
@@ -256,6 +267,7 @@ export type Database = {
           id?: string
           konto?: string | null
           mwst_prozent?: number | null
+          pflichtangaben?: string[]
           sortierung?: number
         }
         Relationships: []

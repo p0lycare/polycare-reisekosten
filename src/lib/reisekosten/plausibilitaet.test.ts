@@ -109,3 +109,10 @@ describe("pruefePlausibilitaet für Auslagen", () => {
     expect(pruefePlausibilitaet(auslagen, [einkauf(), einkauf()], [])).toEqual([expect.stringContaining("Doppelbeleg")]);
   });
 });
+
+describe("Pflichtangaben in der Plausibilitätsprüfung", () => {
+  it("nennt Belege mit fehlenden Angaben", () => {
+    const h = pruefePlausibilitaet(reise, [beleg("bahn"), beleg("uebernachtung", { bezeichnung: "Übernachtung", fehlendeAngaben: ["Wer hat übernachtet?"] })], []);
+    expect(h).toContain("Pflichtangaben fehlen: Übernachtung (Wer hat übernachtet?) – bitte im Beleg ergänzen.");
+  });
+});

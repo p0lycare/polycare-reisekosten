@@ -48,6 +48,11 @@ export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: 
         </p>
         <p>Die Belege warten im Eingang, bis du sie am Monatsende einer Reise zuordnest. Den Papierbeleg danach aufheben, bis die Reise ausgezahlt ist.</p>
         <p>Mit der Firmenkarte bezahlte Ausgaben gehören nicht hierher – die laufen über Agicap.</p>
+        <p>
+          Damit jede Ausgabe für Dritte nachvollziehbar ist, fragt das Tool je Beleg nach: bei Hotels, wer übernachtet hat und
+          warum; bei Bewirtungen Anlass und Gäste; beim Tanken das Kennzeichen (auch beim Mietwagen); beim Mietwagen den Anlass
+          der Fahrt. Vieles ist aus der Reise vorbelegt.
+        </p>
       </Schritt>
       <Schritt nr={3} titel="Am Monatsende: Reisen anlegen" link={{ href: `/monat/${monat}`, text: "Monat abrechnen" }}>
         <p>Unter „Monat abrechnen“ siehst du alles für den Monat. Eine Reise legst du am schnellsten an …</p>

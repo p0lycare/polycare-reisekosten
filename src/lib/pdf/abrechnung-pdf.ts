@@ -38,12 +38,21 @@ export type AbrechnungsDokument = {
     lieferant?: string | null;
     kostenstelle?: string | null;
     zahlungsart?: string | null;
+    /** Pflichtangaben, z. B. "Person: … · Anlass: …" */
+    angaben?: string | null;
   }[];
   abrechnung: Abrechnung;
   verlauf: { zeit: string; aktion: string; person: string; kommentar: string | null }[];
 };
 
-export type BelegDatei = { nr: number; name: string; contentType: string; inhalt: Uint8Array };
+export type BelegDatei = {
+  nr: number;
+  name: string;
+  contentType: string;
+  inhalt: Uint8Array;
+  /** Steht oben auf der Belegseite, damit jeder Beleg in DATEV für sich nachvollziehbar ist */
+  beschriftung?: string;
+};
 
 const A4: [number, number] = [595.28, 841.89];
 const RAND = 48;
@@ -59,6 +68,21 @@ export function winAnsi(text: string): string {
     .replace(/[−‐‑]/g, "-")
     .replace(/ | /g, " ")
     .replace(/[^\x20-\x7e -ÿ€„“”‚‘’–—…•]/g, "?");
+}
+
+function umbrechen(t: string, breite: number, messen: (z: string) => number): string[] {
+  const zeilen: string[] = [];
+  let aktuell = "";
+  for (const wort of t.split(/\s+/).filter(Boolean)) {
+    const probe = aktuell ? `${aktuell} ${wort}` : wort;
+    if (messen(probe) <= breite || !aktuell) aktuell = probe;
+    else {
+      zeilen.push(aktuell);
+      aktuell = wort;
+    }
+  }
+  if (aktuell) zeilen.push(aktuell);
+  return zeilen;
 }
 
 class Layout {
@@ -99,6 +123,10 @@ class Layout {
     let s = winAnsi(t);
     while (s.length > 1 && font.widthOfTextAtSize(s, groesse) > breite) s = s.slice(0, -2) + "…";
     return s;
+  }
+  /** Bricht Text an Wortgrenzen auf eine Breite um (für Angaben, die nicht gekürzt werden dürfen) */
+  umbrechen(t: string, breite: number, groesse = 9): string[] {
+    return umbrechen(winAnsi(t), breite, (z) => this.normal.widthOfTextAtSize(z, groesse));
   }
   zeile(abstand = 13) {
     this.y -= abstand;
@@ -296,6 +324,12 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
       l.text(b.mitDatei ? `${String(b.mwstProzent).replace(".", ",")} %` : "ohne Beleg", 0, { rechts: xMwst, farbe: GRAU });
       l.text(fmt(b.brutto), 0, { rechts: RECHTS });
       l.zeile(12);
+      // Pflichtangaben vollständig (umgebrochen), nicht gekürzt – sie sind für die Prüfung gedacht
+      for (const z of b.angaben ? l.umbrechen(b.angaben, RECHTS - RAND - 80, 8) : []) {
+        l.platz(11);
+        l.text(z, RAND + 80, { groesse: 8, farbe: GRAU });
+        l.zeile(10);
+      }
     }
   }
 
@@ -327,6 +361,13 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   return doc;
 }
 
+/** Beschriftung oben auf der Belegseite: "Beleg 3 · Übernachtung · Person: … · Anlass: …", höchstens drei Zeilen */
+function beschriftungZeilen(datei: BelegDatei, font: PDFFont, breite: number, groesse: number): string[] {
+  const text = winAnsi([`Beleg ${datei.nr}`, datei.beschriftung].filter(Boolean).join(" · "));
+  const zeilen = umbrechen(text, breite, (z) => font.widthOfTextAtSize(z, groesse));
+  return zeilen.length > 3 ? [...zeilen.slice(0, 2), `${zeilen[2]} …`] : zeilen;
+}
+
 /** Hängt einen Beleg an: PDFs seitenweise, JPEG/PNG skaliert auf eine A4-Seite. Andere Formate: false. */
 async function belegAnhaengen(doc: PDFDocument, datei: BelegDatei, font: PDFFont): Promise<boolean> {
   try {
@@ -334,6 +375,14 @@ async function belegAnhaengen(doc: PDFDocument, datei: BelegDatei, font: PDFFont
       const quelle = await PDFDocument.load(datei.inhalt, { ignoreEncryption: true });
       const seiten = await doc.copyPages(quelle, quelle.getPageIndices());
       seiten.forEach((s) => doc.addPage(s));
+      // Auf der ersten Seite oben ein weißes Feld mit der Beschriftung (der Rand fremder PDFs ist meist frei)
+      const erste = seiten[0];
+      if (erste) {
+        const { width, height } = erste.getSize();
+        const zeilen = beschriftungZeilen(datei, font, width - 32, 7);
+        erste.drawRectangle({ x: 12, y: height - 12 - zeilen.length * 9, width: width - 24, height: zeilen.length * 9 + 6, color: rgb(1, 1, 1), opacity: 0.9 });
+        zeilen.forEach((z, i) => erste.drawText(z, { x: 16, y: height - 14 - i * 9, size: 7, font, color: rgb(0.2, 0.2, 0.2) }));
+      }
       return true;
     }
     const bild =
@@ -345,10 +394,12 @@ async function belegAnhaengen(doc: PDFDocument, datei: BelegDatei, font: PDFFont
     if (!bild) return false;
     const seite = doc.addPage(A4);
     const maxB = A4[0] - 2 * RAND;
-    const maxH = A4[1] - 2 * RAND - 20;
+    const zeilen = beschriftungZeilen(datei, font, maxB, 9);
+    const kopf = zeilen.length * 12 + 8;
+    const maxH = A4[1] - 2 * RAND - kopf;
     const f = Math.min(maxB / bild.width, maxH / bild.height, 1);
-    seite.drawImage(bild, { x: RAND, y: A4[1] - RAND - 20 - bild.height * f, width: bild.width * f, height: bild.height * f });
-    seite.drawText(winAnsi(`Beleg ${datei.nr}`), { x: RAND, y: A4[1] - RAND, size: 9, font, color: GRAU });
+    seite.drawImage(bild, { x: RAND, y: A4[1] - RAND - kopf - bild.height * f, width: bild.width * f, height: bild.height * f });
+    zeilen.forEach((z, i) => seite.drawText(z, { x: RAND, y: A4[1] - RAND - i * 12, size: 9, font, color: GRAU }));
     return true;
   } catch {
     return false;

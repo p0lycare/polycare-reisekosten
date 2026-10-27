@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
 import { ABSCHNITT_TEXT, type Abschnitt } from "@/lib/reisekosten/kategorie";
+import { angabenText } from "@/lib/reisekosten/pflichtangaben";
 
 export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; bearbeitbar: boolean }) {
   const supabase = await createClient();
@@ -47,6 +48,7 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
                   .map((b) => {
                     const { netto, mwst } = nettoAusBrutto(b.betrag_cent, Number(b.mwst_prozent));
                     const url = b.datei_pfad ? urls.get(b.datei_pfad) : undefined;
+                    const angaben = angabenText({ anlass: b.anlass, person: b.person, kfzKennzeichen: b.kfz_kennzeichen, bewirtungAnlass: b.bewirtung_anlass, bewirtungTeilnehmer: b.bewirtung_teilnehmer });
                     const inhalt = (
                       <>
                         <div className="min-w-0">
@@ -54,6 +56,7 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
                             {b.lieferant ?? b.kategorie!.bezeichnung}
                             {b.beschreibung && <span className="text-neutral-500"> · {b.beschreibung}</span>}
                           </p>
+                          {angaben && <p className="truncate text-xs text-neutral-600 dark:text-neutral-400">{angaben}</p>}
                           <p className="text-xs text-neutral-500 tabular-nums">
                             {formatDatum(b.datum)} · netto {formatEuro(netto)} + {String(Number(b.mwst_prozent)).replace(".", ",")} % {formatEuro(mwst)}
                             {b.kostenstelle && ` · KSt ${b.kostenstelle}`}

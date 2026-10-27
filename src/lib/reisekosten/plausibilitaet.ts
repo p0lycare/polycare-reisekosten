@@ -22,7 +22,16 @@ export type PlausiBeleg = {
   hatDatei: boolean;
   /** Zweck / Beschreibung (bei Auslagen Pflicht) */
   beschreibung?: string | null;
+  /** Pflichtangaben der Kategorie, die fehlen (z. B. ältere Belege vor Einführung der Pflicht) */
+  fehlendeAngaben?: string[];
 };
+
+/** Hinweis auf Belege ohne Pflichtangaben – sonst fragt die Buchhaltung nach */
+function angabenHinweis(belege: PlausiBeleg[]): string | null {
+  const ohne = belege.filter((b) => b.fehlendeAngaben?.length);
+  if (!ohne.length) return null;
+  return `Pflichtangaben fehlen: ${ohne.map((b) => `${b.bezeichnung} (${b.fehlendeAngaben!.join(", ")})`).join("; ")} – bitte im Beleg ergänzen.`;
+}
 
 /** km_route: per Routing berechnete Strecke, falls bekannt */
 export type PlausiFahrt = { datum: string; km?: number | string; km_route?: number | string | null };
@@ -58,6 +67,8 @@ function pruefeAuslagen(reise: PlausiReise, belege: PlausiBeleg[]): string[] {
   if ([...gruppen.values()].some((n) => n > 1)) hinweise.push("Möglicher Doppelbeleg: zwei Belege am selben Tag mit gleichem Betrag.");
   const ohneDatei = belege.filter((b) => !b.hatDatei);
   if (ohneDatei.length) hinweise.push(`Ohne Belegfoto: ${ohneDatei.map((b) => b.beschreibung || b.bezeichnung).join(", ")}.`);
+  const angaben = angabenHinweis(belege);
+  if (angaben) hinweise.push(angaben);
   return hinweise;
 }
 
@@ -146,5 +157,7 @@ export function pruefePlausibilitaet(reise: PlausiReise, belege: PlausiBeleg[], 
     hinweise.push(`Ohne Belegfoto: ${ohneDatei.map((b) => b.bezeichnung).join(", ")}.`);
   }
 
+  const angaben = angabenHinweis(belege);
+  if (angaben) hinweise.push(angaben);
   return hinweise;
 }

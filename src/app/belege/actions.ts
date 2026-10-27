@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { eingangPfad } from "@/lib/belegpfad";
 import { liesGespeichertenBeleg } from "@/lib/ki/auslesen-server";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
-import { positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { ladePflichtangaben, positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
+import { angabenSpalten, vorbelegung } from "@/lib/reisekosten/pflichtangaben";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import { auslagenAbrechnungHolen } from "@/lib/reisekosten/auslagen";
 import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
@@ -45,9 +46,10 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
   } = await supabase.auth.getUser();
   if (!user) return { fehler: "Bitte neu anmelden." };
 
-  const [{ data: eintrag }, { data: reise }] = await Promise.all([
+  const [{ data: eintrag }, { data: reise }, { data: profil }] = await Promise.all([
     supabase.from("beleg_eingang").select("*").eq("id", eingangId).maybeSingle(),
-    supabase.from("reise").select("id, mitarbeiter_id, status, art").eq("id", reiseId).maybeSingle(),
+    supabase.from("reise").select("id, mitarbeiter_id, status, art, begruendung, reiseweg, kfz_kennzeichen").eq("id", reiseId).maybeSingle(),
+    supabase.from("profile").select("name").eq("id", user.id).maybeSingle(),
   ]);
   if (!eintrag) return { fehler: "Beleg nicht gefunden." };
   if (!reise || reise.mitarbeiter_id !== user.id || !istBearbeitbar(reise.status)) {
@@ -64,14 +66,20 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
 
   const passend = await positionenFuerArt(supabase, e.positionen, reise.art);
   if ("fehler" in passend) return passend;
+  // Pflichtangaben aus der Reise: wer reist, warum, mit welchem Auto – was fehlt (z. B. Kennzeichen
+  // des Mietwagens), wird von Hand ergänzt
+  const angaben = vorbelegung(reise, profil?.name ?? "");
+  const pflicht = await ladePflichtangaben(supabase, passend.positionen.map((p) => p.kategorieId));
   const fehler = await pruefePositionen(
     supabase,
-    passend.positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null })),
+    passend.positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null, angaben })),
     false,
     reise.art,
   );
   if (fehler) {
-    return { fehler: fehler.startsWith("Bei Bewirtungen") ? "Bewirtungen bitte von Hand mit Anlass und Teilnehmenden erfassen." : fehler };
+    if (fehler.startsWith("Bei Bewirtungen")) return { fehler: "Bewirtungen bitte von Hand mit Anlass und Teilnehmenden erfassen." };
+    if (fehler.startsWith("Bitte angeben")) return { fehler: `${fehler} Bitte „Von Hand erfassen“.` };
+    return { fehler };
   }
 
   const { error } = await supabase.from("beleg").insert(
@@ -83,6 +91,7 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
       betrag_cent: p.betragCent,
       mwst_prozent: p.mwstProzent,
       datei_pfad: eintrag.datei_pfad,
+      ...angabenSpalten(pflicht.get(p.kategorieId) ?? [], angaben),
     })),
   );
   if (error) return { fehler: "Zuordnen fehlgeschlagen. Ist die Reise noch bearbeitbar?" };

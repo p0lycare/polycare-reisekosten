@@ -8,7 +8,7 @@ import { kiVerfuegbar } from "@/lib/ki/beleg-auslesen";
 
 export default async function BelegBearbeitenPage({ params }: { params: Promise<{ id: string; belegId: string }> }) {
   const { id, belegId } = await params;
-  const { supabase, user, reise, kategorien } = await ladeFuerBeleg(id);
+  const { supabase, user, reise, kategorien, vorbelegt } = await ladeFuerBeleg(id);
 
   const { data: beleg } = await supabase.from("beleg").select("*").eq("id", belegId).eq("reise_id", id).maybeSingle();
   if (!beleg) notFound();
@@ -47,6 +47,10 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
           lieferant: beleg.lieferant ?? "",
           kostenstelle: beleg.kostenstelle ?? "",
           zahlungsart: beleg.zahlungsart ?? "",
+          // Ältere Belege ohne Angaben: aus der Reise vorbelegen
+          anlass: beleg.anlass ?? vorbelegt.anlass ?? "",
+          person: beleg.person ?? vorbelegt.person ?? "",
+          kfzKennzeichen: beleg.kfz_kennzeichen ?? vorbelegt.kfzKennzeichen ?? "",
         }}
       />
     </main>
