@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { startTransition, useActionState, useMemo, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { verkleinereBild } from "@/lib/bild";
+import { formatFehler, verkleinereBild } from "@/lib/bild";
 import { formatEuro } from "@/lib/format";
 import { parseEuro } from "@/lib/geld";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
@@ -105,6 +105,11 @@ export function BelegFormular({
     setLaedtHoch(true);
     try {
       const verkleinert = await verkleinereBild(f);
+      const format = formatFehler(verkleinert);
+      if (format) {
+        setUploadFehler(format);
+        return null;
+      }
       if (verkleinert.size > MAX_DATEI_BYTES) {
         setUploadFehler(
           verkleinert.type === "application/pdf"

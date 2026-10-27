@@ -89,26 +89,34 @@ describe("Abrechnungs-PDF", () => {
     expect(doc.getPageCount()).toBe(1);
   });
 
-  it("hängt Bilder und PDFs an, HEIC separat", async () => {
+  it("ein PDF: Deckblatt mit Seitenverweisen, dahinter die Originale", async () => {
     const anhang = await PDFDocument.create();
     anhang.addPage();
     anhang.addPage();
     const dateien: BelegDatei[] = [
-      { nr: 1, name: "1.png", contentType: "image/png", inhalt: await testbildPng(), beschriftung: "Übernachtung · Person: Erika Muster · Anlass: Messe" },
-      { nr: 2, name: "2.pdf", contentType: "application/pdf", inhalt: await anhang.save(), beschriftung: "Auto tanken · Kfz: K-AB 123 ".repeat(20) },
+      { nr: 1, name: "1.png", contentType: "image/png", inhalt: await testbildPng() },
+      { nr: 2, name: "2.pdf", contentType: "application/pdf", inhalt: await anhang.save() },
       { nr: 3, name: "3.heic", contentType: "image/heic", inhalt: new Uint8Array(10) },
     ];
-    const { teile, separat } = await erzeugePdfMitBelegen(dokument, dateien, 10_000_000);
-    expect(teile).toHaveLength(1);
-    expect((await PDFDocument.load(teile[0])).getPageCount()).toBe(1 + 1 + 2);
-    expect(separat.map((s) => s.name)).toEqual(["3.heic"]);
+    const mitDateien = {
+      ...dokument,
+      belege: [1, 2, 3].map((nr) => ({ ...dokument.belege[0], nr, dateiNr: nr })),
+    };
+    const { pdf, nichtEingebettet } = await erzeugePdfMitBelegen(mitDateien, dateien);
+    // Deckblatt (1) + Foto (1) + PDF (2) + Hinweisseite für das nicht einbettbare Format (1)
+    expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1 + 1 + 2 + 1);
+    expect(nichtEingebettet).toEqual([3]);
   });
 
-  it("verteilt große Belege auf mehrere Teile", async () => {
-    const png = await testbildPng();
-    const gross = (nr: number): BelegDatei => ({ nr, name: `${nr}.png`, contentType: "image/png", inhalt: png });
-    const einzeln = (await (await erzeugeAbrechnungsPdf(dokument)).save()).byteLength;
-    const { teile } = await erzeugePdfMitBelegen(dokument, [gross(1), gross(2)], einzeln + png.byteLength + 1);
-    expect(teile).toHaveLength(2);
+  it("Originale bleiben unverändert (keine Beschriftung auf fremden PDF-Seiten)", async () => {
+    const anhang = await PDFDocument.create();
+    anhang.addPage([300, 400]);
+    const original = await anhang.save();
+    const { pdf } = await erzeugePdfMitBelegen(dokument, [{ nr: 1, name: "1.pdf", contentType: "application/pdf", inhalt: original }]);
+    const fertig = await PDFDocument.load(pdf);
+    const seite = fertig.getPage(fertig.getPageCount() - 1);
+    expect(seite.getSize()).toEqual({ width: 300, height: 400 });
+    // Eine leere Originalseite hat nach dem Kopieren weiterhin keinen Inhalt
+    expect(seite.node.Contents()).toBeUndefined();
   });
 });

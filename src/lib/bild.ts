@@ -28,3 +28,12 @@ export async function verkleinereBild(datei: File): Promise<File> {
   if (!blob) return datei;
   return new File([blob], datei.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
 }
+
+/** Diese Formate lassen sich ins PDF für DATEV einbetten – alles andere würde dort ein loser Einzelbeleg */
+const ERLAUBT = ["image/jpeg", "image/png", "application/pdf"];
+
+/** Fehlermeldung, wenn eine (bereits verkleinerte) Datei kein einbettbares Format hat, sonst null */
+export function formatFehler(datei: File): string | null {
+  if (ERLAUBT.includes(datei.type)) return null;
+  return "Dieses Format kann nicht verarbeitet werden – bitte als Foto (JPEG) oder PDF. Am iPhone: Einstellungen → Kamera → Formate → „Maximale Kompatibilität“.";
+}

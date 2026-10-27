@@ -40,19 +40,17 @@ export type AbrechnungsDokument = {
     zahlungsart?: string | null;
     /** Pflichtangaben, z. B. "Person: … · Anlass: …" */
     angaben?: string | null;
+    /** Nummer des Belegs, dessen Datei dieses Foto/PDF ist (mehrere Positionen einer Hotelrechnung teilen eine) */
+    dateiNr?: number | null;
   }[];
   abrechnung: Abrechnung;
   verlauf: { zeit: string; aktion: string; person: string; kommentar: string | null }[];
 };
 
-export type BelegDatei = {
-  nr: number;
-  name: string;
-  contentType: string;
-  inhalt: Uint8Array;
-  /** Steht oben auf der Belegseite, damit jeder Beleg in DATEV für sich nachvollziehbar ist */
-  beschriftung?: string;
-};
+export type BelegDatei = { nr: number; name: string; contentType: string; inhalt: Uint8Array };
+
+/** Startseite des Originals im PDF je Datei (Schlüssel: dateiNr) – steht auf dem Deckblatt */
+export type Seitenverweise = Map<number, number>;
 
 const A4: [number, number] = [595.28, 841.89];
 const RAND = 48;
@@ -160,12 +158,12 @@ function auslagenKopf(l: Layout, d: AbrechnungsDokument) {
 }
 
 /** Einzelbelege wie im FB 21: Datum, Lieferant, Zweck, Kostenstelle, Zahlungsart, Netto, MwSt, Brutto */
-function auslagenPositionen(l: Layout, d: AbrechnungsDokument) {
+function auslagenPositionen(l: Layout, d: AbrechnungsDokument, seiten: Seitenverweise) {
   const xText = RAND + 74;
   const xKst = RAND + 282;
   const xNetto = RAND + 380;
   const xMwst = RAND + 440;
-  l.ueberschrift("Einzelbelege");
+  l.ueberschrift(einzelbelegeTitel(seiten));
   l.text("Nr.", RAND, { groesse: 7, farbe: GRAU });
   l.text("Datum", RAND + 20, { groesse: 7, farbe: GRAU });
   l.text("Lieferant · Zweck (Zahlungsart)", xText, { groesse: 7, farbe: GRAU });
@@ -187,7 +185,19 @@ function auslagenPositionen(l: Layout, d: AbrechnungsDokument) {
     l.text(mwst ? fmt(mwst) : "–", 0, { rechts: xMwst, farbe: GRAU });
     l.text(fmt(b.brutto), 0, { rechts: RECHTS });
     l.zeile(12);
+    const seite = b.dateiNr ? seiten.get(b.dateiNr) : undefined;
+    if (seite) {
+      l.platz(11);
+      l.text(`Original S. ${seite}`, xText, { groesse: 8, farbe: GRAU });
+      l.zeile(10);
+    }
   }
+}
+
+/** Überschrift der Belegliste, mit Hinweis, wo die Originale beginnen */
+function einzelbelegeTitel(seiten: Seitenverweise): string {
+  const erste = Math.min(...seiten.values());
+  return seiten.size ? `Einzelbelege (Originale ab Seite ${erste})` : "Einzelbelege";
 }
 
 /** Kopf der Reisekostenabrechnung (FB 06) */
@@ -216,7 +226,7 @@ function reiseKopf(l: Layout, d: AbrechnungsDokument) {
 }
 
 /** Erzeugt die Abrechnungsseiten (ohne Belege). */
-export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDFDocument> {
+export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument, seiten: Seitenverweise = new Map()): Promise<PDFDocument> {
   const doc = await PDFDocument.create();
   const auslagen = d.art === "auslagen";
   doc.setTitle(winAnsi(`${auslagen ? "Auslagenabrechnung" : "Reisekostenabrechnung"} ${d.belegNr ?? ""} ${d.reisende.name}`.trim()));
@@ -313,14 +323,16 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
 
   // Belegliste
   if (auslagen && d.belege.length) {
-    auslagenPositionen(l, d);
+    auslagenPositionen(l, d, seiten);
   } else if (d.belege.length) {
-    l.ueberschrift("Einzelbelege");
+    l.ueberschrift(einzelbelegeTitel(seiten));
     for (const b of d.belege) {
       l.platz(14);
       l.text(`${b.nr}.`, RAND);
       l.text(b.datum, RAND + 20);
       l.text(l.passend(b.kategorie + (b.beschreibung ? ` · ${b.beschreibung}` : ""), 260), RAND + 80);
+      const seite = b.dateiNr ? seiten.get(b.dateiNr) : undefined;
+      if (seite) l.text(`S. ${seite}`, 0, { rechts: RAND + 385, farbe: GRAU });
       l.text(b.mitDatei ? `${String(b.mwstProzent).replace(".", ",")} %` : "ohne Beleg", 0, { rechts: xMwst, farbe: GRAU });
       l.text(fmt(b.brutto), 0, { rechts: RECHTS });
       l.zeile(12);
@@ -348,9 +360,9 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   });
 
   // Seitenzahlen der Abrechnung; angehängte Belege tragen "Beleg n"
-  const seiten = doc.getPages();
-  seiten.forEach((s, i) =>
-    s.drawText(winAnsi(`${d.belegNr ?? ""}  Abrechnung, Seite ${i + 1}/${seiten.length}`.trim()), {
+  const deckblatt = doc.getPages();
+  deckblatt.forEach((s, i) =>
+    s.drawText(winAnsi(`${d.belegNr ?? ""}  Abrechnung, Seite ${i + 1}/${deckblatt.length}`.trim()), {
       x: RAND,
       y: 24,
       size: 7,
@@ -361,79 +373,85 @@ export async function erzeugeAbrechnungsPdf(d: AbrechnungsDokument): Promise<PDF
   return doc;
 }
 
-/** Beschriftung oben auf der Belegseite: "Beleg 3 · Übernachtung · Person: … · Anlass: …", höchstens drei Zeilen */
-function beschriftungZeilen(datei: BelegDatei, font: PDFFont, breite: number, groesse: number): string[] {
-  const text = winAnsi([`Beleg ${datei.nr}`, datei.beschriftung].filter(Boolean).join(" · "));
-  const zeilen = umbrechen(text, breite, (z) => font.widthOfTextAtSize(z, groesse));
-  return zeilen.length > 3 ? [...zeilen.slice(0, 2), `${zeilen[2]} …`] : zeilen;
-}
-
-/** Hängt einen Beleg an: PDFs seitenweise, JPEG/PNG skaliert auf eine A4-Seite. Andere Formate: false. */
-async function belegAnhaengen(doc: PDFDocument, datei: BelegDatei, font: PDFFont): Promise<boolean> {
+/** PDF-Belege vorab laden (Seitenzahl fürs Deckblatt); Fotos belegen immer eine Seite */
+async function vorbereiten(datei: BelegDatei) {
+  if (datei.contentType === "image/jpeg" || datei.contentType === "image/png") return { art: "bild" as const, seiten: 1 };
+  if (datei.contentType !== "application/pdf") return null;
   try {
-    if (datei.contentType === "application/pdf") {
-      const quelle = await PDFDocument.load(datei.inhalt, { ignoreEncryption: true });
-      const seiten = await doc.copyPages(quelle, quelle.getPageIndices());
-      seiten.forEach((s) => doc.addPage(s));
-      // Auf der ersten Seite oben ein weißes Feld mit der Beschriftung (der Rand fremder PDFs ist meist frei)
-      const erste = seiten[0];
-      if (erste) {
-        const { width, height } = erste.getSize();
-        const zeilen = beschriftungZeilen(datei, font, width - 32, 7);
-        erste.drawRectangle({ x: 12, y: height - 12 - zeilen.length * 9, width: width - 24, height: zeilen.length * 9 + 6, color: rgb(1, 1, 1), opacity: 0.9 });
-        zeilen.forEach((z, i) => erste.drawText(z, { x: 16, y: height - 14 - i * 9, size: 7, font, color: rgb(0.2, 0.2, 0.2) }));
-      }
-      return true;
-    }
-    const bild =
-      datei.contentType === "image/jpeg"
-        ? await doc.embedJpg(datei.inhalt)
-        : datei.contentType === "image/png"
-          ? await doc.embedPng(datei.inhalt)
-          : null;
-    if (!bild) return false;
-    const seite = doc.addPage(A4);
-    const maxB = A4[0] - 2 * RAND;
-    const zeilen = beschriftungZeilen(datei, font, maxB, 9);
-    const kopf = zeilen.length * 12 + 8;
-    const maxH = A4[1] - 2 * RAND - kopf;
-    const f = Math.min(maxB / bild.width, maxH / bild.height, 1);
-    seite.drawImage(bild, { x: RAND, y: A4[1] - RAND - kopf - bild.height * f, width: bild.width * f, height: bild.height * f });
-    zeilen.forEach((z, i) => seite.drawText(z, { x: RAND, y: A4[1] - RAND - i * 12, size: 9, font, color: GRAU }));
-    return true;
+    const quelle = await PDFDocument.load(datei.inhalt, { ignoreEncryption: true });
+    return { art: "pdf" as const, quelle, seiten: quelle.getPageCount() };
   } catch {
-    return false;
+    return null;
   }
 }
 
-export type PdfTeile = {
-  /** PDF-Dateien, jeweils unter der Größengrenze (Teil 1 enthält die Abrechnung) */
-  teile: Uint8Array[];
-  /** Belege, die nicht ins PDF eingebettet werden konnten (z. B. HEIC) – separat anhängen */
-  separat: BelegDatei[];
+async function bildEinbetten(doc: PDFDocument, datei: BelegDatei) {
+  try {
+    return datei.contentType === "image/png" ? await doc.embedPng(datei.inhalt) : await doc.embedJpg(datei.inhalt);
+  } catch {
+    return null;
+  }
+}
+
+export type AbrechnungsPdf = {
+  pdf: Uint8Array;
+  /** Belege, die nicht eingebettet werden konnten (stattdessen steht dort eine Hinweisseite) */
+  nichtEingebettet: number[];
 };
 
 /**
- * Erzeugt die Abrechnung samt Belegen als PDF. Passt alles nicht in eine Mail, werden die Belege
- * auf weitere PDF-Teile verteilt (DATEV legt jede Datei als eigenen Beleg ab).
+ * Ein PDF je Abrechnung – in DATEV genau ein Beleg: vorne die Abrechnung als Deckblatt (mit Seitenangabe je
+ * Original), dahinter die Originale unverändert in der Reihenfolge der Belegliste. Fotos stehen auf einer eigenen
+ * Seite mit der Belegnummer; PDFs werden Seite für Seite übernommen, ohne Aufdruck.
  */
-export async function erzeugePdfMitBelegen(d: AbrechnungsDokument, dateien: BelegDatei[], maxBytes: number): Promise<PdfTeile> {
-  const teile: Uint8Array[] = [];
-  const separat: BelegDatei[] = [];
-  let aktuell = await erzeugeAbrechnungsPdf(d);
-  let font = await aktuell.embedFont(StandardFonts.Helvetica);
-  let groesse = (await aktuell.save()).byteLength;
+export async function erzeugePdfMitBelegen(d: AbrechnungsDokument, dateien: BelegDatei[]): Promise<AbrechnungsPdf> {
+  const probe = await erzeugeAbrechnungsPdf(d);
+  const vorbereitet = await Promise.all(dateien.map(vorbereiten));
+  const seitenJeDatei = vorbereitet.map((v) => v?.seiten ?? 1);
 
-  for (const datei of dateien) {
-    if (groesse + datei.inhalt.byteLength > maxBytes && aktuell.getPageCount() > 0) {
-      teile.push(await aktuell.save());
-      aktuell = await PDFDocument.create();
-      font = await aktuell.embedFont(StandardFonts.Helvetica);
-      groesse = 0;
-    }
-    if (await belegAnhaengen(aktuell, datei, font)) groesse += datei.inhalt.byteLength;
-    else separat.push(datei);
+  // Seitenzahlen hängen von der Länge des Deckblatts ab – das bleibt mit Verweisen gleich lang, sonst erneut rechnen
+  const verweise = (deckblatt: number): Seitenverweise => {
+    const karte: Seitenverweise = new Map();
+    let seite = deckblatt + 1;
+    dateien.forEach((datei, i) => {
+      karte.set(datei.nr, seite);
+      seite += seitenJeDatei[i];
+    });
+    return karte;
+  };
+  let deckblatt = probe.getPageCount();
+  let doc = await erzeugeAbrechnungsPdf(d, verweise(deckblatt));
+  if (doc.getPageCount() !== deckblatt) {
+    deckblatt = doc.getPageCount();
+    doc = await erzeugeAbrechnungsPdf(d, verweise(deckblatt));
   }
-  if (aktuell.getPageCount() > 0) teile.push(await aktuell.save());
-  return { teile, separat };
+
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const nichtEingebettet: number[] = [];
+  for (const [i, datei] of dateien.entries()) {
+    const v = vorbereitet[i];
+    if (v?.art === "pdf") {
+      const seiten = await doc.copyPages(v.quelle, v.quelle.getPageIndices());
+      seiten.forEach((s) => doc.addPage(s));
+      continue;
+    }
+    const seite = doc.addPage(A4);
+    seite.drawText(winAnsi(`Beleg ${datei.nr}`), { x: RAND, y: A4[1] - RAND, size: 9, font, color: GRAU });
+    const bild = v?.art === "bild" ? await bildEinbetten(doc, datei) : null;
+    if (bild) {
+      const maxB = A4[0] - 2 * RAND;
+      const maxH = A4[1] - 2 * RAND - 20;
+      const f = Math.min(maxB / bild.width, maxH / bild.height, 1);
+      seite.drawImage(bild, { x: RAND, y: A4[1] - RAND - 20 - bild.height * f, width: bild.width * f, height: bild.height * f });
+    } else {
+      nichtEingebettet.push(datei.nr);
+      seite.drawText(winAnsi(`Die Datei „${datei.name}“ konnte nicht eingebettet werden – das Original liegt im Reisekosten-Tool.`), {
+        x: RAND,
+        y: A4[1] - RAND - 24,
+        size: 9,
+        font,
+      });
+    }
+  }
+  return { pdf: await doc.save(), nichtEingebettet };
 }
