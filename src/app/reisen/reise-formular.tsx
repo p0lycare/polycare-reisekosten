@@ -56,9 +56,11 @@ export function ReiseFormular({
   const [land, setLand] = useState(werte.land);
   const [beginn, setBeginn] = useState(werte.beginn);
   const [ende, setEnde] = useState(werte.ende);
-  // Bei neuen Reisen ohne Vorbelegung folgt "Übernachtung" den Daten (mehrtägig = ja), bis man es selbst anklickt
+  // Bei neuen Reisen (auch aus Kalender, Beleg oder Vorlage) folgt "Übernachtung" den Daten (mehrtägig = ja),
+  // bis man es selbst anklickt – so stimmt es auch, wenn man die vorgeschlagenen Zeiten noch ändert.
+  // Fest vorbelegt nur bei bestehenden Reisen und wenn eine Hotelrechnung die Übernachtung belegt.
   const [uebernachtungGewaehlt, setUebernachtungGewaehlt] = useState<boolean | null>(
-    werte.id || werte.beginn ? werte.mitUebernachtung : null,
+    werte.id ? werte.mitUebernachtung : werte.mitUebernachtung || null,
   );
   const mitUebernachtung = uebernachtungGewaehlt ?? (!!beginn && !!ende && beginn.slice(0, 10) !== ende.slice(0, 10));
   const [mahlzeiten, setMahlzeiten] = useState(werte.mahlzeiten);

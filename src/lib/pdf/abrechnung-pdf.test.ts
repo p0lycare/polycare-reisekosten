@@ -108,6 +108,21 @@ describe("Abrechnungs-PDF", () => {
     expect(nichtEingebettet).toEqual([3]);
   });
 
+  it("fehlende oder kaputte Dateien bekommen eine Hinweisseite, die Seitenzahlen bleiben stimmig", async () => {
+    const zweiSeiten = await PDFDocument.create();
+    zweiSeiten.addPage();
+    zweiSeiten.addPage();
+    const dateien: BelegDatei[] = [
+      { nr: 1, name: "1.pdf", contentType: "application/pdf", inhalt: new Uint8Array() },
+      { nr: 2, name: "2.pdf", contentType: "application/pdf", inhalt: new TextEncoder().encode("kein PDF") },
+      { nr: 3, name: "3.pdf", contentType: "application/pdf", inhalt: await zweiSeiten.save() },
+    ];
+    const { pdf, nichtEingebettet } = await erzeugePdfMitBelegen(dokument, dateien);
+    expect(nichtEingebettet).toEqual([1, 2]);
+    // Deckblatt + 2 Hinweisseiten + 2 Originalseiten
+    expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1 + 2 + 2);
+  });
+
   it("Originale bleiben unverändert (keine Beschriftung auf fremden PDF-Seiten)", async () => {
     const anhang = await PDFDocument.create();
     anhang.addPage([300, 400]);

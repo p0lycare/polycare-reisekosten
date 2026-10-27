@@ -16,6 +16,10 @@ describe("istBelegPfad", () => {
     expect(istBelegPfad(`${f}/${r}/${f}.jpg`, u, r)).toBe(false);
     expect(istBelegPfad(`${u}/${r}/../../${f}/${r}/${f}.jpg`, u, r)).toBe(false);
     expect(istBelegPfad(`${u}/${r}/${f}.exe`, u, r)).toBe(false);
+    // Neue Uploads nur einbettbar, gespeicherte Altformate bleiben verwendbar
+    expect(istBelegPfad(`${u}/${r}/${f}.heic`, u, r)).toBe(false);
+    expect(istBelegPfad(`${u}/${r}/${f}.heic`, u, r, true)).toBe(true);
+    expect(istBelegPfad(`${u}/${r}/${f}.exe`, u, r, true)).toBe(false);
     expect(istBelegPfad(`${u}/${r}/name.jpg`, u, r)).toBe(false);
   });
 });

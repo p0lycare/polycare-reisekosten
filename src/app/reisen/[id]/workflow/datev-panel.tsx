@@ -21,16 +21,8 @@ export function DatevPanel({ id, letzter }: { id: string; letzter: DatevEintrag 
       </p>
       <form
         onSubmit={(e) => {
-          // Jeder Versand legt in DATEV einen neuen Beleg an – auch wenn vorher nur ein Teil angekommen ist
-          const teilweise = letzter?.status === "fehler" && !!letzter.fehler?.includes("bereits zugestellt");
-          if (
-            (letzter?.status === "gesendet" || teilweise) &&
-            !confirm(
-              teilweise
-                ? "Ein Teil der Abrechnung ist bereits bei DATEV. Nochmals senden schickt alle Teile – die doppelten danach in DATEV löschen. Trotzdem senden?"
-                : "Die Abrechnung wurde bereits übertragen. Nochmals senden erzeugt in DATEV einen zweiten Beleg. Trotzdem senden?",
-            )
-          ) {
+          // Jeder Versand legt in DATEV einen neuen Beleg an
+          if (letzter?.status === "gesendet" && !confirm("Die Abrechnung wurde bereits übertragen. Nochmals senden erzeugt in DATEV einen zweiten Beleg. Trotzdem senden?")) {
             e.preventDefault();
             return;
           }

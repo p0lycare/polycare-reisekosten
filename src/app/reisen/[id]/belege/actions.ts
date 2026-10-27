@@ -67,10 +67,13 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { fehler: "Bitte das Belegdatum angeben." };
   if (betrag === null) return { fehler: "Bitte einen gültigen Betrag angeben, z. B. 12,50." };
-  if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId)) return { fehler: "Ungültige Datei." };
+  // Unveränderte Datei oder Foto aus dem Eingang liegt schon im Speicher – dort gelten auch ältere Formate
+  const bestand = !!dateiPfad && (dateiPfad === text(formData, "datei_alt") || dateiPfad.split("/")[1] === "eingang");
+  if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId, bestand)) return { fehler: "Ungültige Datei." };
 
   const art = await artDerAbrechnung(supabase, reiseId);
-  const beschreibung = text(formData, "beschreibung") || null;
+  // Bewirtung unter Auslagen: der Anlass der Bewirtung ist zugleich der Zweck
+  const beschreibung = text(formData, "beschreibung") || (art === "auslagen" ? anlass : null);
   const zahlungsart = text(formData, "zahlungsart") || null;
   if (art === "auslagen" && !beschreibung) return { fehler: "Bitte den Zweck angeben, z. B. „Aufbau Mockup Köln“." };
   if (zahlungsart && !istZahlungsart(zahlungsart)) return { fehler: "Bitte eine Zahlungsart wählen." };
@@ -108,7 +111,7 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
   await eingangErledigt(supabase, text(formData, "eingang_id"));
 
   const alterPfad = text(formData, "datei_alt");
-  if (alterPfad && alterPfad !== dateiPfad && istBelegPfad(alterPfad, user.id, reiseId)) {
+  if (alterPfad && alterPfad !== dateiPfad && istBelegPfad(alterPfad, user.id, reiseId, true)) {
     await dateiEntfernenWennUnbenutzt(supabase, alterPfad);
   }
 

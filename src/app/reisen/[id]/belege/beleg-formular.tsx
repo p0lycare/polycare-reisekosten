@@ -85,7 +85,10 @@ export function BelegFormular({
   const [hochgeladen, setHochgeladen] = useState<{ datei: File; pfad: string } | null>(null);
 
   const kategorie = kategorien.find((k) => k.id === kategorieId);
-  const abschnitte = [...new Set(kategorien.map((k) => k.abschnitt as Abschnitt))];
+  // Bei Auslagen zuerst die eigentlichen Auslagen (G), danach Bewirtungen
+  const abschnitte = [...new Set(kategorien.map((k) => k.abschnitt as Abschnitt))].sort((a, b) =>
+    auslagen ? (a === "G" ? -1 : b === "G" ? 1 : 0) : 0,
+  );
   const saetze = [...new Set([...STANDARD_SAETZE, ...(kategorie?.mwst_prozent != null ? [Number(kategorie.mwst_prozent)] : [])])];
 
   const aufteilung = useMemo(() => {
@@ -299,10 +302,13 @@ export function BelegFormular({
               </select>
             </label>
           </div>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Zweck</span>
-            <input name="beschreibung" required value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="Wofür? z. B. Aufbau Mockup Köln" className={feld} />
-          </label>
+          {/* Bei Bewirtungen ist der Anlass der Zweck – nicht doppelt abfragen */}
+          {kategorie?.abschnitt !== "E" && (
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Zweck</span>
+              <input name="beschreibung" required value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="Wofür? z. B. Aufbau Mockup Köln" className={feld} />
+            </label>
+          )}
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium">Kostenstelle / Projekt</span>
             <input name="kostenstelle" defaultValue={werte.kostenstelle} maxLength={40} placeholder="optional" className={feld} />

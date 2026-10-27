@@ -20,7 +20,8 @@ export async function eingangAnlegen(pfad: string): Promise<EingangStatus> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || !eingangPfad(pfad, user.id)) return { fehler: "Ungültige Datei." };
+  // Bestandsformate zulassen: offline vorgemerkte Fotos können noch aus der Zeit vor der Formatumstellung stammen
+  if (!user || !eingangPfad(pfad, user.id, true)) return { fehler: "Ungültige Datei." };
 
   const { data: zeile, error } = await supabase.from("beleg_eingang").insert({ datei_pfad: pfad }).select("id").single();
   if (error || !zeile) return { fehler: "Der Beleg konnte nicht gespeichert werden." };

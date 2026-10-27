@@ -129,6 +129,10 @@ export const SCHRITTE: TourSchritt[] = [
       <>
         <p>Direkt nach dem Bezahlen auf „Beleg fotografieren“. Händler, Datum, Betrag und MwSt werden automatisch ausgelesen.</p>
         <p>Der Beleg wartet im Eingang, bis du ihn einer Reise zuordnest oder als Auslage erfasst. Tipp: Tool aufs Handy als App holen (Teilen → „Zum Home-Bildschirm“).</p>
+        <p>
+          Je nach Beleg fragt das Tool nach, was die Buchhaltung braucht: beim Hotel, wer übernachtet hat und warum; bei Bewirtungen Anlass
+          und Gäste; beim Tanken das Kennzeichen; beim Mietwagen den Anlass der Fahrt. Vieles ist aus der Reise vorbelegt.
+        </p>
       </>
     ),
     bild: (

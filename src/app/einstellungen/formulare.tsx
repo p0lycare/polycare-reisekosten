@@ -52,10 +52,7 @@ export function KategorieZeile({ kategorie }: { kategorie: Kategorie }) {
         <input type="checkbox" name="aktiv" defaultChecked={kategorie.aktiv} className="size-4" />
         aktiv
       </label>
-      <div className="flex items-center gap-3">
-        <Knopf laeuft={laeuft}>Speichern</Knopf>
-        <Meldung status={status} />
-      </div>
+      {/* Vor dem Speichern-Knopf, damit klar ist, dass die Häkchen mitgespeichert werden */}
       {kategorie.beleg_erfassbar && (
         <fieldset className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm sm:col-span-5">
           <legend className="sr-only">Pflichtangaben</legend>
@@ -77,6 +74,10 @@ export function KategorieZeile({ kategorie }: { kategorie: Kategorie }) {
           )}
         </fieldset>
       )}
+      <div className="flex items-center gap-3">
+        <Knopf laeuft={laeuft}>Speichern</Knopf>
+        <Meldung status={status} />
+      </div>
     </form>
   );
 }

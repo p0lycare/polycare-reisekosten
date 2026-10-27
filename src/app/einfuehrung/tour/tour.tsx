@@ -66,7 +66,7 @@ export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
         >
           Zurück
         </button>
-        <nav aria-label="Schritte" className="flex flex-wrap justify-center gap-1.5">
+        <nav aria-label="Schritte" className="flex flex-wrap justify-center gap-1 sm:gap-1.5">
           {schritte.map((s, i) => (
             <button
               key={s.id}
@@ -74,7 +74,7 @@ export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
               onClick={() => setNr(i)}
               aria-label={`Schritt ${i + 1}: ${s.titel}`}
               aria-current={i === nr ? "step" : undefined}
-              className={`size-2.5 rounded-full ${i === nr ? "bg-marke" : "bg-neutral-300 dark:bg-neutral-700"}`}
+              className={`size-2 rounded-full sm:size-2.5 ${i === nr ? "bg-marke" : "bg-neutral-300 dark:bg-neutral-700"}`}
             />
           ))}
         </nav>
