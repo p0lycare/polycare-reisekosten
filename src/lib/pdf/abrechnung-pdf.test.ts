@@ -123,6 +123,31 @@ describe("Abrechnungs-PDF", () => {
     expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1 + 2 + 2);
   });
 
+  it("PDF mit veralteten Objekt-Containern (z. B. DB-Rechnung mit Vermerk) wird trotzdem eingebettet", async () => {
+    const alt = "1 0 << /S /Div >>";
+    const objekte = [
+      "<< /Type /Catalog /Pages 2 0 R >>",
+      "<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>",
+      "<< /Type /Page /Parent 2 0 R /MediaBox [ 0 0 300 400 ] >>",
+      `<< /Type /ObjStm /N 1 /First 4 /Length ${alt.length} >>\nstream\n${alt}\nendstream`,
+    ];
+    let text = "%PDF-1.7\n";
+    const offsets: number[] = [];
+    objekte.forEach((o, i) => {
+      offsets.push(text.length);
+      text += `${i + 1} 0 obj\n${o}\nendobj\n`;
+    });
+    const xref = text.length;
+    text += `xref\n0 5\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}`;
+    text += `trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+    const datei: BelegDatei = { nr: 1, name: "Beleg_01.pdf", contentType: "application/pdf", inhalt: new TextEncoder().encode(text) };
+
+    const { pdf, nichtEingebettet } = await erzeugePdfMitBelegen(dokument, [datei]);
+    expect(nichtEingebettet).toEqual([]);
+    const fertig = await PDFDocument.load(pdf);
+    expect(fertig.getPage(fertig.getPageCount() - 1).getSize()).toEqual({ width: 300, height: 400 });
+  });
+
   it("Originale bleiben unverändert (keine Beschriftung auf fremden PDF-Seiten)", async () => {
     const anhang = await PDFDocument.create();
     anhang.addPage([300, 400]);
