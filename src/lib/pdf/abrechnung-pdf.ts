@@ -3,6 +3,7 @@ import type { Abrechnung } from "@/lib/reisekosten/abrechnung";
 import { ABSCHNITT_TEXT } from "@/lib/reisekosten/kategorie";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
 import { zahlungsartKurz } from "@/lib/reisekosten/zahlungsart";
+import { entferneVerwaisteObjektStreams } from "./pdf-reparatur";
 
 /** Alles, was auf der Abrechnung steht – entspricht dem Formblatt FB 06 (Reise) bzw. FB 21 (Auslagen) */
 export type AbrechnungsDokument = {
@@ -411,8 +412,21 @@ async function vorbereiten(datei: BelegDatei): Promise<Vorbereitet> {
   if (!datei.inhalt.byteLength) return { art: "fehlt", seiten: 1, grund: "konnte nicht aus dem Speicher geladen werden" };
   if (datei.contentType === "image/jpeg" || datei.contentType === "image/png") return { art: "bild", seiten: 1 };
   if (datei.contentType !== "application/pdf") return { art: "fehlt", seiten: 1, grund: "hat ein Format, das sich nicht einbetten lässt" };
+  let ergebnis = await pdfLaden(datei.inhalt);
+  if (ergebnis.art === "fehlt" && ergebnis.grund === "konnte nicht gelesen werden") {
+    // Zweiter Versuch mit reparierter Kopie (veraltete Objekt-Container, siehe pdf-reparatur.ts)
+    const repariert = entferneVerwaisteObjektStreams(datei.inhalt);
+    if (repariert) {
+      const zweiter = await pdfLaden(repariert);
+      if (zweiter.art === "pdf") ergebnis = zweiter;
+    }
+  }
+  return ergebnis;
+}
+
+async function pdfLaden(inhalt: Uint8Array): Promise<Vorbereitet> {
   try {
-    const quelle = await PDFDocument.load(datei.inhalt, { ignoreEncryption: true });
+    const quelle = await PDFDocument.load(inhalt, { ignoreEncryption: true });
     // Verschlüsselte PDFs lassen sich nicht lesbar übernehmen – lieber eine klare Hinweisseite als leere Seiten
     if (quelle.isEncrypted) return { art: "fehlt", seiten: 1, grund: "ist verschlüsselt und kann nicht eingebettet werden" };
     // Probe-Kopie: scheitert das Übernehmen, steht schon jetzt fest, dass eine Hinweisseite nötig ist (Seitenverweise!)
