@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { kategorieName, monatsnameIn, texte, wochentagName, WOERTERBUECHER } from "./woerterbuch";
 import { landNameIn } from "./land";
 import { uebersetzeMeldung } from "./meldungen";
-import { alsSprache } from "./sprache";
+import { alsSprache, spracheBeimLogin } from "./sprache";
 
 type Eintrag = { pfad: string; art: string; wert: unknown };
 
@@ -78,5 +78,23 @@ describe("Anzeigehelfer", () => {
     expect(alsSprache("en")).toBe("en");
     expect(alsSprache("fr")).toBe("de");
     expect(alsSprache(undefined)).toBe("de");
+  });
+});
+
+describe("Sprache beim Login", () => {
+  it("die Wahl auf der Login-Seite kommt ins Profil, wenn sie abweicht", () => {
+    expect(spracheBeimLogin("en", true, "de")).toEqual({ sprache: "en", insProfil: true });
+    expect(spracheBeimLogin("en", true, "en")).toEqual({ sprache: "en", insProfil: false });
+    expect(spracheBeimLogin("de", true, "en")).toEqual({ sprache: "de", insProfil: true });
+  });
+
+  it("ohne Wahl auf der Login-Seite gilt das Profil – ein altes Cookie überschreibt es nicht", () => {
+    expect(spracheBeimLogin("en", false, "de")).toEqual({ sprache: "de", insProfil: false });
+    expect(spracheBeimLogin(undefined, false, "en")).toEqual({ sprache: "en", insProfil: false });
+    expect(spracheBeimLogin(undefined, false, null)).toEqual({ sprache: "de", insProfil: false });
+  });
+
+  it("ungültige Cookie-Werte werden ignoriert", () => {
+    expect(spracheBeimLogin("fr", true, "en")).toEqual({ sprache: "en", insProfil: false });
   });
 });
