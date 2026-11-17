@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { auslagenAbrechnungHolen } from "@/lib/reisekosten/auslagen";
+import { ladeSprache } from "@/lib/i18n/server";
 
 export type AuslagenStatus = { fehler?: string };
 
@@ -14,7 +15,7 @@ export async function auslageErfassen(_vorher: AuslagenStatus, formData: FormDat
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const ergebnis = await auslagenAbrechnungHolen(supabase, user.id, String(formData.get("monat") ?? ""));
+  const ergebnis = await auslagenAbrechnungHolen(supabase, user.id, String(formData.get("monat") ?? ""), await ladeSprache());
   if ("fehler" in ergebnis) return { fehler: ergebnis.fehler };
   redirect(`/reisen/${ergebnis.id}/belege/neu`);
 }

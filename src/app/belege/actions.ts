@@ -11,6 +11,12 @@ import { angabenSpalten, vorbelegung } from "@/lib/reisekosten/pflichtangaben";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import { auslagenAbrechnungHolen } from "@/lib/reisekosten/auslagen";
 import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { ladeSprache, ladeTexte } from "@/lib/i18n/server";
+
+/** Meldungen der Aktionen in der Sprache der Person */
+async function meldungen() {
+  return (await ladeTexte()).belege.aktion;
+}
 
 export type EingangStatus = { fehler?: string; ok?: boolean };
 
@@ -21,10 +27,10 @@ export async function eingangAnlegen(pfad: string): Promise<EingangStatus> {
     data: { user },
   } = await supabase.auth.getUser();
   // Bestandsformate zulassen: offline vorgemerkte Fotos können noch aus der Zeit vor der Formatumstellung stammen
-  if (!user || !eingangPfad(pfad, user.id, true)) return { fehler: "Ungültige Datei." };
+  if (!user || !eingangPfad(pfad, user.id, true)) return { fehler: (await meldungen()).ungueltigeDatei };
 
   const { data: zeile, error } = await supabase.from("beleg_eingang").insert({ datei_pfad: pfad }).select("id").single();
-  if (error || !zeile) return { fehler: "Der Beleg konnte nicht gespeichert werden." };
+  if (error || !zeile) return { fehler: (await meldungen()).nichtGespeichert };
 
   const { ergebnis, fehler } = await liesGespeichertenBeleg(supabase, pfad);
   await supabase
@@ -45,27 +51,27 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { fehler: "Bitte neu anmelden." };
+  if (!user) return { fehler: (await meldungen()).neuAnmelden };
 
   const [{ data: eintrag }, { data: reise }, { data: profil }] = await Promise.all([
     supabase.from("beleg_eingang").select("*").eq("id", eingangId).maybeSingle(),
     supabase.from("reise").select("id, mitarbeiter_id, status, art, begruendung, reiseweg, kfz_kennzeichen, verkehrsmittel").eq("id", reiseId).maybeSingle(),
     supabase.from("profile").select("name").eq("id", user.id).maybeSingle(),
   ]);
-  if (!eintrag) return { fehler: "Beleg nicht gefunden." };
+  if (!eintrag) return { fehler: (await meldungen()).nichtGefunden };
   if (!reise || reise.mitarbeiter_id !== user.id || !istBearbeitbar(reise.status)) {
-    return { fehler: "Die Reise kann nicht mehr bearbeitet werden." };
+    return { fehler: (await meldungen()).reiseGesperrt };
   }
   // Auslagen brauchen Zweck und Lieferant – die gibt es nur im Formular
-  if (reise.art === "auslagen") return { fehler: "Auslagen bitte über „Als Auslage erfassen“ mit Zweck erfassen." };
+  if (reise.art === "auslagen") return { fehler: (await meldungen()).auslagenUeberFormular };
 
   const e = eintrag.ki_ergebnis as AusgelesenerBeleg | null;
   if (!e?.istBeleg || !e.positionen.length || !e.datum) {
-    return { fehler: "Der Beleg wurde nicht vollständig erkannt – bitte von Hand erfassen." };
+    return { fehler: (await meldungen()).nichtErkannt };
   }
-  if (e.waehrung !== "EUR") return { fehler: "Der Beleg ist nicht in Euro – bitte von Hand erfassen." };
+  if (e.waehrung !== "EUR") return { fehler: (await meldungen()).nichtEuro };
 
-  const passend = await positionenFuerArt(supabase, e.positionen, reise.art);
+  const passend = await positionenFuerArt(supabase, e.positionen, reise.art, await ladeSprache());
   if ("fehler" in passend) return passend;
   // Pflichtangaben aus der Reise: wer reist, warum, mit welchem Auto – was fehlt (z. B. Kennzeichen
   // des Mietwagens), wird von Hand ergänzt
@@ -76,10 +82,13 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
     passend.positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null, angaben })),
     false,
     reise.art,
+    await ladeSprache(),
   );
   if (fehler) {
-    if (fehler.startsWith("Bei Bewirtungen")) return { fehler: "Bewirtungen bitte von Hand mit Anlass und Teilnehmenden erfassen." };
-    if (fehler.startsWith("Bitte angeben")) return { fehler: `${fehler} Bitte „Von Hand erfassen“.` };
+    // Meldungen der Belegprüfung erkennen (in der Sprache der Person) und um den Weg „von Hand“ ergänzen
+    const pruefung = (await ladeTexte()).hinweise.beleg;
+    if (fehler === pruefung.bewirtung) return { fehler: (await meldungen()).bewirtungVonHand };
+    if (fehler.startsWith(pruefung.angeben("").slice(0, -1))) return { fehler: (await meldungen()).vonHandErfassen(fehler) };
     return { fehler };
   }
 
@@ -95,7 +104,7 @@ export async function eingangZuordnen(eingangId: string, reiseId: string): Promi
       ...angabenSpalten(pflicht.get(p.kategorieId) ?? [], angaben),
     })),
   );
-  if (error) return { fehler: "Zuordnen fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+  if (error) return { fehler: (await meldungen()).zuordnenFehlgeschlagen };
 
   await supabase.from("beleg_eingang").delete().eq("id", eingangId);
   revalidatePath("/belege");
@@ -112,16 +121,16 @@ export async function eingangAlsAuslage(eingangId: string): Promise<EingangStatu
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { fehler: "Bitte neu anmelden." };
+  if (!user) return { fehler: (await meldungen()).neuAnmelden };
 
   const { data: eintrag } = await supabase.from("beleg_eingang").select("id, ki_ergebnis").eq("id", eingangId).maybeSingle();
-  if (!eintrag) return { fehler: "Beleg nicht gefunden." };
+  if (!eintrag) return { fehler: (await meldungen()).nichtGefunden };
 
   const datum = (eintrag.ki_ergebnis as AusgelesenerBeleg | null)?.datum;
   const aktuell = aktuellerMonatBerlin();
   const belegMonat = datum && datum.slice(0, 7) <= aktuell ? datum.slice(0, 7) : aktuell;
-  let ergebnis = await auslagenAbrechnungHolen(supabase, user.id, belegMonat);
-  if ("fehler" in ergebnis && belegMonat !== aktuell) ergebnis = await auslagenAbrechnungHolen(supabase, user.id, aktuell);
+  let ergebnis = await auslagenAbrechnungHolen(supabase, user.id, belegMonat, await ladeSprache());
+  if ("fehler" in ergebnis && belegMonat !== aktuell) ergebnis = await auslagenAbrechnungHolen(supabase, user.id, aktuell, await ladeSprache());
   if ("fehler" in ergebnis) return { fehler: ergebnis.fehler };
 
   revalidatePath("/auslagen");
@@ -145,7 +154,7 @@ export async function eingangLoeschen(eingangId: string): Promise<EingangStatus>
 export async function eingangNeuAuslesen(eingangId: string): Promise<EingangStatus> {
   const supabase = await createClient();
   const { data: eintrag } = await supabase.from("beleg_eingang").select("id, datei_pfad").eq("id", eingangId).maybeSingle();
-  if (!eintrag) return { fehler: "Beleg nicht gefunden." };
+  if (!eintrag) return { fehler: (await meldungen()).nichtGefunden };
   const { ergebnis, fehler } = await liesGespeichertenBeleg(supabase, eintrag.datei_pfad);
   await supabase.from("beleg_eingang").update({ ki_ergebnis: ergebnis ?? null, ki_fehler: fehler ?? null }).eq("id", eingangId);
   revalidatePath("/belege");

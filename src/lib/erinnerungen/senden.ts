@@ -5,8 +5,8 @@ import { alsErinnerung } from "@/lib/mail/vorlagen";
 import { verteileAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
 import { istLeereAuslage } from "@/lib/reisekosten/auslagen";
 import { freigabeText, istFreigabeErinnerung, istMonatserinnerung, monatsText } from "./plan";
-import { monatsname } from "@/lib/reisekosten/monat";
-
+import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
+import { alsSprache, type Sprache } from "@/lib/i18n/sprache";
 
 function heuteInBerlin(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
@@ -49,7 +49,7 @@ export async function erinnerungenSenden({
   if (count && !erzwingen) return { ...lauf, uebersprungen: "heute bereits erinnert" };
 
   const [{ data: personen }, { data: reisen }, { data: eingang }] = await Promise.all([
-    db.from("profile").select("id, name, email, rolle"),
+    db.from("profile").select("id, name, email, rolle, sprache"),
     db
       .from("reise")
       .select("id, status, art, mitarbeiter_id, freigeber_id, beleg(count), mitarbeiter:profile!reise_mitarbeiter_id_fkey(vorgesetzter_id, rolle)")
@@ -61,8 +61,15 @@ export async function erinnerungenSenden({
     .select("status, mitarbeiter_id, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(vorgesetzter_id)")
     .in("status", ["beantragt", "genehmigt"]);
 
-  async function senden(person: { id: string; email: string }, art: string, inhalt: { betreff: string; zeilen: string[] }, knopf: string, pfad: string) {
-    const mail = alsErinnerung({ ...inhalt, knopf, link: `${basis}${pfad}` });
+  async function senden(
+    person: { id: string; email: string },
+    art: string,
+    inhalt: { betreff: string; zeilen: string[] },
+    knopf: string,
+    pfad: string,
+    sprache: Sprache,
+  ) {
+    const mail = alsErinnerung({ ...inhalt, knopf, link: `${basis}${pfad}`, sprache });
     try {
       await sendeMail({ an: [person.email], ...mail });
       await protokolliereMail({ reiseId: null, art, an: [person.email], betreff: mail.betreff, status: "gesendet", personId: null });
@@ -76,28 +83,35 @@ export async function erinnerungenSenden({
 
   for (const person of personen ?? []) {
     if (!person.email || (nurAn && person.id !== nurAn)) continue;
+    const sprache = alsSprache(person.sprache);
+    const t = texte(sprache).mails.erinnerung;
 
     if (monat) {
-      const eigene = (reisen ?? []).filter(
-        (r) => r.mitarbeiter_id === person.id && !istLeereAuslage({ art: r.art, anzahlBelege: r.beleg[0]?.count ?? 0 }),
+      const eigene = (reisen ?? []).filter((r) => r.mitarbeiter_id === person.id && !istLeereAuslage({ art: r.art, anzahlBelege: r.beleg[0]?.count ?? 0 }));
+      const text = monatsText(
+        monatsnameIn(heute.slice(0, 7), sprache),
+        {
+          entwuerfe: eigene.filter((r) => r.status === "entwurf").length,
+          abgelehnt: eigene.filter((r) => r.status === "abgelehnt").length,
+          eingang: (eingang ?? []).filter((e) => e.mitarbeiter_id === person.id).length,
+        },
+        sprache,
       );
-      const text = monatsText(monatsname(heute.slice(0, 7)), {
-        entwuerfe: eigene.filter((r) => r.status === "entwurf").length,
-        abgelehnt: eigene.filter((r) => r.status === "abgelehnt").length,
-        eingang: (eingang ?? []).filter((e) => e.mitarbeiter_id === person.id).length,
-      });
-      if (text && (await senden(person, `${praefix}erinnerung_monat`, text, "Monat abrechnen", `/monat/${heute.slice(0, 7)}`))) lauf.monat++;
+      if (text && (await senden(person, `${praefix}erinnerung_monat`, text, t.monatKnopf, `/monat/${heute.slice(0, 7)}`, sprache))) lauf.monat++;
     }
 
     if (freigaben) {
       const a = verteileAufgaben(reisen ?? [], person.id, person.rolle);
       const v = verteileVorschuesse(vorschuesse ?? [], person.id, person.rolle);
-      const text = freigabeText({
-        genehmigen: a.genehmigen.length + v.genehmigen.length,
-        pruefen: a.pruefen.length,
-        auszahlen: a.auszahlen.length + v.auszahlen.length,
-      });
-      if (text && (await senden(person, `${praefix}erinnerung_freigabe`, text, "Freigaben öffnen", "/freigaben"))) lauf.freigaben++;
+      const text = freigabeText(
+        {
+          genehmigen: a.genehmigen.length + v.genehmigen.length,
+          pruefen: a.pruefen.length,
+          auszahlen: a.auszahlen.length + v.auszahlen.length,
+        },
+        sprache,
+      );
+      if (text && (await senden(person, `${praefix}erinnerung_freigabe`, text, t.freigabeKnopf, "/freigaben", sprache))) lauf.freigaben++;
     }
   }
   return lauf;

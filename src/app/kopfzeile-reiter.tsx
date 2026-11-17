@@ -8,7 +8,7 @@ import { useBereich } from "./bereich";
 export type Reiter = { href: string; text: string; aktivBei: string; zaehler?: number };
 
 /** Bereichsreiter unter dem Logo; die aktive Seite ist grün unterstrichen, am Handy seitlich wischbar */
-export function KopfzeileReiter({ reiter }: { reiter: Reiter[] }) {
+export function KopfzeileReiter({ reiter, bezeichnung }: { reiter: Reiter[]; bezeichnung: string }) {
   const pfad = usePathname();
   const bereich = useBereich();
   const aktiv = (r: Reiter) =>
@@ -21,7 +21,7 @@ export function KopfzeileReiter({ reiter }: { reiter: Reiter[] }) {
   }, [pfad, bereich]);
 
   return (
-    <nav ref={leiste} aria-label="Bereiche" className="-mb-px flex gap-6 overflow-x-auto text-sm [scrollbar-width:none]">
+    <nav ref={leiste} aria-label={bezeichnung} className="-mb-px flex gap-6 overflow-x-auto text-sm [scrollbar-width:none]">
       {reiter.map((r) => (
         <Link
           key={r.href}

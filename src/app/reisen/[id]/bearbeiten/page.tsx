@@ -6,6 +6,7 @@ import { alsLokal } from "@/lib/format";
 import { centAlsEingabe } from "@/lib/geld";
 import { ReiseFormular } from "../../reise-formular";
 import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export default async function ReiseBearbeitenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,11 +20,11 @@ export default async function ReiseBearbeitenPage({ params }: { params: Promise<
   // Auslagenabrechnungen haben keine Reisedaten zum Bearbeiten
   if (reise.mitarbeiter_id !== user?.id || !istBearbeitbar(reise.status) || reise.art === "auslagen") redirect(`/reisen/${id}`);
 
-  const projekte = await ladeProjektAuswahl(supabase, reise.projekt_id);
+  const [projekte, t] = await Promise.all([ladeProjektAuswahl(supabase, reise.projekt_id), ladeTexte()]);
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
-      <h1 className="text-xl font-semibold">Reise bearbeiten</h1>
+      <h1 className="text-xl font-semibold">{t.reisen.bearbeiten.titel}</h1>
       <ReiseFormular
         projekte={projekte}
         werte={{

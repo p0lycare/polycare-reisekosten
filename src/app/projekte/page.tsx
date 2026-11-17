@@ -5,6 +5,7 @@ import { formatDatum, formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { projektName } from "@/lib/reisekosten/projekte";
 import { StatusBadge } from "@/app/reisen/status-badge";
+import { ladeTexte } from "@/lib/i18n/server";
 
 const MONAT = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -27,6 +28,7 @@ export default async function ProjektePage({ searchParams }: { searchParams: Pro
   } = await supabase.auth.getUser();
   const { data: profil } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (profil?.rolle !== "buchhaltung" && profil?.rolle !== "admin") redirect("/");
+  const t = (await ladeTexte()).projekte;
 
   const jetzt = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit" }).format(new Date());
   const von = parameter.von && MONAT.test(parameter.von) ? parameter.von : `${jetzt.slice(0, 4)}-01`;
@@ -62,37 +64,37 @@ export default async function ProjektePage({ searchParams }: { searchParams: Pro
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-4 font-sans sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Reisekosten je Projekt</h1>
+          <h1 className="text-xl font-semibold">{t.titel}</h1>
           <p className="text-sm text-neutral-500">
-            Eingereichte Reisen nach Reisebeginn; Beträge vor Abzug eines Vorschusses, netto ohne erstattungsfähige Vorsteuer.{" "}
+            {t.intro}{" "}
             <Link href="/einstellungen" className="underline">
-              Projekte pflegen
+              {t.projektePflegen}
             </Link>
           </p>
         </div>
         <form className="flex flex-wrap items-end gap-2 text-sm">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-neutral-500">von</span>
+            <span className="text-xs text-neutral-500">{t.von}</span>
             <input type="month" name="von" defaultValue={von} className={feld} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-neutral-500">bis</span>
+            <span className="text-xs text-neutral-500">{t.bis}</span>
             <input type="month" name="bis" defaultValue={bis} className={feld} />
           </label>
           <button type="submit" className="rounded-md border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-            Anzeigen
+            {t.anzeigen}
           </button>
         </form>
       </div>
 
       {!gruppen.length ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {projekte?.length ? "Im gewählten Zeitraum sind keine Reisen einem Projekt zugeordnet." : "Noch keine Projekte angelegt – das geht unter Einstellungen."}
+          {projekte?.length ? t.keineReisen : t.keineProjekte}
         </p>
       ) : (
         <>
           <p className="text-sm tabular-nums">
-            {gruppen.length} {gruppen.length === 1 ? "Projekt" : "Projekte"} · zusammen <span className="font-semibold">{formatEuro(gesamt)}</span>
+            {t.anzahlProjekte(gruppen.length)} · {t.zusammen} <span className="font-semibold">{formatEuro(gesamt)}</span>
           </p>
           {gruppen.map(({ projekt, zeilen, brutto, netto }) => (
             <section key={projekt.id} className="rounded-lg border border-neutral-200 dark:border-neutral-800">
@@ -101,26 +103,26 @@ export default async function ProjektePage({ searchParams }: { searchParams: Pro
                   <h2 className="font-medium">{projektName(projekt)}</h2>
                   {(projekt.foerdergeber || projekt.foerderkennzeichen) && (
                     <p className="text-xs text-neutral-500">
-                      {[projekt.foerdergeber, projekt.foerderkennzeichen && `FKZ ${projekt.foerderkennzeichen}`].filter(Boolean).join(" · ")}
+                      {[projekt.foerdergeber, projekt.foerderkennzeichen && t.fkz(projekt.foerderkennzeichen)].filter(Boolean).join(" · ")}
                     </p>
                   )}
                 </div>
                 <p className="tabular-nums">
-                  {zeilen.length} {zeilen.length === 1 ? "Reise" : "Reisen"} · netto {formatEuro(netto)} ·{" "}
-                  <span className="font-semibold">brutto {formatEuro(brutto)}</span>
+                  {t.anzahlReisen(zeilen.length)} · {t.nettoBetrag(formatEuro(netto))} ·{" "}
+                  <span className="font-semibold">{t.bruttoBetrag(formatEuro(brutto))}</span>
                 </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs text-neutral-500">
                     <tr>
-                      <th className="px-4 py-2 font-normal">Datum</th>
-                      <th className="px-2 py-2 font-normal">Person</th>
-                      <th className="px-2 py-2 font-normal">Anlass</th>
-                      <th className="px-2 py-2 font-normal">Beleg-Nr.</th>
-                      <th className="px-2 py-2 font-normal">Status</th>
-                      <th className="px-2 py-2 text-right font-normal">netto</th>
-                      <th className="px-4 py-2 text-right font-normal">brutto</th>
+                      <th className="px-4 py-2 font-normal">{t.spalte.datum}</th>
+                      <th className="px-2 py-2 font-normal">{t.spalte.person}</th>
+                      <th className="px-2 py-2 font-normal">{t.spalte.anlass}</th>
+                      <th className="px-2 py-2 font-normal">{t.spalte.belegNr}</th>
+                      <th className="px-2 py-2 font-normal">{t.spalte.status}</th>
+                      <th className="px-2 py-2 text-right font-normal">{t.spalte.netto}</th>
+                      <th className="px-4 py-2 text-right font-normal">{t.spalte.brutto}</th>
                     </tr>
                   </thead>
                   <tbody>

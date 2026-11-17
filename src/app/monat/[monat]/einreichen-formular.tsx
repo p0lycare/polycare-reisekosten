@@ -8,6 +8,7 @@ import { StatusBadge } from "@/app/reisen/status-badge";
 import type { ReiseStatus } from "@/lib/reisekosten/reise";
 import { monatEinreichen, type MonatStatus } from "../actions";
 import { istLeereAuslage } from "@/lib/reisekosten/auslagen";
+import { useTexte } from "@/lib/i18n/client";
 
 export type MonatsReise = {
   id: string;
@@ -28,12 +29,6 @@ function zeitraum(r: MonatsReise): string {
   return von === bis ? von : `${von} – ${bis}`;
 }
 
-/** "2 Reisen", "1 Abrechnung" – sobald Auslagen dabei sind, neutral als Abrechnungen */
-function anzahlText(n: number, mitAuslagen: boolean): string {
-  if (mitAuslagen) return `${n} ${n === 1 ? "Abrechnung" : "Abrechnungen"}`;
-  return `${n} ${n === 1 ? "Reise" : "Reisen"}`;
-}
-
 /** Reisen und Auslagen eines Monats; Entwürfe sind auswählbar und werden gemeinsam eingereicht. */
 export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsReise[] }) {
   const [status, absenden, laeuft] = useActionState<MonatStatus, FormData>(monatEinreichen, {});
@@ -42,6 +37,8 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
   const [auswahl, setAuswahl] = useState<Set<string>>(() => new Set(offen.map((r) => r.id)));
   const summe = offen.filter((r) => auswahl.has(r.id)).reduce((s, r) => s + r.betrag, 0);
   const mitAuslagen = reisen.some((r) => r.art === "auslagen");
+  const t = useTexte().monat.liste;
+  const anzahlText = t.anzahl;
 
   function umschalten(id: string) {
     setAuswahl((alt) => {
@@ -68,7 +65,7 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
                     value={r.id}
                     checked={auswahl.has(r.id)}
                     onChange={() => umschalten(r.id)}
-                    aria-label={`${r.begruendung} einreichen`}
+                    aria-label={t.auswahlLabel(r.begruendung)}
                     className="mt-1 size-4"
                   />
                 ) : (
@@ -79,8 +76,7 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
                     <Link href={`/reisen/${r.id}`} className="min-w-0 hover:underline">
                       <p className="truncate font-medium">{r.begruendung}</p>
                       <p className="truncate text-sm text-neutral-500">
-                        {r.art === "auslagen" ? "Auslagen ohne Reise" : `${zeitraum(r)} · ${r.reiseweg}`} · {r.anzahlBelege}{" "}
-                        {r.anzahlBelege === 1 ? "Beleg" : "Belege"}
+                        {r.art === "auslagen" ? t.auslagenOhneReise : `${zeitraum(r)} · ${r.reiseweg}`} · {t.belege(r.anzahlBelege)}
                       </p>
                     </Link>
                     <div className="flex shrink-0 flex-col items-end gap-1">
@@ -96,12 +92,12 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
                     </ul>
                   )}
                   {istLeereAuslage(r) && (
-                    <p className="mt-2 text-xs text-neutral-500">Noch keine Belege – erst Auslagen erfassen, dann einreichen.</p>
+                    <p className="mt-2 text-xs text-neutral-500">{t.leereAuslage}</p>
                   )}
                   {r.art === "reise" && (
                     <div className="mt-2 flex gap-4 text-xs">
                       <Link href={`/reisen/neu?vorlage=${r.id}`} className="text-neutral-600 underline dark:text-neutral-400">
-                        Als Vorlage für neue Reise
+                        {t.alsVorlage}
                       </Link>
                     </div>
                   )}
@@ -114,13 +110,10 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
 
       {offen.length > 0 && (
         <section className="flex flex-col gap-3 rounded-lg border-2 border-neutral-900 p-4 dark:border-neutral-100">
-          <h2 className="font-medium">Monat einreichen</h2>
+          <h2 className="font-medium">{t.einreichenTitel}</h2>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="richtigkeit" required className="mt-0.5 size-4" />
-            <span>
-              Für die Richtigkeit: Ich bestätige, dass die Angaben der ausgewählten {mitAuslagen ? "Abrechnungen" : "Reisen"} vollständig und richtig sind und die
-              Kosten dienstlich veranlasst waren.
-            </span>
+            <span>{t.richtigkeit(mitAuslagen)}</span>
           </label>
           {status.fehler && (
             <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
@@ -133,17 +126,14 @@ export function MonatsListe({ monat, reisen }: { monat: string; reisen: MonatsRe
               disabled={laeuft || auswahl.size === 0}
               className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-neutral-950"
             >
-              {laeuft
-                ? "Reicht ein …"
-                : `${anzahlText(auswahl.size, mitAuslagen)} einreichen (${formatEuro(summe)})`}
+              {laeuft ? t.reichtEin : t.einreichenKnopf(anzahlText(auswahl.size, mitAuslagen), formatEuro(summe))}
             </button>
           </div>
         </section>
       )}
       {status.eingereicht && (
         <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
-          {anzahlText(status.eingereicht, mitAuslagen)} eingereicht
-          {status.benachrichtigt ? " – die genehmigende Person wurde per Mail benachrichtigt." : "."}
+          {t.eingereicht(anzahlText(status.eingereicht, mitAuslagen), !!status.benachrichtigt)}
         </p>
       )}
     </form>

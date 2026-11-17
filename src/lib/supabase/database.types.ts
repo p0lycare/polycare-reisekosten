@@ -433,6 +433,7 @@ export type Database = {
           kostenstelle: string | null
           name: string
           rolle: Database["public"]["Enums"]["rolle"]
+          sprache: string
           vorgesetzter_id: string | null
         }
         Insert: {
@@ -445,6 +446,7 @@ export type Database = {
           kostenstelle?: string | null
           name: string
           rolle?: Database["public"]["Enums"]["rolle"]
+          sprache?: string
           vorgesetzter_id?: string | null
         }
         Update: {
@@ -457,6 +459,7 @@ export type Database = {
           kostenstelle?: string | null
           name?: string
           rolle?: Database["public"]["Enums"]["rolle"]
+          sprache?: string
           vorgesetzter_id?: string | null
         }
         Relationships: [

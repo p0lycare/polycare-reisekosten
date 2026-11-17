@@ -14,6 +14,8 @@ import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import { VorschussEntscheiden, type OffenerVorschuss } from "@/app/vorschuss/formulare";
 import { SammelListe, type PersonGruppe } from "./sammel-liste";
 import { fehlendeAngabenText } from "@/lib/reisekosten/pflichtangaben";
+import { ladeTexte } from "@/lib/i18n/server";
+import type { Texte } from "@/lib/i18n/woerterbuch";
 
 type Eintrag = Reise & { mitarbeiter: { name: string } | null };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -73,13 +75,13 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
   return [...gruppen.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
 }
 
-function Abschnitt({ titel, anzahl, summe, children }: { titel: string; anzahl: number; summe: number; children: React.ReactNode }) {
+function Abschnitt({ t, titel, anzahl, summe, children }: { t: Texte["freigaben"]; titel: string; anzahl: number; summe: number; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-medium">
         {titel}{" "}
         <span className="text-sm font-normal text-neutral-500 tabular-nums">
-          {anzahl} {anzahl === 1 ? "Abrechnung" : "Abrechnungen"} · {formatEuro(summe)}
+          {t.abrechnungen(anzahl)} · {formatEuro(summe)}
         </span>
       </h2>
       {children}
@@ -92,6 +94,7 @@ const anzahlVon = (g: PersonGruppe[]) => g.reduce((s, p) => s + p.reisen.length,
 
 export default async function FreigabenPage() {
   const supabase = await createClient();
+  const t = (await ladeTexte()).freigaben;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -129,27 +132,27 @@ export default async function FreigabenPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-4 font-sans sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Freigaben</h1>
+        <h1 className="text-xl font-semibold">{t.seite.titel}</h1>
         <div className="flex gap-4 text-sm">
           <Link href="/uebersicht" className="underline">
-            Übersicht
+            {t.seite.uebersicht}
           </Link>
           {buchhaltung && (
             <Link href="/projekte" className="underline">
-              Projekte
+              {t.seite.projekte}
             </Link>
           )}
         </div>
       </div>
       <SeitenHilfe anker={buchhaltung ? "buchhaltung" : "fuehrungskraefte"}>
         {buchhaltung
-          ? "Hier wartet, was du tun musst: Reisen und Auslagen deines Teams genehmigen, Belege prüfen (damit gehen sie an DATEV) und nach der Überweisung in DATEV als ausgezahlt markieren. Alles ist je Person gebündelt."
-          : "Hier genehmigst du die eingereichten Reisen und Auslagen deines Teams – je Person gebündelt, meist in einem Schritt pro Monat. Danach prüft die Buchhaltung die Belege."}
+          ? t.seite.hilfeBuchhaltung
+          : t.seite.hilfeFreigeber}
       </SeitenHilfe>
 
       {(vGenehmigen.length > 0 || vAuszahlen.length > 0) && (
         <section className="flex flex-col gap-3">
-          <h2 className="font-medium">Vorschüsse</h2>
+          <h2 className="font-medium">{t.seite.vorschuesse}</h2>
           <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
             {vGenehmigen.map((v) => (
               <VorschussEntscheiden key={v.id} v={alsOffen(v)} art="genehmigen" />
@@ -162,18 +165,18 @@ export default async function FreigabenPage() {
       )}
 
       {(freigebend || genehmigen.length > 0) && (
-        <Abschnitt titel="Zur Genehmigung" anzahl={anzahlVon(genehmigen)} summe={summeVon(genehmigen)}>
-          <SammelListe gruppen={genehmigen} art="genehmigen" leer="Nichts zu genehmigen." />
+        <Abschnitt t={t} titel={t.seite.zurGenehmigung} anzahl={anzahlVon(genehmigen)} summe={summeVon(genehmigen)}>
+          <SammelListe gruppen={genehmigen} art="genehmigen" leer={t.seite.leerGenehmigen} />
         </Abschnitt>
       )}
       {buchhaltung && (
-        <Abschnitt titel="Zur Belegprüfung" anzahl={anzahlVon(pruefen)} summe={summeVon(pruefen)}>
-          <SammelListe gruppen={pruefen} art="pruefen" leer="Nichts zu prüfen." />
+        <Abschnitt t={t} titel={t.seite.zurPruefung} anzahl={anzahlVon(pruefen)} summe={summeVon(pruefen)}>
+          <SammelListe gruppen={pruefen} art="pruefen" leer={t.seite.leerPruefen} />
         </Abschnitt>
       )}
       {buchhaltung && (
-        <Abschnitt titel="Zur Auszahlung" anzahl={anzahlVon(auszahlen)} summe={summeVon(auszahlen)}>
-          <SammelListe gruppen={auszahlen} art="auszahlen" leer="Nichts auszuzahlen." />
+        <Abschnitt t={t} titel={t.seite.zurAuszahlung} anzahl={anzahlVon(auszahlen)} summe={summeVon(auszahlen)}>
+          <SammelListe gruppen={auszahlen} art="auszahlen" leer={t.seite.leerAuszahlen} />
         </Abschnitt>
       )}
     </main>

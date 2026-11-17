@@ -66,3 +66,26 @@ describe("alsSammelMail", () => {
     expect(m.html).toContain("Messe &lt;A&gt;");
   });
 });
+
+describe("Mails in der Sprache der empfangenden Person", () => {
+  const daten = {
+    reisende: "Erika Muster",
+    begruendung: "Messe",
+    zeitraum: "21.10.2026",
+    betrag: "248,60 €",
+    link: "https://example.invalid/reisen/1",
+    handelnde: "Max Beispiel",
+    grund: "Hotelrechnung fehlt",
+  };
+
+  it("Deutsch ist der Standard", () => {
+    expect(alsMail("abgelehnt", daten).betreff).toBe("Abrechnung abgelehnt: Messe");
+  });
+
+  it("Englisch auf Wunsch", () => {
+    const m = alsMail("abgelehnt", daten, "en");
+    expect(m.betreff).toBe("Expense report rejected: Messe");
+    expect(m.text).toContain("Reason: Hotelrechnung fehlt");
+    expect(m.text).toContain("– Polycare Travel Expenses");
+  });
+});

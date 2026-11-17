@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { KalenderVorschlaege } from "./monat/[monat]/kalender-vorschlaege";
-import { aktuellerMonatBerlin, monatsname } from "@/lib/reisekosten/monat";
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { ladeSprache } from "@/lib/i18n/server";
+import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
 import { SeitenHilfe } from "./seiten-hilfe";
 import { createClient } from "@/lib/supabase/server";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
@@ -10,6 +12,8 @@ import { StatusBadge } from "./reisen/status-badge";
 
 
 export default async function Home() {
+  const sprache = await ladeSprache();
+  const t = texte(sprache).reisen.start;
   const supabase = await createClient();
   const {
     data: { user },
@@ -53,20 +57,19 @@ export default async function Home() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Meine Reisen</h1>
+        <h1 className="text-xl font-semibold">{t.titel}</h1>
         <div className="flex gap-2">
           <Link href="/belege" className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
-            Beleg fotografieren
+            {t.belegFotografieren}
           </Link>
           <Link href="/reisen/neu" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">
-            Neue Reise
+            {t.neueReise}
           </Link>
         </div>
       </div>
 
       <SeitenHilfe anker="reisende">
-        Belege fotografierst du unterwegs, Reisen legst du am Monatsende an und reichst sie unter „Monat abrechnen“ gesammelt ein.
-        Jede Reise zeigt, wo sie im Ablauf steht.
+        {t.hilfe}
       </SeitenHilfe>
 
       {!startklar && (
@@ -75,8 +78,8 @@ export default async function Home() {
           className="flex items-center justify-between gap-4 border-l-4 border-marke bg-flaeche p-4 text-sm hover:bg-marke-hell"
         >
           <span>
-            <span className="block font-medium">Neu hier? In 2 Minuten startklar</span>
-            <span className="text-neutral-600 dark:text-neutral-400">Kurze Tour durch das Tool für deine Rolle – danach einmalig das Profil ausfüllen.</span>
+            <span className="block font-medium">{t.tourTitel}</span>
+            <span className="text-neutral-600 dark:text-neutral-400">{t.tourText}</span>
           </span>
           <span aria-hidden>→</span>
         </Link>
@@ -88,38 +91,35 @@ export default async function Home() {
           className="flex items-center justify-between rounded-lg bg-blue-50 p-4 text-sm text-blue-950 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-50 dark:hover:bg-blue-900"
         >
           <span>
-            <span className="font-medium">{imEingang} {imEingang === 1 ? "Beleg wartet" : "Belege warten"}</span> im Eingang auf die Zuordnung zu einer Reise.
+            <span className="font-medium">{t.eingangAnzahl(imEingang)}</span> {t.eingangRest}
           </span>
           <span aria-hidden>→</span>
         </Link>
       )}
 
       <Suspense fallback={null}>
-        <KalenderVorschlaege von={vormonatErster} bis={folgemonatErster} zeitraumText="diesem und dem letzten Monat" stillWennLeer />
+        <KalenderVorschlaege von={vormonatErster} bis={folgemonatErster} zeitraumText={t.kalenderZeitraum} stillWennLeer />
       </Suspense>
 
       {!reisen?.length ? (
         <section className="rounded-lg border border-dashed border-neutral-300 p-6 dark:border-neutral-700">
-          <h2 className="font-medium">So funktioniert&apos;s</h2>
+          <h2 className="font-medium">{t.leer.titel}</h2>
           <ol className="mt-3 flex flex-col gap-3 text-sm text-neutral-700 dark:text-neutral-300">
             <li>
-              <span className="font-medium">1. Belege fotografieren</span> – direkt nach dem Bezahlen. Betrag, Datum und MwSt
-              werden ausgelesen, der Beleg wartet im Eingang.
+              <span className="font-medium">{t.leer.schritt1Titel}</span> {t.leer.schritt1Text}
             </li>
             <li>
-              <span className="font-medium">2. Reisen anlegen</span> – am Monatsende, gern direkt aus einem Beleg. Die
-              Verpflegungspauschale wird berechnet, Belege werden per Datum zugeordnet. Bei eigenem PKW die Kilometer eintragen.
+              <span className="font-medium">{t.leer.schritt2Titel}</span> {t.leer.schritt2Text}
             </li>
             <li>
-              <span className="font-medium">3. Einreichen</span> – Genehmigung, Belegprüfung und Übergabe an DATEV laufen
-              automatisch, du bekommst bei jedem Schritt eine Mail.
+              <span className="font-medium">{t.leer.schritt3Titel}</span> {t.leer.schritt3Text}
             </li>
           </ol>
           <Link href="/einfuehrung" className="mt-4 block text-sm underline">
-            Ausführliche Einführung
+            {t.leer.einfuehrung}
           </Link>
           <Link href="/reisen/neu" className="mt-5 inline-block rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
-            Erste Reise anlegen
+            {t.leer.ersteReise}
           </Link>
         </section>
       ) : (
@@ -132,11 +132,11 @@ export default async function Home() {
               <section key={monat} className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-medium">
-                    {monatsname(monat)}{" "}
+                    {monatsnameIn(monat, sprache)}{" "}
                     <span className="text-sm font-normal text-neutral-500 tabular-nums">{formatEuro(summe)}</span>
                   </h2>
                   <Link href={`/monat/${monat}`} className="text-sm underline">
-                    {offen ? `Monat abrechnen (${offen} offen) →` : "Monat ansehen →"}
+                    {offen ? t.monatAbrechnen(offen) : t.monatAnsehen}
                   </Link>
                 </div>
                 <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">

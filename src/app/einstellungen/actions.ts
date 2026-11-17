@@ -6,6 +6,7 @@ import { ERFASSBARE_ABSCHNITTE, type Abschnitt } from "@/lib/reisekosten/kategor
 import { erinnerungenSenden } from "@/lib/erinnerungen/senden";
 import { appUrl } from "@/lib/mail/benachrichtigen";
 import { istPflichtangabe } from "@/lib/reisekosten/pflichtangaben";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export type AktionStatus = { fehler?: string; gespeichert?: boolean };
 
@@ -41,10 +42,11 @@ export async function kategorieSpeichern(_vorher: AktionStatus, formData: FormDa
   const bezeichnung = text(formData, "bezeichnung");
   const mwst = mwstAus(text(formData, "mwst_prozent"));
   const konto = kontoAus(text(formData, "konto"));
+  const t = (await ladeTexte()).einstellungen;
 
-  if (!bezeichnung) return { fehler: "Bezeichnung fehlt." };
-  if (mwst === undefined) return { fehler: "MwSt-Satz muss zwischen 0 und 99 % liegen." };
-  if (konto === undefined) return { fehler: "Konto: 4 bis 8 Ziffern." };
+  if (!bezeichnung) return { fehler: t.kategorie.bezeichnungFehlt };
+  if (mwst === undefined) return { fehler: t.kategorie.mwstUngueltig };
+  if (konto === undefined) return { fehler: t.kategorie.kontoUngueltig };
 
   const supabase = await createClient();
   const daten = { bezeichnung, mwst_prozent: mwst, konto, aktiv: formData.get("aktiv") === "on" };
@@ -54,14 +56,14 @@ export async function kategorieSpeichern(_vorher: AktionStatus, formData: FormDa
     // Pflichtangaben nur aus Formularen, die sie anbieten (nicht bei Bewirtung, Auslagen, System-Kategorien)
     const mitPflicht = formData.has("pflicht_formular") ? { pflichtangaben } : {};
     const { data, error } = await supabase.from("kategorie").update({ ...daten, ...mitPflicht }).eq("id", id).select("id");
-    if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+    if (error || !data?.length) return { fehler: t.formular.speichernFehlgeschlagen };
   } else {
     const abschnitt = text(formData, "abschnitt") as Abschnitt;
-    if (!ERFASSBARE_ABSCHNITTE.includes(abschnitt)) return { fehler: "Ungültiger Abschnitt." };
+    if (!ERFASSBARE_ABSCHNITTE.includes(abschnitt)) return { fehler: t.kategorie.abschnittUngueltig };
     const { error } = await supabase
       .from("kategorie")
       .insert({ ...daten, id: idAus(bezeichnung), abschnitt, sortierung: 1000 });
-    if (error) return { fehler: "Anlegen fehlgeschlagen. Fehlt die Berechtigung?" };
+    if (error) return { fehler: t.kategorie.anlegenFehlgeschlagen };
   }
 
   revalidatePath("/einstellungen");
@@ -76,8 +78,9 @@ function centAus(eingabe: string): number | undefined {
 export async function saetzeSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
   const kmSatz = centAus(text(formData, "km_satz"));
   const kmSteuerfrei = centAus(text(formData, "km_steuerfrei"));
+  const t = (await ladeTexte()).einstellungen;
   if (kmSatz === undefined || kmSteuerfrei === undefined) {
-    return { fehler: "Bitte Beträge in Euro angeben, z. B. 0,38." };
+    return { fehler: t.km.betragUngueltig };
   }
 
   const supabase = await createClient();
@@ -86,7 +89,7 @@ export async function saetzeSpeichern(_vorher: AktionStatus, formData: FormData)
     .update({ km_satz_cent: kmSatz, km_steuerfrei_cent: kmSteuerfrei, updated_at: new Date().toISOString() })
     .eq("id", true)
     .select("id");
-  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+  if (error || !data?.length) return { fehler: t.formular.speichernFehlgeschlagen };
 
   revalidatePath("/einstellungen");
   return { gespeichert: true };
@@ -94,22 +97,23 @@ export async function saetzeSpeichern(_vorher: AktionStatus, formData: FormData)
 
 /** Standort anlegen oder ändern; Adresse bzw. Suchbegriffe eine je Zeile */
 export async function standortSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
+  const t = (await ladeTexte()).einstellungen;
   const id = text(formData, "id");
   const name = text(formData, "name").slice(0, 80);
-  if (!name) return { fehler: "Name fehlt." };
+  if (!name) return { fehler: t.standorte.nameFehlt };
   const orte = text(formData, "orte")
     .split(/\r?\n/)
     .map((o) => o.trim())
     .filter(Boolean)
     .slice(0, 10);
-  if (!orte.length) return { fehler: "Bitte mindestens die Adresse angeben." };
+  if (!orte.length) return { fehler: t.standorte.adresseFehlt };
   const daten = { name, orte, aktiv: id ? formData.get("aktiv") === "on" : true };
 
   const supabase = await createClient();
   const { data, error } = id
     ? await supabase.from("standort").update(daten).eq("id", id).select("id")
     : await supabase.from("standort").insert({ ...daten, sortierung: 100 }).select("id");
-  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+  if (error || !data?.length) return { fehler: t.formular.speichernFehlgeschlagen };
 
   revalidatePath("/einstellungen");
   revalidatePath("/einstellungen/personen");
@@ -118,25 +122,28 @@ export async function standortSpeichern(_vorher: AktionStatus, formData: FormDat
 
 /** Beide Erinnerungen sofort an die angemeldete Person senden, um Inhalt und Zustellung zu prüfen */
 export async function erinnerungTesten(): Promise<AktionStatus> {
+  const t = (await ladeTexte()).einstellungen;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const { data: profil } = user ? await supabase.from("profile").select("rolle").eq("id", user.id).single() : { data: null };
-  if (!user || profil?.rolle !== "admin") return { fehler: "Nur für Admins." };
+  if (!user || profil?.rolle !== "admin") return { fehler: t.erinnerungen.nurAdmins };
 
   const lauf = await erinnerungenSenden({ basis: await appUrl(), erzwingen: true, nurAn: user.id });
   revalidatePath("/einstellungen");
-  if (lauf.uebersprungen) return { fehler: lauf.uebersprungen };
-  if (!lauf.monat && !lauf.freigaben) return { fehler: "Bei dir ist gerade nichts offen – es wurde keine Erinnerung gesendet." };
+  // Im Testlauf (erzwingen) bleibt nur ein Grund zum Überspringen: kein Mailversand eingerichtet
+  if (lauf.uebersprungen) return { fehler: t.mail.nichtKonfiguriert };
+  if (!lauf.monat && !lauf.freigaben) return { fehler: t.erinnerungen.nichtsOffen };
   return { gespeichert: true };
 }
 
 /** Projekt anlegen oder ändern (nur Buchhaltung/Admin, per RLS abgesichert) */
 export async function projektSpeichern(_vorher: AktionStatus, formData: FormData): Promise<AktionStatus> {
+  const t = (await ladeTexte()).einstellungen;
   const id = text(formData, "id");
   const bezeichnung = text(formData, "bezeichnung").slice(0, 120);
-  if (!bezeichnung) return { fehler: "Bezeichnung fehlt." };
+  if (!bezeichnung) return { fehler: t.kategorie.bezeichnungFehlt };
   const daten = {
     bezeichnung,
     nummer: text(formData, "nummer").slice(0, 40) || null,
@@ -149,7 +156,7 @@ export async function projektSpeichern(_vorher: AktionStatus, formData: FormData
   const { data, error } = id
     ? await supabase.from("projekt").update(daten).eq("id", id).select("id")
     : await supabase.from("projekt").insert(daten).select("id");
-  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Berechtigung?" };
+  if (error || !data?.length) return { fehler: t.formular.speichernFehlgeschlagen };
 
   revalidatePath("/einstellungen");
   return { gespeichert: true };

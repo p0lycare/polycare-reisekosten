@@ -1,18 +1,20 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTexte } from "@/lib/i18n/client";
 import { auslageErfassen, type AuslagenStatus } from "./actions";
 
 /** Monat wählen und direkt eine Auslage erfassen (ohne Umweg über den Belegeingang) */
 export function AuslageErfassen({ monate }: { monate: { wert: string; text: string }[] }) {
   const [status, absenden, laeuft] = useActionState<AuslagenStatus, FormData>(auslageErfassen, {});
+  const t = useTexte().auslagen.erfassen;
 
   return (
     <form action={absenden} className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <select
           name="monat"
-          aria-label="Monat"
+          aria-label={t.monat}
           defaultValue={monate[0]?.wert}
           className="rounded-md border border-neutral-300 bg-white px-2 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
@@ -27,7 +29,7 @@ export function AuslageErfassen({ monate }: { monate: { wert: string; text: stri
           disabled={laeuft}
           className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
         >
-          {laeuft ? "…" : "Auslage erfassen"}
+          {laeuft ? "…" : t.knopf}
         </button>
       </div>
       {status.fehler && (

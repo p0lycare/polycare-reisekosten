@@ -1,3 +1,6 @@
+import { texte } from "@/lib/i18n/woerterbuch";
+import type { Sprache } from "@/lib/i18n/sprache";
+
 /** Wochentag eines Tages "YYYY-MM-DD" (0 = Sonntag) */
 function wochentag(datum: string): number {
   const [j, m, t] = datum.split("-").map(Number);
@@ -30,36 +33,30 @@ export function istFreigabeErinnerung(heute: string): boolean {
 export type OffeneSachen = { entwuerfe: number; abgelehnt: number; eingang: number };
 
 /** Text der Monatserinnerung, oder null wenn nichts offen ist */
-export function monatsText(monatsname: string, o: OffeneSachen): { betreff: string; zeilen: string[] } | null {
-  const teile = [
-    o.entwuerfe && `${o.entwuerfe} ${o.entwuerfe === 1 ? "Reise ist noch nicht eingereicht" : "Reisen sind noch nicht eingereicht"}`,
-    o.abgelehnt && `${o.abgelehnt} ${o.abgelehnt === 1 ? "abgelehnte Reise wartet" : "abgelehnte Reisen warten"} auf Korrektur`,
-    o.eingang && `${o.eingang} ${o.eingang === 1 ? "Beleg liegt" : "Belege liegen"} noch im Eingang`,
-  ].filter(Boolean) as string[];
+export function monatsText(monatsname: string, o: OffeneSachen, sprache: Sprache = "de"): { betreff: string; zeilen: string[] } | null {
+  const t = texte(sprache).mails.erinnerung;
+  const teile = [o.entwuerfe && t.entwuerfe(o.entwuerfe), o.abgelehnt && t.abgelehnt(o.abgelehnt), o.eingang && t.eingang(o.eingang)].filter(
+    Boolean,
+  ) as string[];
   if (!teile.length) return null;
   return {
-    betreff: `Erinnerung: Reisekosten für ${monatsname} einreichen`,
-    zeilen: [
-      `Der Monat ${monatsname} geht zu Ende. Bei dir ist noch offen:`,
-      ...teile.map((t) => `• ${t}`),
-      "Bitte Belege zuordnen und die Reisen gesammelt einreichen – das dauert meist nur ein paar Minuten.",
-    ],
+    betreff: t.monatBetreff(monatsname),
+    zeilen: [t.monatKopf(monatsname), ...teile.map((z) => `• ${z}`), t.monatFuss],
   };
 }
 
 export type Aufgaben = { genehmigen: number; pruefen: number; auszahlen: number };
 
 /** Text der Freigabe-Erinnerung, oder null wenn nichts wartet */
-export function freigabeText(a: Aufgaben): { betreff: string; zeilen: string[] } | null {
-  const teile = [
-    a.genehmigen && `${a.genehmigen} zu genehmigen`,
-    a.pruefen && `${a.pruefen} zur Belegprüfung`,
-    a.auszahlen && `${a.auszahlen} zur Auszahlung`,
-  ].filter(Boolean) as string[];
+export function freigabeText(a: Aufgaben, sprache: Sprache = "de"): { betreff: string; zeilen: string[] } | null {
+  const t = texte(sprache).mails.erinnerung;
+  const teile = [a.genehmigen && t.genehmigen(a.genehmigen), a.pruefen && t.pruefen(a.pruefen), a.auszahlen && t.auszahlen(a.auszahlen)].filter(
+    Boolean,
+  ) as string[];
   if (!teile.length) return null;
   const n = a.genehmigen + a.pruefen + a.auszahlen;
   return {
-    betreff: `Erinnerung: ${n} ${n === 1 ? "Abrechnung wartet" : "Abrechnungen warten"} auf dich`,
-    zeilen: [`Diese Abrechnungen warten auf dich: ${teile.join(", ")}.`],
+    betreff: t.freigabeBetreff(n),
+    zeilen: [t.freigabeZeile(teile.join(", "))],
   };
 }

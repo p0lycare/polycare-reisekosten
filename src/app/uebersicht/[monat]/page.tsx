@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { istFreigebend } from "@/lib/reisekosten/freigaben";
-import { monatsgrenzen, monatsname } from "@/lib/reisekosten/monat";
-import { STATUS_TEXT, type ReiseStatus } from "@/lib/reisekosten/reise";
+import { monatsgrenzen } from "@/lib/reisekosten/monat";
+import type { ReiseStatus } from "@/lib/reisekosten/reise";
+import { ladeSprache } from "@/lib/i18n/server";
+import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
 import { StatusBadge } from "@/app/reisen/status-badge";
 
 const REIHENFOLGE: ReiseStatus[] = ["eingereicht", "abgelehnt", "freigegeben", "geprueft", "ausgezahlt"];
@@ -32,6 +34,9 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
   const { data: profil } = await supabase.from("profile").select("rolle").eq("id", user!.id).single();
   if (!istFreigebend(profil?.rolle)) redirect("/");
   const buchhaltung = profil?.rolle === "buchhaltung" || profil?.rolle === "admin";
+  const sprache = await ladeSprache();
+  const alleTexte = texte(sprache);
+  const t = alleTexte.uebersicht;
 
   // Entwürfe gehören den Reisenden. Führungskräfte sehen ihr Team (eigene Reisen stehen unter "Meine Reisen"),
   // Buchhaltung und Admin die Gesamtsicht über alle Kosten – einschließlich der eigenen
@@ -72,31 +77,30 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-4 font-sans sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <Link href={`/uebersicht/${verschiebe(monat, -1)}`} aria-label="Vormonat" className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
+        <Link href={`/uebersicht/${verschiebe(monat, -1)}`} aria-label={t.vormonat} className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
           ‹
         </Link>
         <div className="text-center">
           <h1 className="text-xl font-semibold">
-            {buchhaltung ? "Übersicht" : "Team"} {monatsname(monat)}
+            {buchhaltung ? t.titelUebersicht : t.titelTeam} {monatsnameIn(monat, sprache)}
           </h1>
           <p className="text-sm text-neutral-500 tabular-nums">
-            {zeilen.length} {zeilen.length === 1 ? "Reise" : "Reisen"} · {formatEuro(gesamt)}
+            {t.anzahlReisen(zeilen.length)} · {formatEuro(gesamt)}
           </p>
         </div>
-        <Link href={`/uebersicht/${verschiebe(monat, 1)}`} aria-label="Folgemonat" className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
+        <Link href={`/uebersicht/${verschiebe(monat, 1)}`} aria-label={t.folgemonat} className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
           ›
         </Link>
       </div>
 
       <SeitenHilfe anker={buchhaltung ? "buchhaltung" : "fuehrungskraefte"}>
-        Stand aller eingereichten Reisen {buchhaltung ? "" : "deines Teams "}im Monat (nach Reisebeginn) – wer wo im Ablauf steht
-        {buchhaltung ? " und ob die Übertragung an DATEV geklappt hat" : ""}.
+        {t.hilfe(buchhaltung)}
       </SeitenHilfe>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {proStatus.map((s) => (
           <div key={s.status} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-            <p className="text-xs text-neutral-500">{STATUS_TEXT[s.status]}</p>
+            <p className="text-xs text-neutral-500">{alleTexte.allgemein.status[s.status]}</p>
             <p className="text-lg font-semibold tabular-nums">{s.anzahl}</p>
             <p className="text-xs text-neutral-500 tabular-nums">{formatEuro(s.summe)}</p>
           </div>
@@ -104,7 +108,7 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
       </div>
 
       {!sortiert.length ? (
-        <p className="text-sm text-neutral-500">Keine eingereichten Reisen in diesem Monat.</p>
+        <p className="text-sm text-neutral-500">{t.keine}</p>
       ) : (
         <div className="flex flex-col gap-4">
           {sortiert.map((p) => (
@@ -120,12 +124,12 @@ export default async function UebersichtPage({ params }: { params: Promise<{ mon
                       <span className="min-w-0">
                         <span className="block truncate">{r.begruendung}</span>
                         <span className="block truncate text-xs text-neutral-500">
-                          {r.reiseweg ? `${formatDatum(r.beginn)} · ${r.reiseweg}` : "Auslagen ohne Reise"}
+                          {r.reiseweg ? `${formatDatum(r.beginn)} · ${r.reiseweg}` : t.auslagenOhneReise}
                           {r.beleg_nr && ` · ${r.beleg_nr}`}
                           {buchhaltung && (r.status === "geprueft" || r.status === "ausgezahlt") && (
                             <span className={datevStatus.get(r.id) === "gesendet" ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400"}>
                               {" "}
-                              · DATEV {datevStatus.get(r.id) === "gesendet" ? "übertragen" : "offen"}
+                              · {t.datev(datevStatus.get(r.id) === "gesendet")}
                             </span>
                           )}
                         </span>

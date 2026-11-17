@@ -1,3 +1,6 @@
+import { texte } from "@/lib/i18n/woerterbuch";
+import type { Sprache } from "@/lib/i18n/sprache";
+
 /**
  * Pflichtangaben je Beleg: Was ein fremder Dritter (z. B. die Betriebsprüfung) braucht, um eine Ausgabe
  * nachzuvollziehen. Welche Kategorie was verlangt, steht in kategorie.pflichtangaben (Einstellungen).
@@ -81,9 +84,19 @@ export function angabenListe(b: AngabenQuelle): string[] {
   ].filter((z): z is string => !!z);
 }
 
-/** Eine Zeile für die Belegliste im Tool, z. B. "Person: Erika Muster · Anlass: Messe" */
-export function angabenText(b: AngabenQuelle): string {
-  return angabenListe(b).join(" · ");
+/** Eine Zeile für die Belegliste im Tool, z. B. "Person: Erika Muster · Anlass: Messe" – in der Sprache der Oberfläche */
+export function angabenText(b: AngabenQuelle, sprache: Sprache = "de"): string {
+  if (sprache === "de") return angabenListe(b).join(" · ");
+  const t = texte(sprache).allgemein.pflichtangabe;
+  return [
+    b.person && `${t.person}: ${b.person}`,
+    b.anlass && `${t.anlass}: ${b.anlass}`,
+    b.kfzKennzeichen && `${t.kfz}: ${b.kfzKennzeichen}`,
+    b.bewirtungAnlass && `${t.anlass}: ${b.bewirtungAnlass}`,
+    b.bewirtungTeilnehmer && `${t.bewirtete}: ${b.bewirtungTeilnehmer}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Für die Plausibilitätsprüfung: Bezeichnungen der fehlenden Angaben eines gespeicherten Belegs */
@@ -92,9 +105,9 @@ export function fehlendeAngabenText(b: {
   person: string | null;
   kfz_kennzeichen: string | null;
   kategorie: { abschnitt: string; pflichtangaben: string[] } | null;
-}): string[] {
+}, sprache: Sprache = "de"): string[] {
   if (!b.kategorie) return [];
   return fehlendeAngaben(b.kategorie.pflichtangaben, { anlass: b.anlass, person: b.person, kfzKennzeichen: b.kfz_kennzeichen }).map((a) =>
-    angabeLabel(a, b.kategorie!.abschnitt),
+    texte(sprache).allgemein.pflichtangabe.label(a, b.kategorie!.abschnitt),
   );
 }

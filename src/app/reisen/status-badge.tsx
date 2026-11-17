@@ -1,4 +1,7 @@
-import { STATUS_TEXT, type ReiseStatus } from "@/lib/reisekosten/reise";
+"use client";
+
+import type { ReiseStatus } from "@/lib/reisekosten/reise";
+import { useTexte } from "@/lib/i18n/client";
 
 const FARBE: Record<ReiseStatus, string> = {
   entwurf: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
@@ -10,5 +13,6 @@ const FARBE: Record<ReiseStatus, string> = {
 };
 
 export function StatusBadge({ status }: { status: ReiseStatus }) {
-  return <span className={`rounded px-2 py-0.5 text-xs font-medium ${FARBE[status]}`}>{STATUS_TEXT[status]}</span>;
+  const t = useTexte();
+  return <span className={`rounded px-2 py-0.5 text-xs font-medium ${FARBE[status]}`}>{t.allgemein.status[status]}</span>;
 }

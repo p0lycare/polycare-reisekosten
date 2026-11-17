@@ -1,7 +1,9 @@
+import { texte } from "@/lib/i18n/woerterbuch";
+import type { Sprache } from "@/lib/i18n/sprache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { abschnitteFuer, passendeKategorie, type Abschnitt } from "./kategorie";
-import { angabeLabel, fehlendeAngaben, type Angaben } from "./pflichtangaben";
+import { fehlendeAngaben, type Angaben } from "./pflichtangaben";
 
 export const MAX_BETRAG_CENT = 10_000_000; // 100.000 €
 
@@ -27,27 +29,30 @@ export async function pruefePositionen(
   positionen: Position[],
   bestehend: boolean,
   art: "reise" | "auslagen",
+  sprache: Sprache = "de",
 ): Promise<string | null> {
+  const t = texte(sprache);
+  const m = t.hinweise.beleg;
   const ids = [...new Set(positionen.map((p) => p.kategorieId))];
   const { data: kategorien } = await supabase.from("kategorie").select("id, abschnitt, beleg_erfassbar, aktiv, pflichtangaben").in("id", ids);
   const nachId = new Map((kategorien ?? []).map((k) => [k.id, k]));
 
   for (const p of positionen) {
     const k = nachId.get(p.kategorieId);
-    if (!k?.beleg_erfassbar || (!bestehend && !k.aktiv)) return "Bitte eine Kategorie wählen.";
+    if (!k?.beleg_erfassbar || (!bestehend && !k.aktiv)) return m.kategorieWaehlen;
     // Reisekosten und Auslagen haben getrennte Kategorien (und Buchungskonten)
     if (!abschnitteFuer(art).includes(k.abschnitt as Abschnitt)) {
-      return art === "auslagen" ? "Auslagen bitte einer Auslagen-Kategorie zuordnen." : "Diese Kategorie gilt nur für Auslagen, nicht für Reisen.";
+      return art === "auslagen" ? m.auslagenKategorie : m.nurAuslagen;
     }
     if (!Number.isInteger(p.betragCent) || p.betragCent <= 0 || p.betragCent > MAX_BETRAG_CENT) {
-      return "Bitte einen gültigen Betrag angeben, z. B. 12,50.";
+      return m.betrag;
     }
-    if (!Number.isFinite(p.mwstProzent) || p.mwstProzent < 0 || p.mwstProzent >= 100) return "Bitte den MwSt-Satz angeben.";
+    if (!Number.isFinite(p.mwstProzent) || p.mwstProzent < 0 || p.mwstProzent >= 100) return m.mwst;
     if (k.abschnitt === "E" && (!p.bewirtungAnlass || !p.bewirtungTeilnehmer)) {
-      return "Bei Bewirtungen sind Anlass und Teilnehmende Pflicht.";
+      return m.bewirtung;
     }
     const fehlt = fehlendeAngaben(k.pflichtangaben, p.angaben);
-    if (fehlt.length) return `Bitte angeben: ${fehlt.map((a) => angabeLabel(a, k.abschnitt)).join(", ")}.`;
+    if (fehlt.length) return m.angeben(fehlt.map((a) => t.allgemein.pflichtangabe.label(a, k.abschnitt)).join(", "));
   }
   return null;
 }
@@ -60,15 +65,14 @@ export async function positionenFuerArt<P extends { kategorieId: string; mwstPro
   supabase: SupabaseClient<Database>,
   positionen: P[],
   art: "reise" | "auslagen",
+  sprache: Sprache = "de",
 ): Promise<{ positionen: P[] } | { fehler: string }> {
+  const m = texte(sprache).hinweise.beleg;
   const { data: kategorien } = await supabase.from("kategorie").select("id, abschnitt").eq("beleg_erfassbar", true);
   const umgestellt = positionen.map((p) => ({ ...p, kategorieId: passendeKategorie(p, art, kategorien ?? []) }));
   if (umgestellt.some((p) => !p.kategorieId)) {
     return {
-      fehler:
-        art === "auslagen"
-          ? "Der Beleg sieht nach Reisekosten aus – bitte einer Reise zuordnen oder von Hand erfassen."
-          : "Der Beleg sieht nach einer Auslage aus – bitte „Als Auslage erfassen“ oder von Hand erfassen.",
+      fehler: art === "auslagen" ? m.eherReise : m.eherAuslage,
     };
   }
   return { positionen: umgestellt as P[] };

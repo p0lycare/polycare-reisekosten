@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export type ProfilStatus = { fehler?: string; gespeichert?: boolean };
 
@@ -34,7 +35,7 @@ export async function profilSpeichern(_vorher: ProfilStatus, formData: FormData)
     updated_at: new Date().toISOString(),
   });
 
-  if (fehlerProfil || fehlerPrivat) return { fehler: "Speichern fehlgeschlagen." };
+  if (fehlerProfil || fehlerPrivat) return { fehler: (await ladeTexte()).allgemein.fehler.speichern };
 
   revalidatePath("/profil");
   return { gespeichert: true };

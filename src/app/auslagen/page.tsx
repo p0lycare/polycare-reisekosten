@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { aktuellerMonatBerlin, monatsname } from "@/lib/reisekosten/monat";
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
+import { ladeSprache } from "@/lib/i18n/server";
+import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
 import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import { formatEuro } from "@/lib/format";
 import { SeitenHilfe } from "../seiten-hilfe";
@@ -15,6 +17,8 @@ function vormonat(monat: string): string {
 
 export default async function AuslagenPage() {
   const supabase = await createClient();
+  const sprache = await ladeSprache();
+  const t = texte(sprache).auslagen;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,29 +46,28 @@ export default async function AuslagenPage() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Meine Auslagen</h1>
+        <h1 className="text-xl font-semibold">{t.titel}</h1>
         <Link href="/belege" className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
-          Beleg fotografieren
+          {t.belegFotografieren}
         </Link>
       </div>
 
       <SeitenHilfe anker="reisende">
-        Für privat vorgestreckte Ausgaben ohne Reise, z. B. im Baumarkt oder ein Geschäftsessen am eigenen Standort. Beleg fotografieren und im Eingang „Als Auslage erfassen“ –
-        je Monat entsteht eine Auslagenabrechnung, die du unter „Monat abrechnen“ zusammen mit deinen Reisen einreichst.
+        {t.hilfe}
       </SeitenHilfe>
 
       {!!offeneMonate.length && (
         <section className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-          <h2 className="font-medium">Auslage ohne Foto im Eingang erfassen</h2>
-          <AuslageErfassen monate={offeneMonate.map((m) => ({ wert: m, text: monatsname(m) }))} />
+          <h2 className="font-medium">{t.ohneFoto}</h2>
+          <AuslageErfassen monate={offeneMonate.map((m) => ({ wert: m, text: monatsnameIn(m, sprache) }))} />
           <p className="text-xs text-neutral-500">
-            Ab 250 € brutto muss die Rechnung auf Polycare Research Technology GmbH ausgestellt sein (Vorsteuerabzug).
+            {t.kleinbetrag}
           </p>
         </section>
       )}
 
       {!abrechnungen?.length ? (
-        <p className="text-sm text-neutral-500">Noch keine Auslagen.</p>
+        <p className="text-sm text-neutral-500">{t.keine}</p>
       ) : (
         <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
           {abrechnungen.map((a) => {
@@ -73,9 +76,9 @@ export default async function AuslagenPage() {
             return (
               <li key={a.id} className="flex items-center justify-between gap-4 p-4">
                 <Link href={`/reisen/${a.id}`} className="min-w-0 flex-1 hover:underline">
-                  <p className="font-medium">{monatsname(monat)}</p>
+                  <p className="font-medium">{monatsnameIn(monat, sprache)}</p>
                   <p className="text-sm text-neutral-500">
-                    {n === 1 ? "1 Beleg" : `${n} Belege`}
+                    {t.belege(n)}
                     {a.beleg_nr && ` · ${a.beleg_nr}`}
                   </p>
                 </Link>
@@ -84,7 +87,7 @@ export default async function AuslagenPage() {
                   <StatusBadge status={a.status} />
                   {istBearbeitbar(a.status) && n > 0 && (
                     <Link href={`/monat/${monat}`} className="text-xs underline">
-                      Einreichen →
+                      {t.einreichen}
                     </Link>
                   )}
                 </div>

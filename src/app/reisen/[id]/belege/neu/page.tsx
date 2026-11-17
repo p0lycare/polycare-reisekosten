@@ -5,6 +5,7 @@ import { kiVerfuegbar, type AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { centAlsEingabe } from "@/lib/geld";
 import { auslagenVorschlag } from "@/lib/reisekosten/eingang";
 import { passendeKategorie } from "@/lib/reisekosten/kategorie";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export default async function NeuerBelegPage({
   params,
@@ -16,6 +17,7 @@ export default async function NeuerBelegPage({
   const { id } = await params;
   const { eingang: eingangId } = await searchParams;
   const { supabase, user, reise, kategorien, vorbelegt } = await ladeFuerBeleg(id);
+  const t = (await ladeTexte()).belege.titel;
 
   // Beleg aus dem Eingang von Hand erfassen: Foto und KI-Vorschlag übernehmen
   const { data: eingang } = eingangId
@@ -38,7 +40,7 @@ export default async function NeuerBelegPage({
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       {reise.art === "auslagen" && <Bereich reiter="/auslagen" />}
-      <h1 className="text-xl font-semibold">{reise.art === "auslagen" ? "Auslage hinzufügen" : "Beleg hinzufügen"}</h1>
+      <h1 className="text-xl font-semibold">{reise.art === "auslagen" ? t.auslageNeu : t.belegNeu}</h1>
       <BelegFormular
         auslagen={auslagen}
         reiseId={reise.id}

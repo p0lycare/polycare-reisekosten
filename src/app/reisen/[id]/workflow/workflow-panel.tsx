@@ -1,9 +1,11 @@
 "use client";
 
-import { aktuellerMonatBerlin, monatsname } from "@/lib/reisekosten/monat";
+import { aktuellerMonatBerlin } from "@/lib/reisekosten/monat";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
+import { useSprache, useTexte } from "@/lib/i18n/client";
+import { monatsnameIn } from "@/lib/i18n/woerterbuch";
 import { ablehnen, auszahlen, einreichen, genehmigen, pruefen, zurueckziehen, type WorkflowStatus } from "./actions";
 
 export type WorkflowRechte = {
@@ -36,33 +38,30 @@ function Fehler({ status }: { status: WorkflowStatus }) {
  */
 function Einreichen({ id, betrag, monat }: { id: string; betrag: string; monat: string }) {
   const [status, absenden, laeuft] = useActionState(einreichen, {});
-  const name = monatsname(monat);
+  const t = useTexte().workflow.panel.einreichen;
+  const name = monatsnameIn(monat, useSprache());
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-neutral-700 dark:text-neutral-300">
-        <span className="font-medium">Empfohlen:</span> Sammle alle Reisen und Auslagen eines Monats und reiche sie am Monatsende gemeinsam
-        ein – deine Führungskraft genehmigt dann alles in einem Schritt.
+        <span className="font-medium">{t.empfohlen}</span> {t.empfohlenText}
       </p>
       <div>
         <Link href={`/monat/${monat}`} className={`${knopf} inline-block`}>
-          {name} abrechnen und gesammelt einreichen
+          {t.gesammelt(name)}
         </Link>
       </div>
       <details className="text-sm">
-        <summary className="cursor-pointer text-neutral-600 underline dark:text-neutral-400">Jetzt einzeln einreichen</summary>
+        <summary className="cursor-pointer text-neutral-600 underline dark:text-neutral-400">{t.einzeln}</summary>
         <form onSubmit={ohneZuruecksetzen(absenden)} className="mt-3 flex flex-col gap-3">
           <input type="hidden" name="id" value={id} />
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="richtigkeit" required className="mt-0.5 size-4" />
-            <span>
-              Für die Richtigkeit: Ich bestätige, dass die Angaben vollständig und richtig sind und die Kosten
-              dienstlich veranlasst waren.
-            </span>
+            <span>{t.richtigkeit}</span>
           </label>
           <Fehler status={status} />
           <div>
             <button type="submit" disabled={laeuft} className={knopfSekundaer}>
-              {laeuft ? "Reicht ein …" : `Einzeln zur Genehmigung einreichen (${betrag})`}
+              {laeuft ? t.reichtEin : t.knopf(betrag)}
             </button>
           </div>
         </form>
@@ -73,20 +72,22 @@ function Einreichen({ id, betrag, monat }: { id: string; betrag: string; monat: 
 
 function Ablehnen({ id, onAbbrechen }: { id: string; onAbbrechen: () => void }) {
   const [status, absenden, laeuft] = useActionState(ablehnen, {});
+  const alle = useTexte();
+  const t = alle.workflow.panel.ablehnen;
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Grund der Ablehnung</span>
-        <textarea name="grund" required rows={2} className={feld} placeholder="z. B. Hotelrechnung fehlt" />
+        <span className="text-sm font-medium">{t.grund}</span>
+        <textarea name="grund" required rows={2} className={feld} placeholder={t.grundPlatzhalter} />
       </label>
       <Fehler status={status} />
       <div className="flex gap-3">
         <button type="submit" disabled={laeuft} className={knopf}>
-          {laeuft ? "…" : "Ablehnen"}
+          {laeuft ? "…" : t.knopf}
         </button>
         <button type="button" onClick={onAbbrechen} className={knopfSekundaer}>
-          Abbrechen
+          {alle.allgemein.knopf.abbrechen}
         </button>
       </div>
     </form>
@@ -96,21 +97,23 @@ function Ablehnen({ id, onAbbrechen }: { id: string; onAbbrechen: () => void }) 
 function Genehmigen({ id }: { id: string }) {
   const [status, absenden, laeuft] = useActionState(genehmigen, {});
   const [ablehnung, setAblehnung] = useState(false);
+  const p = useTexte().workflow.panel;
+  const t = p.genehmigen;
   if (ablehnung) return <Ablehnen id={id} onAbbrechen={() => setAblehnung(false)} />;
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Kommentar (optional)</span>
-        <textarea name="kommentar" rows={2} maxLength={500} className={feld} placeholder="z. B. Hinweis für die Buchhaltung" />
+        <span className="text-sm font-medium">{t.kommentar}</span>
+        <textarea name="kommentar" rows={2} maxLength={500} className={feld} placeholder={t.kommentarPlatzhalter} />
       </label>
       <Fehler status={status} />
       <div className="flex gap-3">
         <button type="submit" disabled={laeuft} className={knopf}>
-          {laeuft ? "…" : "Genehmigen"}
+          {laeuft ? "…" : t.knopf}
         </button>
         <button type="button" onClick={() => setAblehnung(true)} className={knopfSekundaer}>
-          Ablehnen …
+          {p.ablehnen.oeffnen}
         </button>
       </div>
     </form>
@@ -120,26 +123,28 @@ function Genehmigen({ id }: { id: string }) {
 function Pruefen({ id }: { id: string }) {
   const [status, absenden, laeuft] = useActionState(pruefen, {});
   const [ablehnung, setAblehnung] = useState(false);
+  const p = useTexte().workflow.panel;
+  const t = p.pruefen;
   if (ablehnung) return <Ablehnen id={id} onAbbrechen={() => setAblehnung(false)} />;
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
       <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        Die Beleg-Nr. wird beim Prüfen fortlaufend vergeben. Danach gehen Abrechnung und Belege automatisch an DATEV.
+        {t.text}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Buchungsmonat</span>
+          <span className="text-sm font-medium">{t.buchungsmonat}</span>
           <input type="month" name="buchungsmonat" required defaultValue={aktuellerMonatBerlin()} className={feld} />
         </label>
       </div>
       <Fehler status={status} />
       <div className="flex gap-3">
         <button type="submit" disabled={laeuft} className={knopf}>
-          {laeuft ? "…" : "Belege geprüft"}
+          {laeuft ? "…" : t.knopf}
         </button>
         <button type="button" onClick={() => setAblehnung(true)} className={knopfSekundaer}>
-          Ablehnen …
+          {p.ablehnen.oeffnen}
         </button>
       </div>
     </form>
@@ -148,10 +153,11 @@ function Pruefen({ id }: { id: string }) {
 
 function Zurueckziehen({ id }: { id: string }) {
   const [status, absenden, laeuft] = useActionState(zurueckziehen, {});
+  const t = useTexte().workflow.panel.zurueckziehen;
   return (
     <form
       onSubmit={(e) => {
-        if (!confirm("Einreichung zurückziehen? Die Abrechnung wird wieder zum Entwurf und kann bearbeitet werden.")) {
+        if (!confirm(t.bestaetigen)) {
           e.preventDefault();
           return;
         }
@@ -160,11 +166,11 @@ function Zurueckziehen({ id }: { id: string }) {
       className="flex flex-col gap-3"
     >
       <input type="hidden" name="id" value={id} />
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">Zurückziehen macht die Abrechnung wieder zum Entwurf, den du korrigieren kannst.</p>
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.text}</p>
       <Fehler status={status} />
       <div>
         <button type="submit" disabled={laeuft} className={knopfSekundaer}>
-          {laeuft ? "…" : "Einreichung zurückziehen"}
+          {laeuft ? "…" : t.knopf}
         </button>
       </div>
     </form>
@@ -173,13 +179,14 @@ function Zurueckziehen({ id }: { id: string }) {
 
 function Auszahlen({ id, betrag }: { id: string; betrag: string }) {
   const [status, absenden, laeuft] = useActionState(auszahlen, {});
+  const t = useTexte().workflow.panel.auszahlen;
   return (
     <form onSubmit={ohneZuruecksetzen(absenden)} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
       <Fehler status={status} />
       <div>
         <button type="submit" disabled={laeuft} className={knopf}>
-          {laeuft ? "…" : `In DATEV überwiesen – als ausgezahlt markieren (${betrag})`}
+          {laeuft ? "…" : t.knopf(betrag)}
         </button>
       </div>
     </form>
@@ -200,20 +207,21 @@ export function WorkflowPanel({
   /** Monat der Reise ("YYYY-MM") für das gesammelte Einreichen */
   monat: string;
 }) {
+  const t = useTexte().workflow.panel;
   if (!rechte.einreichen && !rechte.zurueckziehen && !rechte.genehmigen && !rechte.pruefen && !rechte.auszahlen) return null;
 
   return (
     <section className="rounded-lg border-2 border-neutral-900 p-4 dark:border-neutral-100">
       <h2 className="mb-3 font-medium">
-        {rechte.einreichen && "Einreichen"}
-        {rechte.zurueckziehen && "Eingereicht"}
-        {rechte.genehmigen && "Genehmigung"}
-        {rechte.pruefen && "Belegprüfung"}
-        {rechte.auszahlen && "Auszahlung"}
+        {rechte.einreichen && t.titel.einreichen}
+        {rechte.zurueckziehen && t.titel.zurueckziehen}
+        {rechte.genehmigen && t.titel.genehmigen}
+        {rechte.pruefen && t.titel.pruefen}
+        {rechte.auszahlen && t.titel.auszahlen}
       </h2>
       {hinweise.length > 0 && !rechte.auszahlen && (
         <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          <p className="font-medium">{rechte.einreichen ? "Bitte vor dem Einreichen prüfen:" : "Hinweise zur Prüfung:"}</p>
+          <p className="font-medium">{rechte.einreichen ? t.hinweiseEinreichen : t.hinweisePruefung}</p>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             {hinweise.map((h) => (
               <li key={h}>{h}</li>

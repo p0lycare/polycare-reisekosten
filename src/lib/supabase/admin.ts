@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
+import { alsSprache, type Sprache } from "@/lib/i18n/sprache";
 
 /**
  * Supabase-Client mit Service-Rolle – umgeht RLS. Nur für eng begrenzte Server-Aufgaben verwenden:
@@ -52,6 +53,26 @@ export async function mailEmpfaenger(reiseId: string, art: string, ohne?: string
   if (error) console.error("Mail-Empfänger konnten nicht ermittelt werden", error.message);
   const selbst = ohne?.toLowerCase();
   return (data ?? []).map((e) => e.email).filter((e) => e && e.toLowerCase() !== selbst);
+}
+
+/**
+ * Teilt Mail-Empfänger nach ihrer Sprache auf (Profileinstellung; unbekannte Adressen deutsch),
+ * damit jede Person Benachrichtigungen in ihrer Sprache bekommt. Schlägt nie fehl.
+ */
+export async function nachSprache(an: string[]): Promise<{ sprache: Sprache; an: string[] }[]> {
+  const sprachen = new Map<string, Sprache>();
+  try {
+    const { data } = await createAdminClient().from("profile").select("email, sprache").in("email", an);
+    for (const p of data ?? []) sprachen.set(p.email.toLowerCase(), alsSprache(p.sprache));
+  } catch (e) {
+    console.error("Sprache der Empfänger konnte nicht ermittelt werden", e);
+  }
+  const gruppen = new Map<Sprache, string[]>();
+  for (const e of an) {
+    const s = sprachen.get(e.toLowerCase()) ?? "de";
+    gruppen.set(s, [...(gruppen.get(s) ?? []), e]);
+  }
+  return [...gruppen].map(([sprache, an]) => ({ sprache, an }));
 }
 
 /** Prüft, ob der serverseitige Zugang (Service-Rolle) funktioniert – für die Anzeige in den Einstellungen */

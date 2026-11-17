@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { monatsgrenzen, monatsname } from "./monat";
 import { istBearbeitbar } from "./reise";
+import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
+import type { Sprache } from "@/lib/i18n/sprache";
 
 /**
  * Eine Auslagenabrechnung umfasst genau einen Kalendermonat (wie das Formblatt FB 21):
@@ -37,9 +39,11 @@ export async function auslagenAbrechnungHolen(
   supabase: SupabaseClient<Database>,
   userId: string,
   monat: string,
+  sprache: Sprache = "de",
 ): Promise<AuslagenErgebnis> {
+  const t = texte(sprache).hinweise.auslagen;
   const zeitraum = auslagenZeitraum(monat);
-  if (!zeitraum) return { fehler: "Ungültiger Monat." };
+  if (!zeitraum) return { fehler: t.ungueltigerMonat };
 
   const suchen = () =>
     supabase
@@ -62,12 +66,12 @@ export async function auslagenAbrechnungHolen(
       mit_uebernachtung: false,
     });
     // Bei gleichzeitigem Anlegen greift der eindeutige Index – dann die andere Zeile nehmen
-    if (error && error.code !== "23505") return { fehler: "Die Auslagenabrechnung konnte nicht angelegt werden." };
+    if (error && error.code !== "23505") return { fehler: t.nichtAngelegt };
     ({ data: vorhanden } = await suchen());
   }
-  if (!vorhanden) return { fehler: "Die Auslagenabrechnung konnte nicht angelegt werden." };
+  if (!vorhanden) return { fehler: t.nichtAngelegt };
   if (!istBearbeitbar(vorhanden.status)) {
-    return { fehler: `Die Auslagen für ${monatsname(monat)} sind schon eingereicht – bitte den Beleg einem anderen Monat zuordnen.` };
+    return { fehler: t.schonEingereicht(monatsnameIn(monat, sprache)) };
   }
   return { id: vorhanden.id };
 }

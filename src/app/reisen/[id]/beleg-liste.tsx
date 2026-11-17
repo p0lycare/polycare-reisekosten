@@ -2,11 +2,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDatum, formatEuro } from "@/lib/format";
 import { nettoAusBrutto } from "@/lib/reisekosten/mwst";
-import { ABSCHNITT_TEXT, type Abschnitt } from "@/lib/reisekosten/kategorie";
+import type { Abschnitt } from "@/lib/reisekosten/kategorie";
+import { ladeSprache } from "@/lib/i18n/server";
+import { kategorieName, texte } from "@/lib/i18n/woerterbuch";
 import { angabenText } from "@/lib/reisekosten/pflichtangaben";
 
 export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; bearbeitbar: boolean }) {
   const supabase = await createClient();
+  const sprache = await ladeSprache();
+  const alle = texte(sprache);
+  const t = alle.reisen.belegListe;
   const { data: belege } = await supabase
     .from("beleg")
     .select("*, kategorie(bezeichnung, abschnitt, sortierung)")
@@ -25,22 +30,22 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
   return (
     <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-medium">Belege</h2>
+        <h2 className="font-medium">{t.titel}</h2>
         {bearbeitbar && (
           <Link href={`/reisen/${reiseId}/belege/neu`} className="rounded-md bg-primaer hover:bg-primaer-hover px-3 py-1.5 text-sm font-medium text-white dark:text-neutral-950">
-            Beleg hinzufügen
+            {t.hinzufuegen}
           </Link>
         )}
       </div>
 
       {!belege?.length ? (
-        <p className="mt-2 text-sm text-neutral-500">Noch keine Belege.</p>
+        <p className="mt-2 text-sm text-neutral-500">{t.keine}</p>
       ) : (
         <div className="mt-3 flex flex-col gap-4">
           {abschnitte.map((a) => (
             <div key={a}>
               <h3 className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
-                {a} – {ABSCHNITT_TEXT[a]}
+                {a} – {alle.allgemein.abschnitt[a]}
               </h3>
               <ul className="mt-1 divide-y divide-neutral-100 dark:divide-neutral-800">
                 {belege
@@ -48,19 +53,19 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
                   .map((b) => {
                     const { netto, mwst } = nettoAusBrutto(b.betrag_cent, Number(b.mwst_prozent));
                     const url = b.datei_pfad ? urls.get(b.datei_pfad) : undefined;
-                    const angaben = angabenText({ anlass: b.anlass, person: b.person, kfzKennzeichen: b.kfz_kennzeichen, bewirtungAnlass: b.bewirtung_anlass, bewirtungTeilnehmer: b.bewirtung_teilnehmer });
+                    const angaben = angabenText({ anlass: b.anlass, person: b.person, kfzKennzeichen: b.kfz_kennzeichen, bewirtungAnlass: b.bewirtung_anlass, bewirtungTeilnehmer: b.bewirtung_teilnehmer }, sprache);
                     const inhalt = (
                       <>
                         <div className="min-w-0">
                           <p className="truncate">
-                            {b.lieferant ?? b.kategorie!.bezeichnung}
+                            {b.lieferant ?? kategorieName(sprache, b.kategorie_id, b.kategorie!.bezeichnung)}
                             {b.beschreibung && <span className="text-neutral-500"> · {b.beschreibung}</span>}
                           </p>
                           {angaben && <p className="truncate text-xs text-neutral-600 dark:text-neutral-400">{angaben}</p>}
                           <p className="text-xs text-neutral-500 tabular-nums">
-                            {formatDatum(b.datum)} · netto {formatEuro(netto)} + {String(Number(b.mwst_prozent)).replace(".", ",")} % {formatEuro(mwst)}
-                            {b.kostenstelle && ` · KSt ${b.kostenstelle}`}
-                            {!b.datei_pfad && " · ohne Beleg"}
+                            {formatDatum(b.datum)} · {t.netto} {formatEuro(netto)} + {String(Number(b.mwst_prozent)).replace(".", ",")} % {formatEuro(mwst)}
+                            {b.kostenstelle && t.kostenstelle(b.kostenstelle)}
+                            {!b.datei_pfad && t.ohneBeleg}
                           </p>
                         </div>
                         <span className="shrink-0 tabular-nums">{formatEuro(b.betrag_cent)}</span>
@@ -70,7 +75,7 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
                       <li key={b.id} className="flex items-center gap-3 py-2">
                         {url ? (
                           <a href={url} target="_blank" rel="noreferrer" className="shrink-0 text-xs text-neutral-600 underline dark:text-neutral-400">
-                            Beleg
+                            {t.beleg}
                           </a>
                         ) : (
                           <span className="w-[2.1rem] shrink-0" />
@@ -89,7 +94,7 @@ export async function BelegListe({ reiseId, bearbeitbar }: { reiseId: string; be
             </div>
           ))}
           <div className="flex justify-between border-t border-neutral-300 pt-2 font-medium dark:border-neutral-700">
-            <span>Summe Belege</span>
+            <span>{t.summe}</span>
             <span className="tabular-nums">{formatEuro(summe)}</span>
           </div>
         </div>

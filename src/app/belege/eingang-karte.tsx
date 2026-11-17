@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { formatDatum, formatEuro } from "@/lib/format";
+import { useTexte } from "@/lib/i18n/client";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
 import { belegDatumFuerZuordnung, passendeReise, summeAusErgebnis, type ReiseKurz } from "@/lib/reisekosten/eingang";
 import { eingangAlsAuslage, eingangLoeschen, eingangNeuAuslesen, eingangZuordnen, type EingangStatus } from "./actions";
@@ -29,6 +30,8 @@ export function EingangKarte({
   /** Kategorien aus Abschnitt G – erkennt die KI nur solche, ist „Als Auslage erfassen“ der naheliegende Weg */
   auslagenKategorien: string[];
 }) {
+  const alle = useTexte();
+  const t = alle.belege.karte;
   const e = eintrag.ergebnis;
   const istAuslage = !!e?.positionen.length && e.positionen.every((p) => auslagenKategorien.includes(p.kategorieId));
   const vorschlag = istAuslage ? null : (passendeReise(belegDatumFuerZuordnung(e), reisen) ?? passendeReise(e?.datum, reisen));
@@ -52,9 +55,9 @@ export function EingangKarte({
       >
         {eintrag.bildUrl && !eintrag.istPdf ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={eintrag.bildUrl} alt="Beleg" className="h-full w-full object-cover" />
+          <img src={eintrag.bildUrl} alt={t.bildAlt} className="h-full w-full object-cover" />
         ) : (
-          "PDF"
+          t.pdf
         )}
       </a>
 
@@ -62,11 +65,11 @@ export function EingangKarte({
         {e?.istBeleg ? (
           <div>
             <p className="font-medium">
-              {e.haendler ?? "Beleg"}
+              {e.haendler ?? t.beleg}
               {e.ort && <span className="font-normal text-neutral-500"> · {e.ort}</span>}
             </p>
             <p className="text-sm text-neutral-600 tabular-nums dark:text-neutral-400">
-              {e.datum ? formatDatum(e.datum) : "Datum unklar"}
+              {e.datum ? formatDatum(e.datum) : t.datumUnklar}
               {summe != null && ` · ${formatEuro(summe)}`}
               {e.waehrung !== "EUR" && ` (${e.waehrung})`}
             </p>
@@ -77,7 +80,7 @@ export function EingangKarte({
           </div>
         ) : (
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            {eintrag.kiFehler ?? (e && !e.istBeleg ? "Das sieht nicht nach einem Beleg aus." : "Noch nicht ausgelesen.")}
+            {eintrag.kiFehler ?? (e && !e.istBeleg ? t.keinBeleg : t.nichtAusgelesen)}
           </p>
         )}
 
@@ -85,14 +88,14 @@ export function EingangKarte({
           <select
             value={reiseId}
             onChange={(ev) => setReiseId(ev.target.value)}
-            aria-label="Reise"
+            aria-label={t.reise}
             className="max-w-full min-w-0 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           >
-            <option value="">Reise wählen …</option>
+            <option value="">{t.reiseWaehlen}</option>
             {reisen.map((r) => (
               <option key={r.id} value={r.id}>
                 {formatDatum(r.beginn)} {r.begruendung}
-                {r.id === vorschlag?.id ? " (passt zum Datum)" : ""}
+                {r.id === vorschlag?.id ? t.passtZumDatum : ""}
               </option>
             ))}
           </select>
@@ -102,15 +105,15 @@ export function EingangKarte({
             onClick={() => ausfuehren(() => eingangZuordnen(eintrag.id, reiseId))}
             className={`${knopf} bg-primaer hover:bg-primaer-hover text-white dark:text-neutral-950`}
           >
-            {laeuft ? "…" : "Zuordnen"}
+            {laeuft ? "…" : t.zuordnen}
           </button>
           {reiseId && (
             <Link href={`/reisen/${reiseId}/belege/neu?eingang=${eintrag.id}`} className={`${knopf} border border-neutral-300 dark:border-neutral-700`}>
-              Von Hand erfassen
+              {t.vonHand}
             </Link>
           )}
           <Link href={`/reisen/neu?eingang=${eintrag.id}`} className={`${knopf} border border-neutral-300 dark:border-neutral-700`}>
-            Neue Reise daraus
+            {t.neueReise}
           </Link>
           <button
             type="button"
@@ -118,28 +121,28 @@ export function EingangKarte({
             onClick={() => ausfuehren(() => eingangAlsAuslage(eintrag.id))}
             className={`${knopf} ${istAuslage ? "bg-primaer hover:bg-primaer-hover text-white dark:text-neutral-950" : "border border-neutral-300 dark:border-neutral-700"}`}
           >
-            Als Auslage erfassen
+            {t.alsAuslage}
           </button>
         </div>
 
         <div className="flex gap-4 text-xs">
           {(eintrag.kiFehler || !e) && (
             <button type="button" disabled={laeuft} onClick={() => ausfuehren(() => eingangNeuAuslesen(eintrag.id))} className="underline">
-              Erneut auslesen
+              {t.erneutAuslesen}
             </button>
           )}
           <button
             type="button"
             disabled={laeuft}
             onClick={() => {
-              if (confirm("Diesen Beleg aus dem Eingang löschen?")) ausfuehren(() => eingangLoeschen(eintrag.id));
+              if (confirm(t.loeschenFrage)) ausfuehren(() => eingangLoeschen(eintrag.id));
             }}
             className="text-red-700 underline dark:text-red-400"
           >
-            Löschen
+            {alle.allgemein.knopf.loeschen}
           </button>
         </div>
-        {mitBewirtung && <p className="text-xs text-neutral-500">Bewirtung: bitte von Hand mit Anlass und Teilnehmenden erfassen.</p>}
+        {mitBewirtung && <p className="text-xs text-neutral-500">{t.bewirtung}</p>}
         {status.fehler && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{status.fehler}</p>}
       </div>
     </li>

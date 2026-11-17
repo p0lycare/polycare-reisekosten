@@ -5,6 +5,7 @@ import { BelegFormular } from "../beleg-formular";
 import { BelegLoeschenButton } from "../beleg-loeschen-button";
 import { ladeFuerBeleg } from "../laden";
 import { kiVerfuegbar } from "@/lib/ki/beleg-auslesen";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export default async function BelegBearbeitenPage({ params }: { params: Promise<{ id: string; belegId: string }> }) {
   const { id, belegId } = await params;
@@ -12,6 +13,7 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
 
   const { data: beleg } = await supabase.from("beleg").select("*").eq("id", belegId).eq("reise_id", id).maybeSingle();
   if (!beleg) notFound();
+  const t = (await ladeTexte()).belege.titel;
 
   const { data: signiert } = beleg.datei_pfad
     ? await supabase.storage.from("belege").createSignedUrl(beleg.datei_pfad, 3600)
@@ -21,7 +23,7 @@ export default async function BelegBearbeitenPage({ params }: { params: Promise<
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       {reise.art === "auslagen" && <Bereich reiter="/auslagen" />}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Beleg bearbeiten</h1>
+        <h1 className="text-xl font-semibold">{t.bearbeiten}</h1>
         <BelegLoeschenButton id={beleg.id} reiseId={id} />
       </div>
       <BelegFormular

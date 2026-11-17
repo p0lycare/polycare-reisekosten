@@ -5,6 +5,7 @@ import type { Reise } from "@/lib/reisekosten/reise";
 import { weichtAb } from "@/lib/routing/strecke";
 import { FahrtZeile } from "./fahrt-zeile";
 import { KarteKnopf } from "./route-karte";
+import { ladeTexte } from "@/lib/i18n/server";
 
 function kmText(km: number): string {
   return km.toLocaleString("de-DE", { maximumFractionDigits: 1 });
@@ -12,6 +13,7 @@ function kmText(km: number): string {
 
 export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearbeitbar: boolean }) {
   const supabase = await createClient();
+  const t = (await ladeTexte()).fahrten.liste;
   const [{ data: fahrten }, { data: einstellungen }] = await Promise.all([
     supabase.from("fahrt").select("*").eq("reise_id", reise.id).order("datum").order("created_at"),
     supabase.from("einstellungen").select("km_satz_cent, km_steuerfrei_cent").single(),
@@ -29,7 +31,7 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
 
   return (
     <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="font-medium">Fahrten mit eigenem PKW{reise.kfz_kennzeichen && ` (${reise.kfz_kennzeichen})`}</h2>
+      <h2 className="font-medium">{t.titel(reise.kfz_kennzeichen)}</h2>
 
       {bearbeitbar ? (
         <div className="mt-2 divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -65,7 +67,7 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
                 <td className="py-2 text-right tabular-nums whitespace-nowrap">
                   {kmText(Number(f.km))} km
                   {f.km_route !== null && weichtAb(Number(f.km), Number(f.km_route)) && (
-                    <span className="block text-xs text-amber-700 dark:text-amber-400">Route {kmText(Number(f.km_route))} km</span>
+                    <span className="block text-xs text-amber-700 dark:text-amber-400">{t.route(kmText(Number(f.km_route)))}</span>
                   )}
                 </td>
               </tr>
@@ -77,14 +79,14 @@ export async function FahrtenListe({ reise, bearbeitbar }: { reise: Reise; bearb
       {kmGesamt > 0 && (
         <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-t border-neutral-300 pt-2 text-sm dark:border-neutral-700">
           <dt className="font-medium">
-            Km-Geld: {kmText(kmGesamt)} km × {formatEuro(satz)}
+            {t.kmGeld(kmText(kmGesamt), formatEuro(satz))}
           </dt>
           <dd className="text-right font-medium tabular-nums">{formatEuro(kmGeld.betrag)}</dd>
-          <dt className="text-neutral-500">davon steuerfrei ({formatEuro(steuerfreiSatz)}/km)</dt>
+          <dt className="text-neutral-500">{t.steuerfrei(formatEuro(steuerfreiSatz))}</dt>
           <dd className="text-right text-neutral-500 tabular-nums">{formatEuro(kmGeld.steuerfrei)}</dd>
           {kmGeld.steuerpflichtig > 0 && (
             <>
-              <dt className="text-neutral-500">davon steuerpflichtig (Lohnabrechnung)</dt>
+              <dt className="text-neutral-500">{t.steuerpflichtig}</dt>
               <dd className="text-right text-neutral-500 tabular-nums">{formatEuro(kmGeld.steuerpflichtig)}</dd>
             </>
           )}
