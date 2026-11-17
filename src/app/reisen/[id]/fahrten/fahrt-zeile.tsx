@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
+import { useTexte } from "@/lib/i18n/client";
 import { weichtAb } from "@/lib/routing/strecke";
 import { fahrtLoeschen, fahrtSpeichern, kmBerechnen, type FahrtStatus } from "./actions";
 import { KarteKnopf } from "./route-karte";
@@ -28,6 +29,8 @@ export function FahrtZeile({
 }) {
   const [status, absenden, laeuft] = useActionState<FahrtStatus, FormData>(fahrtSpeichern, {});
   const formRef = useRef<HTMLFormElement>(null);
+  const alle = useTexte();
+  const t = alle.fahrten.zeile;
   const neu = !werte.id;
   const [km, setKm] = useState(werte.km);
   const [strecke, setStrecke] = useState(werte.strecke);
@@ -71,26 +74,26 @@ export function FahrtZeile({
         {werte.id && <input type="hidden" name="id" value={werte.id} />}
         <input type="hidden" name="reise_id" value={reiseId} />
         <label className="flex flex-col gap-1">
-          {neu && <span className="text-xs text-neutral-500">Datum</span>}
-          <input type="date" name="datum" required defaultValue={werte.datum} min={reiseVon} max={reiseBis} aria-label="Datum" className={feld} />
+          {neu && <span className="text-xs text-neutral-500">{t.datum}</span>}
+          <input type="date" name="datum" required defaultValue={werte.datum} min={reiseVon} max={reiseBis} aria-label={t.datum} className={feld} />
         </label>
         <label className="flex flex-col gap-1">
-          {neu && <span className="text-xs text-neutral-500">Fahrstrecke</span>}
-          <input name="strecke" required value={strecke} onChange={(e) => setStrecke(e.target.value)} aria-label="Fahrstrecke" className={feld} />
+          {neu && <span className="text-xs text-neutral-500">{t.strecke}</span>}
+          <input name="strecke" required value={strecke} onChange={(e) => setStrecke(e.target.value)} aria-label={t.strecke} className={feld} />
         </label>
         <label className="flex flex-col gap-1">
-          {neu && <span className="text-xs text-neutral-500">Zweck</span>}
-          <input name="zweck" defaultValue={werte.zweck} aria-label="Zweck" className={feld} />
+          {neu && <span className="text-xs text-neutral-500">{t.zweck}</span>}
+          <input name="zweck" defaultValue={werte.zweck} aria-label={t.zweck} className={feld} />
         </label>
         <label className="flex flex-col gap-1">
-          {neu && <span className="text-xs text-neutral-500">km</span>}
+          {neu && <span className="text-xs text-neutral-500">{t.km}</span>}
           <input
             name="km"
             required
             inputMode="decimal"
             value={km}
             onChange={(e) => setKm(e.target.value)}
-            aria-label="Kilometer"
+            aria-label={t.kilometer}
             className={`${feld} text-right tabular-nums`}
           />
         </label>
@@ -99,31 +102,31 @@ export function FahrtZeile({
             type="button"
             onClick={berechnen}
             disabled={rechnet}
-            title="Kilometer aus der Fahrstrecke berechnen (OpenStreetMap)"
+            title={t.berechnenTitel}
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
           >
-            {rechnet ? "…" : "km berechnen"}
+            {rechnet ? "…" : t.berechnen}
           </button>
           <button type="submit" disabled={laeuft} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-            {laeuft ? "…" : neu ? "Hinzufügen" : "Speichern"}
+            {laeuft ? "…" : neu ? t.hinzufuegen : alle.allgemein.knopf.speichern}
           </button>
           {werte.id && (
             <button type="button" onClick={loeschen} className="text-sm text-red-700 underline dark:text-red-400">
-              Löschen
+              {alle.allgemein.knopf.loeschen}
             </button>
           )}
         </div>
       </form>
       {route && (
         <p className={`mt-1 text-xs ${abweichung ? "text-amber-700 dark:text-amber-400" : "text-neutral-500"}`}>
-          Route: {kmText(route.km)} km{route.orte && ` über ${route.orte.join(" → ")}`}
-          {abweichung && " – deine Angabe weicht deutlich ab; bitte kurz im Zweck begründen (z. B. Umleitung)."}
+          {t.route(kmText(route.km), route.orte?.join(" → "))}
+          {abweichung && t.abweichung}
         </p>
       )}
       {routeFehler && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{routeFehler}</p>}
       {strecke.trim() && <KarteKnopf key={strecke} strecke={strecke} />}
       {status.fehler && <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-400">{status.fehler}</p>}
-      {status.gespeichert && !neu && <p role="status" className="mt-1 text-sm text-green-700 dark:text-green-400">Gespeichert</p>}
+      {status.gespeichert && !neu && <p role="status" className="mt-1 text-sm text-green-700 dark:text-green-400">{t.gespeichert}</p>}
     </div>
   );
 }

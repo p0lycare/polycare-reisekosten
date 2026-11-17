@@ -1,10 +1,13 @@
 "use client";
 
+import { uebersetzeMeldung } from "@/lib/i18n/meldungen";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatFehler, verkleinereBild } from "@/lib/bild";
 import { ablegen, entfernen, istNetzfehler, wartende } from "@/lib/offline/warteschlange";
+import { useSprache, useTexte } from "@/lib/i18n/client";
+import type { Texte } from "@/lib/i18n/woerterbuch";
 import { eingangAnlegen } from "./actions";
 
 const MAX_DATEI_BYTES = 2_800_000;
@@ -18,7 +21,7 @@ class Offline extends Error {
 }
 
 /** Lädt eine Datei hoch und legt sie im Eingang an; wirft Offline, wenn das Netz fehlt */
-async function hochladen(userId: string, datei: Blob, name: string, pfad?: string): Promise<void> {
+async function hochladen(t: Texte["belege"]["hochladen"], userId: string, datei: Blob, name: string, pfad?: string): Promise<void> {
   if (!navigator.onLine) throw new Offline(pfad);
   const supabase = createClient();
   if (!pfad) {
@@ -26,7 +29,7 @@ async function hochladen(userId: string, datei: Blob, name: string, pfad?: strin
     const ziel = `${userId}/eingang/${crypto.randomUUID()}.${endung}`;
     try {
       const { error } = await supabase.storage.from("belege").upload(ziel, datei, { contentType: datei.type });
-      if (error) throw istNetzfehler(error) || istNetzfehler((error as { originalError?: unknown }).originalError) ? new Offline() : new Error(`${name}: Hochladen fehlgeschlagen`);
+      if (error) throw istNetzfehler(error) || istNetzfehler((error as { originalError?: unknown }).originalError) ? new Offline() : new Error(t.fehlgeschlagen(name));
     } catch (e) {
       if (e instanceof Offline || istNetzfehler(e)) throw new Offline();
       throw e;
@@ -50,6 +53,9 @@ async function hochladen(userId: string, datei: Blob, name: string, pfad?: strin
  */
 export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolean }) {
   const router = useRouter();
+  const alle = useTexte();
+  const sprache = useSprache();
+  const t = alle.belege.hochladen;
   const [fortschritt, setFortschritt] = useState<Fortschritt | null>(null);
   const [warten, setWarten] = useState(0);
   const [nachladen, setNachladen] = useState(false);
@@ -70,7 +76,7 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
     try {
       for (const e of await wartende(userId)) {
         try {
-          await hochladen(userId, e.datei, e.name, e.pfad);
+          await hochladen(t, userId, e.datei, e.name, e.pfad);
           await entfernen(e.id);
         } catch (fehler) {
           if (fehler instanceof Offline) {
@@ -91,7 +97,7 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
       await zaehlen();
       router.refresh();
     }
-  }, [userId, zaehlen, router]);
+  }, [userId, zaehlen, router, t]);
 
   useEffect(() => {
     zaehlen().then(warteschlangeAbarbeiten);
@@ -109,17 +115,17 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
       let verkleinert: File | null = null;
       try {
         verkleinert = await verkleinereBild(datei);
-        const format = formatFehler(verkleinert);
+        const format = formatFehler(verkleinert) && uebersetzeMeldung(formatFehler(verkleinert)!, sprache);
         if (format) throw new Error(`${datei.name}: ${format}`);
-        if (verkleinert.size > MAX_DATEI_BYTES) throw new Error(`${datei.name}: größer als 2,8 MB`);
-        await hochladen(userId, verkleinert, verkleinert.name);
+        if (verkleinert.size > MAX_DATEI_BYTES) throw new Error(t.zuGross(datei.name));
+        await hochladen(t, userId, verkleinert, verkleinert.name);
       } catch (e) {
         if (e instanceof Offline && verkleinert) {
           try {
             await ablegen(userId, verkleinert, verkleinert.name, e.pfad);
             stand.offline += 1;
           } catch {
-            stand.fehler.push(`${datei.name}: Ohne Verbindung konnte der Beleg nicht zwischengespeichert werden.`);
+            stand.fehler.push(t.offlineFehler(datei.name));
           }
         } else {
           stand.fehler.push(e instanceof Error ? e.message : String(e));
@@ -140,7 +146,7 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 sm:flex-row">
         <label className={`${knopf} bg-primaer hover:bg-primaer-hover text-white dark:text-neutral-950`}>
-          Beleg fotografieren
+          {t.fotografieren}
           <input
             type="file"
             accept="image/*"
@@ -154,7 +160,7 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
           />
         </label>
         <label className={`${knopf} border border-neutral-300 dark:border-neutral-700`}>
-          Mehrere Fotos oder PDFs wählen
+          {t.mehrere}
           <input
             type="file"
             accept="image/*,application/pdf"
@@ -169,27 +175,24 @@ export function Hochladen({ userId, kiAktiv }: { userId: string; kiAktiv: boolea
         </label>
       </div>
       <p className="text-xs text-neutral-500">
-        Fotos oder PDFs bis 2,8 MB.{kiAktiv && " Betrag, Datum, MwSt und Ort werden automatisch ausgelesen."} Zuordnen kannst du später.
-        Ohne Netz werden Fotos auf dem Handy gespeichert und später hochgeladen.
+        {t.hinweisVor}
+        {kiAktiv && t.hinweisKi}
+        {t.hinweisNach}
       </p>
       {warten > 0 && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          <span>
-            {warten} {warten === 1 ? "Beleg wartet" : "Belege warten"} auf dem Gerät auf eine Verbindung.
-          </span>
+          <span>{t.warten(warten)}</span>
           <button type="button" onClick={warteschlangeAbarbeiten} disabled={nachladen} className="font-medium underline disabled:opacity-50">
-            {nachladen ? "Lädt hoch …" : "Jetzt hochladen"}
+            {nachladen ? alle.belege.laedtHoch : t.jetztHochladen}
           </button>
         </div>
       )}
       {fortschritt && (
         <div role="status" className="rounded-md bg-neutral-100 p-3 text-sm dark:bg-neutral-800">
           {laeuft
-            ? `Verarbeite Beleg ${fortschritt.fertig + 1} von ${fortschritt.gesamt} …`
+            ? t.verarbeite(fortschritt.fertig + 1, fortschritt.gesamt)
             : fortschritt.gesamt > 0 &&
-              `${fortschritt.gesamt - fortschritt.fehler.length - fortschritt.offline} von ${fortschritt.gesamt} Belegen im Eingang${
-                fortschritt.offline ? `, ${fortschritt.offline} offline gespeichert` : ""
-              }.`}
+              t.ergebnis(fortschritt.gesamt - fortschritt.fehler.length - fortschritt.offline, fortschritt.gesamt, fortschritt.offline)}
           {fortschritt.fehler.map((f) => (
             <p key={f} className="mt-1 text-red-700 dark:text-red-400">
               {f}

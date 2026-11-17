@@ -6,7 +6,9 @@ import { formatDatum, formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { mailKonfiguration, sendeMail } from "./graph";
 import { alsMail, alsSammelMail, type Benachrichtigung } from "./vorlagen";
-import { mailEmpfaenger, protokolliereMail } from "@/lib/supabase/admin";
+import type { Sprache } from "@/lib/i18n/sprache";
+import { mailEmpfaenger, nachSprache, protokolliereMail } from "@/lib/supabase/admin";
+import { monatsnameIn } from "@/lib/i18n/woerterbuch";
 
 export async function appUrl(): Promise<string> {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
@@ -46,7 +48,7 @@ export async function benachrichtige(
 
     const von = formatDatum(reise.beginn);
     const bis = formatDatum(reise.ende);
-    const mail = alsMail(art, {
+    const daten = {
       reisende: reisende?.name ?? "",
       begruendung: reise.begruendung,
       zeitraum: von === bis ? von : `${von} – ${bis}`,
@@ -55,16 +57,21 @@ export async function benachrichtige(
       handelnde: handelnde?.name ?? "",
       grund: extra.grund,
       belegNr: reise.beleg_nr ?? undefined,
-    });
-    betreff = mail.betreff;
+    };
+    betreff = alsMail(art, daten).betreff;
 
     if (!mailKonfiguration()) {
       await protokolliereMail({ reiseId, art, an, betreff, status: "nicht_eingerichtet", personId: user.id });
       return;
     }
 
-    await sendeMail({ an, betreff: mail.betreff, text: mail.text, html: mail.html });
-    await protokolliereMail({ reiseId, art, an, betreff, status: "gesendet", personId: user.id });
+    // Je Sprache eine Mail – jede Person liest sie in ihrer eingestellten Sprache
+    for (const gruppe of await nachSprache(an)) {
+      const mail = alsMail(art, daten, gruppe.sprache);
+      betreff = mail.betreff;
+      await sendeMail({ an: gruppe.an, betreff: mail.betreff, text: mail.text, html: mail.html });
+      await protokolliereMail({ reiseId, art, an: gruppe.an, betreff, status: "gesendet", personId: user.id });
+    }
   } catch (e) {
     console.error("Benachrichtigung fehlgeschlagen", e);
     await protokolliereMail({
@@ -88,7 +95,8 @@ export async function benachrichtigeSammel(
   reiseIds: string[],
   zeitraum: string,
   art: Benachrichtigung = "eingereicht",
-  extra: { kommentar?: string } = {},
+  /** monat: "2026-10" – dann steht der Monatsname in der Sprache der empfangenden Person statt `zeitraum` */
+  extra: { kommentar?: string; monat?: string } = {},
 ): Promise<number> {
   const {
     data: { user },
@@ -116,27 +124,36 @@ export async function benachrichtigeSammel(
       if (!an.length) continue;
       const { data: person } = await supabase.from("profile").select("name").eq("id", mitarbeiterId).maybeSingle();
       const abrechnungen = await Promise.all(gruppe.map((r) => ladeAbrechnung(supabase, r)));
-      const mail = alsSammelMail({
-        art: art === "abgelehnt" ? "eingereicht" : art,
-        reisende: person?.name ?? "",
-        handelnde: ich?.name ?? "",
-        zeitraum,
-        reisen: gruppe.map((r, i) => {
-          const von = formatDatum(r.beginn);
-          const bis = formatDatum(r.ende);
-          return { begruendung: r.begruendung, zeitraum: von === bis ? von : `${von} – ${bis}`, betrag: formatEuro(abrechnungen[i].auszuzahlen) };
-        }),
-        gesamt: formatEuro(abrechnungen.reduce((s, a) => s + a.auszuzahlen, 0)),
-        link: `${await appUrl()}${art === "eingereicht" || art === "genehmigt" ? "/freigaben" : "/"}`,
-        kommentar: extra.kommentar,
-      });
-      betreff = mail.betreff;
+      const link = `${await appUrl()}${art === "eingereicht" || art === "genehmigt" ? "/freigaben" : "/"}`;
+      const sammel = (sprache: Sprache) =>
+        alsSammelMail(
+          {
+            art: art === "abgelehnt" ? "eingereicht" : art,
+            reisende: person?.name ?? "",
+            handelnde: ich?.name ?? "",
+            zeitraum: extra.monat ? monatsnameIn(extra.monat, sprache) : zeitraum,
+            reisen: gruppe.map((r, i) => {
+              const von = formatDatum(r.beginn);
+              const bis = formatDatum(r.ende);
+              return { begruendung: r.begruendung, zeitraum: von === bis ? von : `${von} – ${bis}`, betrag: formatEuro(abrechnungen[i].auszuzahlen) };
+            }),
+            gesamt: formatEuro(abrechnungen.reduce((s, a) => s + a.auszuzahlen, 0)),
+            link,
+            kommentar: extra.kommentar,
+          },
+          sprache,
+        );
+      betreff = sammel("de").betreff;
       if (!mailKonfiguration()) {
         await protokolliereMail({ reiseId: gruppe[0].id, art, an, betreff, status: "nicht_eingerichtet", personId: user.id });
         continue;
       }
-      await sendeMail({ an, betreff: mail.betreff, text: mail.text, html: mail.html });
-      await protokolliereMail({ reiseId: gruppe[0].id, art, an, betreff, status: "gesendet", personId: user.id });
+      for (const teil of await nachSprache(an)) {
+        const mail = sammel(teil.sprache);
+        betreff = mail.betreff;
+        await sendeMail({ an: teil.an, betreff: mail.betreff, text: mail.text, html: mail.html });
+        await protokolliereMail({ reiseId: gruppe[0].id, art, an: teil.an, betreff, status: "gesendet", personId: user.id });
+      }
       gesendet += 1;
     } catch (e) {
       console.error("Sammelbenachrichtigung fehlgeschlagen", e);

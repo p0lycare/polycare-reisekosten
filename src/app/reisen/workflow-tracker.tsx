@@ -1,6 +1,5 @@
 import type { ReiseStatus } from "@/lib/reisekosten/reise";
-
-const SCHRITTE = ["Erfasst", "Eingereicht", "Genehmigt", "Geprüft · DATEV", "Ausgezahlt"];
+import { ladeTexte } from "@/lib/i18n/server";
 
 const STUFE: Record<ReiseStatus, number> = {
   entwurf: 0,
@@ -11,28 +10,16 @@ const STUFE: Record<ReiseStatus, number> = {
   ausgezahlt: 4,
 };
 
-/** Was als Nächstes passiert – aus Sicht der abrechnenden Person */
-const NAECHSTES: Record<ReiseStatus, string> = {
-  entwurf: "Belege ergänzen und am Monatsende mit den anderen Reisen des Monats gesammelt einreichen.",
-  abgelehnt: "Abgelehnt – bitte nach dem Hinweis korrigieren und erneut einreichen.",
-  eingereicht: "Wartet auf die Genehmigung durch die Führungskraft. Bis dahin kannst du die Reise noch zurückziehen.",
-  freigegeben: "Genehmigt – die Buchhaltung prüft die Belege und übergibt die Abrechnung an DATEV.",
-  geprueft: "Geprüft und an DATEV übergeben – die Überweisung folgt über DATEV.",
-  ausgezahlt: "Ausgezahlt – erledigt.",
-};
-
-const NAECHSTES_AUSLAGEN: Partial<Record<ReiseStatus, string>> = {
-  entwurf: "Belege des Monats sammeln und am Monatsende zusammen mit den Reisen einreichen.",
-  eingereicht: "Wartet auf die Genehmigung durch die Führungskraft. Bis dahin kannst du die Abrechnung noch zurückziehen.",
-};
-
 /** Schrittleiste: wo die Abrechnung im Ablauf steht und was als Nächstes passiert */
-export function WorkflowTracker({ status, auslagen = false }: { status: ReiseStatus; auslagen?: boolean }) {
+export async function WorkflowTracker({ status, auslagen = false }: { status: ReiseStatus; auslagen?: boolean }) {
+  const t = (await ladeTexte()).workflow.tracker;
+  const SCHRITTE = t.schritte;
+  const naechstesAuslagen: Partial<Record<ReiseStatus, string>> = t.naechstesAuslagen;
   const stufe = STUFE[status];
   const abgelehnt = status === "abgelehnt";
 
   return (
-    <section aria-label={auslagen ? "Ablauf der Auslagenabrechnung" : "Ablauf der Reise"} className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+    <section aria-label={auslagen ? t.ablaufAuslagen : t.ablaufReise} className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
       <ol className="grid grid-cols-5 gap-1">
         {SCHRITTE.map((name, i) => {
           const erledigt = i < stufe || status === "ausgezahlt";
@@ -63,7 +50,7 @@ export function WorkflowTracker({ status, auslagen = false }: { status: ReiseSta
           );
         })}
       </ol>
-      <p className={`text-sm ${abgelehnt ? "text-red-700 dark:text-red-400" : "text-neutral-600 dark:text-neutral-400"}`}>{(auslagen && NAECHSTES_AUSLAGEN[status]) || NAECHSTES[status]}</p>
+      <p className={`text-sm ${abgelehnt ? "text-red-700 dark:text-red-400" : "text-neutral-600 dark:text-neutral-400"}`}>{(auslagen && naechstesAuslagen[status]) || t.naechstes[status]}</p>
     </section>
   );
 }

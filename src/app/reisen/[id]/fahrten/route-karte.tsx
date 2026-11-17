@@ -3,6 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { Koordinate } from "@/lib/routing/osm";
+import { useTexte } from "@/lib/i18n/client";
 import { kmBerechnen } from "./actions";
 
 type Route = { km: number; orte: string[]; halte: Koordinate[]; linie: Koordinate[] };
@@ -14,6 +15,7 @@ function kmText(km: number): string {
 /** Zoombare Karte (OpenStreetMap) mit Routenverlauf und den gefundenen Orten */
 export function RouteKarte({ route }: { route: Route }) {
   const ref = useRef<HTMLDivElement>(null);
+  const t = useTexte().fahrten.karte;
 
   useEffect(() => {
     let karte: import("leaflet").Map | null = null;
@@ -46,7 +48,7 @@ export function RouteKarte({ route }: { route: Route }) {
     <div className="mt-2 flex flex-col gap-1">
       <div ref={ref} className="h-72 w-full overflow-hidden rounded-md border border-neutral-300 dark:border-neutral-700" />
       <p className="text-xs text-neutral-500">
-        {kmText(route.km)} km über {route.orte.join(" → ")} · Zoomen mit + / − oder Doppelklick
+        {t.unterschrift(kmText(route.km), route.orte.join(" → "))}
       </p>
     </div>
   );
@@ -58,6 +60,7 @@ export function KarteKnopf({ strecke }: { strecke: string }) {
   const [offen, setOffen] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, laden] = useTransition();
+  const t = useTexte().fahrten.karte;
 
   function umschalten() {
     if (offen) return setOffen(false);
@@ -74,7 +77,7 @@ export function KarteKnopf({ strecke }: { strecke: string }) {
   return (
     <div className="w-full">
       <button type="button" onClick={umschalten} disabled={laedt} className="text-xs text-neutral-600 underline disabled:opacity-50 dark:text-neutral-400">
-        {laedt ? "Karte lädt …" : offen ? "Karte ausblenden" : "Route auf Karte"}
+        {laedt ? t.laedt : offen ? t.ausblenden : t.zeigen}
       </button>
       {fehler && <p className="text-xs text-amber-700 dark:text-amber-400">{fehler}</p>}
       {offen && route && <RouteKarte route={route} />}

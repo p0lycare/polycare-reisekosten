@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { alsSprache, istSprache, SPRACH_COOKIE, SPRACH_COOKIE_OPTIONEN } from "@/lib/i18n/sprache";
 
 /** Erneuert bei jedem Request die Supabase-Session und leitet Unangemeldete zum Login. */
 export async function middleware(request: NextRequest) {
@@ -36,6 +37,12 @@ export async function middleware(request: NextRequest) {
     ziel.pathname = "/login";
     ziel.search = "";
     return NextResponse.redirect(ziel);
+  }
+
+  // Sprache fehlt im Zwischenspeicher (z. B. Sitzung von vor dem Sprachumschalter): einmal aus dem Profil holen
+  if (user && !istSprache(request.cookies.get(SPRACH_COOKIE)?.value)) {
+    const { data: profil } = await supabase.from("profile").select("sprache").eq("id", user.id).maybeSingle();
+    response.cookies.set(SPRACH_COOKIE, alsSprache(profil?.sprache), SPRACH_COOKIE_OPTIONEN);
   }
 
   return response;

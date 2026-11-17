@@ -1,5 +1,6 @@
 "use server";
 
+import { mitUebersetzterMeldung } from "@/lib/i18n/meldungen";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,12 @@ import { istBearbeitbar } from "@/lib/reisekosten/reise";
 import { ladePflichtangaben, positionenFuerArt, pruefePositionen } from "@/lib/reisekosten/beleg-pruefung";
 import { angabenSpalten, type Angaben } from "@/lib/reisekosten/pflichtangaben";
 import { istZahlungsart } from "@/lib/reisekosten/zahlungsart";
+import { ladeSprache, ladeTexte } from "@/lib/i18n/server";
+
+/** Meldungen der Aktionen in der Sprache der Person */
+async function meldungen() {
+  return (await ladeTexte()).belege.aktion;
+}
 
 export type BelegStatus = { fehler?: string };
 
@@ -65,24 +72,25 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
   const anlass = text(formData, "bewirtung_anlass") || null;
   const teilnehmer = text(formData, "bewirtung_teilnehmer") || null;
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { fehler: "Bitte das Belegdatum angeben." };
-  if (betrag === null) return { fehler: "Bitte einen gültigen Betrag angeben, z. B. 12,50." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { fehler: (await meldungen()).belegdatum };
+  if (betrag === null) return { fehler: (await meldungen()).betrag };
   // Unveränderte Datei oder Foto aus dem Eingang liegt schon im Speicher – dort gelten auch ältere Formate
   const bestand = !!dateiPfad && (dateiPfad === text(formData, "datei_alt") || dateiPfad.split("/")[1] === "eingang");
-  if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId, bestand)) return { fehler: "Ungültige Datei." };
+  if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId, bestand)) return { fehler: (await meldungen()).ungueltigeDatei };
 
   const art = await artDerAbrechnung(supabase, reiseId);
   // Bewirtung unter Auslagen: der Anlass der Bewirtung ist zugleich der Zweck
   const beschreibung = text(formData, "beschreibung") || (art === "auslagen" ? anlass : null);
   const zahlungsart = text(formData, "zahlungsart") || null;
-  if (art === "auslagen" && !beschreibung) return { fehler: "Bitte den Zweck angeben, z. B. „Aufbau Mockup Köln“." };
-  if (zahlungsart && !istZahlungsart(zahlungsart)) return { fehler: "Bitte eine Zahlungsart wählen." };
+  if (art === "auslagen" && !beschreibung) return { fehler: (await meldungen()).zweck };
+  if (zahlungsart && !istZahlungsart(zahlungsart)) return { fehler: (await meldungen()).zahlungsart };
 
   const fehler = await pruefePositionen(
     supabase,
     [{ kategorieId, betragCent: betrag, mwstProzent: mwst, bewirtungAnlass: anlass, bewirtungTeilnehmer: teilnehmer, angaben: angabenAus(formData) }],
     !!id,
     art,
+    await ladeSprache(),
   );
   if (fehler) return { fehler };
 
@@ -107,7 +115,7 @@ export async function belegSpeichern(_vorher: BelegStatus, formData: FormData): 
   const { data, error } = id
     ? await supabase.from("beleg").update(daten).eq("id", id).eq("reise_id", reiseId).select("id")
     : await supabase.from("beleg").insert(daten).select("id");
-  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+  if (error || !data?.length) return { fehler: (await meldungen()).speichernFehlgeschlagen };
   await eingangErledigt(supabase, text(formData, "eingang_id"));
 
   const alterPfad = text(formData, "datei_alt");
@@ -140,15 +148,15 @@ export async function belegPerKiAuslesen(reiseId: string, pfad: string): Promise
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || !istBelegPfad(pfad, user.id, reiseId)) return { fehler: "Ungültige Datei." };
+  if (!user || !istBelegPfad(pfad, user.id, reiseId)) return { fehler: (await meldungen()).ungueltigeDatei };
 
   // Nur für eigene, noch bearbeitbare Reisen – verhindert unnötige KI-Kosten
   const { data: reise } = await supabase.from("reise").select("mitarbeiter_id, status").eq("id", reiseId).maybeSingle();
   if (!reise || reise.mitarbeiter_id !== user.id || !istBearbeitbar(reise.status)) {
-    return { fehler: "Die Reise kann nicht mehr bearbeitet werden." };
+    return { fehler: (await meldungen()).reiseGesperrt };
   }
 
-  return liesGespeichertenBeleg(supabase, pfad);
+  return mitUebersetzterMeldung(await liesGespeichertenBeleg(supabase, pfad), await ladeSprache());
 }
 
 /** Legt mehrere Positionen eines Belegs (z. B. Hotelrechnung) als einzelne Belege mit demselben Foto an. */
@@ -162,27 +170,27 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId)) return { fehler: "Ungültige Datei." };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { fehler: "Bitte das Belegdatum angeben." };
-  if (waehrung !== "EUR") return { fehler: "Der Beleg ist nicht in Euro – bitte die Positionen einzeln in Euro erfassen." };
+  if (dateiPfad && !istBelegPfad(dateiPfad, user.id, reiseId)) return { fehler: (await meldungen()).ungueltigeDatei };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { fehler: (await meldungen()).belegdatum };
+  if (waehrung !== "EUR") return { fehler: (await meldungen()).nichtEuroPositionen };
 
   let roh: unknown;
   try {
     roh = JSON.parse(text(formData, "positionen"));
   } catch {
-    return { fehler: "Positionen konnten nicht gelesen werden." };
+    return { fehler: (await meldungen()).positionenLesen };
   }
-  if (!Array.isArray(roh) || !roh.length || roh.length > MAX_POSITIONEN) return { fehler: "Ungültige Positionen." };
+  if (!Array.isArray(roh) || !roh.length || roh.length > MAX_POSITIONEN) return { fehler: (await meldungen()).ungueltigePositionen };
   const art = await artDerAbrechnung(supabase, reiseId);
   // Auslagen werden einzeln mit Zweck erfasst; das Formular bietet das Sammelanlegen dort nicht an
-  if (art === "auslagen") return { fehler: "Auslagen bitte einzeln mit Zweck erfassen." };
+  if (art === "auslagen") return { fehler: (await meldungen()).auslagenEinzeln };
   const gelesen = roh.map((p) => ({
     kategorieId: String(p?.kategorieId ?? ""),
     beschreibung: String(p?.beschreibung ?? "").slice(0, 200),
     betragCent: Number(p?.betragCent),
     mwstProzent: Number(p?.mwstProzent),
   }));
-  const passend = await positionenFuerArt(supabase, gelesen, art);
+  const passend = await positionenFuerArt(supabase, gelesen, art, await ladeSprache());
   if ("fehler" in passend) return passend;
   const { positionen } = passend;
 
@@ -195,10 +203,11 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
     positionen.map((p) => ({ ...p, bewirtungAnlass: null, bewirtungTeilnehmer: null, angaben })),
     false,
     art,
+    await ladeSprache(),
   );
   if (fehler) {
     return {
-      fehler: fehler.startsWith("Bei Bewirtungen") ? "Bewirtungen bitte einzeln mit Anlass und Teilnehmenden erfassen." : fehler,
+      fehler: fehler === (await ladeTexte()).hinweise.beleg.bewirtung ? (await meldungen()).bewirtungenEinzeln : fehler,
     };
   }
 
@@ -217,7 +226,7 @@ export async function belegPositionenAnlegen(_vorher: BelegStatus, formData: For
       })),
     )
     .select("id");
-  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+  if (error || !data?.length) return { fehler: (await meldungen()).speichernFehlgeschlagen };
   await eingangErledigt(supabase, text(formData, "eingang_id"));
 
   revalidatePath(`/reisen/${reiseId}`);

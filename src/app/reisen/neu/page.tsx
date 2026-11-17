@@ -6,9 +6,11 @@ import { ladeTermin, ladeTermine } from "@/lib/kalender/graph";
 import { kalenderPostfach, reiseVorschlaege, reiseZeiten } from "@/lib/kalender/vorschlaege";
 import { ladeOrteOhneReise } from "@/lib/kalender/orte";
 import { ladeProjektAuswahl } from "@/lib/reisekosten/projekte";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export default async function NeueReisePage({ searchParams }: { searchParams: Promise<{ eingang?: string; vorlage?: string; termin?: string }> }) {
   const { eingang: eingangId, vorlage: vorlageId, termin: terminId } = await searchParams;
+  const t = (await ladeTexte()).reisen.neu;
   const supabase = await createClient();
   const {
     data: { user },
@@ -44,21 +46,20 @@ export default async function NeueReisePage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
-      <h1 className="text-xl font-semibold">Neue Reise</h1>
+      <h1 className="text-xl font-semibold">{t.titel}</h1>
       {vorlage && (
         <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-950 dark:bg-blue-950 dark:text-blue-50">
-          Angaben aus „{vorlage.begruendung}“ übernommen – bitte Beginn und Ende eintragen.
+          {t.ausVorlage(vorlage.begruendung)}
         </p>
       )}
       {termin && (
         <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-950 dark:bg-blue-950 dark:text-blue-50">
-          Angaben aus deinem Kalendertermin übernommen. Bitte Reiseweg und Zeiten prüfen – An- und Abreise sind meist länger als der Termin.
+          {t.ausTermin}
         </p>
       )}
       {eingang && (
         <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-950 dark:bg-blue-950 dark:text-blue-50">
-          Datum und Ort stammen aus dem Beleg{ergebnis?.haendler ? ` (${ergebnis.haendler})` : ""}. Bitte Zeiten und Reiseweg prüfen –
-          der Beleg wird nach dem Speichern automatisch zugeordnet.
+          {t.ausBeleg(ergebnis?.haendler)}
         </p>
       )}
       <ReiseFormular

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useTexte } from "@/lib/i18n/client";
 
 export type TourAnsicht = { id: string; titel: string; text: ReactNode; bild: ReactNode; link?: { href: string; text: string } };
 
 /** Click-through-Tour: ein Schritt je Seite, Weiter/Zurück per Knopf, Pfeiltasten oder Punkt-Navigation */
 export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
+  const alle = useTexte();
+  const t = alle.einfuehrung.tour;
   const [nr, setNr] = useState(0);
   const titel = useRef<HTMLHeadingElement>(null);
   const schritt = schritte[nr];
@@ -26,13 +29,11 @@ export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
   useEffect(() => titel.current?.focus(), [nr]);
 
   return (
-    <section aria-roledescription="Tour" className="flex flex-col gap-6">
+    <section aria-roledescription={t.rollenbeschreibung} className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3 text-sm text-neutral-500">
-        <span>
-          Schritt {nr + 1} von {schritte.length}
-        </span>
+        <span>{t.schrittVon(nr + 1, schritte.length)}</span>
         <Link href="/einfuehrung" className="underline">
-          Tour beenden
+          {t.beenden}
         </Link>
       </div>
 
@@ -64,15 +65,15 @@ export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
           disabled={nr === 0}
           className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium disabled:invisible dark:border-neutral-700"
         >
-          Zurück
+          {alle.allgemein.knopf.zurueck}
         </button>
-        <nav aria-label="Schritte" className="flex flex-wrap justify-center gap-1 sm:gap-1.5">
+        <nav aria-label={t.navigation} className="flex flex-wrap justify-center gap-1 sm:gap-1.5">
           {schritte.map((s, i) => (
             <button
               key={s.id}
               type="button"
               onClick={() => setNr(i)}
-              aria-label={`Schritt ${i + 1}: ${s.titel}`}
+              aria-label={t.punkt(i + 1, s.titel)}
               aria-current={i === nr ? "step" : undefined}
               className={`size-2 rounded-full sm:size-2.5 ${i === nr ? "bg-marke" : "bg-neutral-300 dark:bg-neutral-700"}`}
             />
@@ -80,7 +81,7 @@ export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
         </nav>
         {letzter ? (
           <Link href={schritt.link?.href ?? "/"} className="rounded-md bg-primaer px-4 py-2 text-sm font-medium text-white hover:bg-primaer-hover dark:text-neutral-950">
-            Los geht&apos;s
+            {t.losGehts}
           </Link>
         ) : (
           <button
@@ -88,7 +89,7 @@ export function Tour({ schritte }: { schritte: TourAnsicht[] }) {
             onClick={() => setNr((n) => n + 1)}
             className="rounded-md bg-primaer px-4 py-2 text-sm font-medium text-white hover:bg-primaer-hover dark:text-neutral-950"
           >
-            Weiter
+            {alle.allgemein.knopf.weiter}
           </button>
         )}
       </div>

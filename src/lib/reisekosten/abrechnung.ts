@@ -7,6 +7,8 @@ import type { VerpflegungErgebnis } from "./verpflegung";
 export type Betrag = { netto: number; mwst: number; brutto: number };
 
 export type Position = Betrag & {
+  /** Kategorie der Position (für die übersetzte Anzeige im Tool); "gestellte_mahlzeiten" für die Kürzung */
+  kategorieId?: string;
   bezeichnung: string;
   konto: string | null;
   mwstProzent: number;
@@ -80,7 +82,7 @@ export function berechneAbrechnung(input: AbrechnungInput): Abrechnung {
     } else {
       positionen.set(schluessel, {
         abschnitt: b.abschnitt as Abschnitt,
-        position: { bezeichnung: b.bezeichnung, konto: b.konto, mwstProzent: b.mwstProzent, netto, mwst, brutto: b.betragCent },
+        position: { kategorieId: b.kategorieId, bezeichnung: b.bezeichnung, konto: b.konto, mwstProzent: b.mwstProzent, netto, mwst, brutto: b.betragCent },
       });
     }
   }
@@ -91,15 +93,16 @@ export function berechneAbrechnung(input: AbrechnungInput): Abrechnung {
   for (const { abschnitt, position } of positionen.values()) hinzufuegen(abschnitt, position);
 
   if (input.kmGeld && input.kmGeld.betrag > 0) {
-    hinzufuegen("A", { ...input.kmKategorie, mwstProzent: 0, ...ohneMwst(input.kmGeld.betrag) });
+    hinzufuegen("A", { kategorieId: "km_geld", ...input.kmKategorie, mwstProzent: 0, ...ohneMwst(input.kmGeld.betrag) });
   }
 
   if (input.verpflegung) {
     const pauschale = input.verpflegung.tage.reduce((s, t) => s + t.pauschale, 0);
     const kuerzung = input.verpflegung.tage.reduce((s, t) => s + t.kuerzung, 0);
-    if (pauschale > 0) hinzufuegen("B", { ...input.verpflegungKategorie, mwstProzent: 0, ...ohneMwst(pauschale) });
+    if (pauschale > 0) hinzufuegen("B", { kategorieId: "verpflegung", ...input.verpflegungKategorie, mwstProzent: 0, ...ohneMwst(pauschale) });
     if (kuerzung > 0) {
       hinzufuegen("D", {
+        kategorieId: "gestellte_mahlzeiten",
         bezeichnung: "Gestellte Mahlzeiten",
         konto: input.verpflegungKategorie.konto,
         mwstProzent: 0,

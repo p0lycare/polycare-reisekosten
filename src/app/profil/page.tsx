@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfilFormular } from "./profil-formular";
+import { SprachAuswahl } from "@/app/sprache/sprach-umschalter";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -11,12 +13,14 @@ export default async function ProfilPage() {
     supabase.from("profil_privat").select("personalnummer, wohnort").eq("id", user!.id).maybeSingle(),
   ]);
 
+  const t = await ladeTexte();
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-sans">
       <div>
-        <h1 className="text-xl font-semibold">Mein Profil</h1>
+        <h1 className="text-xl font-semibold">{t.rahmen.profil.titel}</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          {profil?.name} · {profil?.email} – Name und E-Mail kommen aus Microsoft 365.
+          {profil?.name} · {profil?.email} – {t.rahmen.profil.herkunft}
         </p>
       </div>
       <ProfilFormular
@@ -28,10 +32,11 @@ export default async function ProfilPage() {
           kalenderVorschlaege: profil?.kalender_vorschlaege ?? false,
         }}
       />
+      <SprachAuswahl />
       {/* Am Handy steht Abmelden nicht in der Kopfzeile */}
       <form action="/auth/logout" method="post" className="border-t border-neutral-200 pt-6 sm:hidden dark:border-neutral-800">
         <button type="submit" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">
-          Abmelden
+          {t.allgemein.knopf.abmelden}
         </button>
       </form>
     </main>

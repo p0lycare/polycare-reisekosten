@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { formatDatum, formatEuro } from "@/lib/format";
+import { useTexte } from "@/lib/i18n/client";
 import { sammelAblehnen, sammelAuszahlen, sammelGenehmigen, sammelPruefen, type SammelStatus } from "./actions";
 
 export type SammelReise = {
@@ -27,7 +28,6 @@ export type PersonGruppe = {
 type Art = "genehmigen" | "pruefen" | "auszahlen";
 
 const AKTION = { genehmigen: sammelGenehmigen, pruefen: sammelPruefen, auszahlen: sammelAuszahlen };
-const KNOPF: Record<Art, string> = { genehmigen: "genehmigen", pruefen: "prüfen und an DATEV", auszahlen: "als in DATEV überwiesen markieren" };
 
 function zeitraum(r: SammelReise): string {
   const von = formatDatum(r.beginn);
@@ -41,6 +41,8 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
   const [auswahl, setAuswahl] = useState<Set<string>>(() => new Set(gruppe.reisen.map((r) => r.id)));
   const [ablehnStatus, ablehnen, lehntAb] = useActionState<SammelStatus, FormData>(sammelAblehnen, {});
   const [ablehnenOffen, setAblehnenOffen] = useState(false);
+  const alle = useTexte();
+  const t = alle.freigaben.liste;
   const ablehnbar = art === "genehmigen" || art === "pruefen";
   const summe = gruppe.reisen.filter((r) => auswahl.has(r.id)).reduce((s, r) => s + r.betrag, 0);
 
@@ -48,7 +50,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
     return (
       <li className="rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
         <p role="status" className="text-amber-800 dark:text-amber-300">
-          {gruppe.name}: {ablehnStatus.erledigt} {ablehnStatus.erledigt === 1 ? "Abrechnung" : "Abrechnungen"} abgelehnt – die Person wurde per Mail informiert.
+          {t.abgelehnt(gruppe.name, ablehnStatus.erledigt)}
         </p>
       </li>
     );
@@ -58,7 +60,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
     return (
       <li className="rounded-lg border border-neutral-200 p-4 text-sm dark:border-neutral-800">
         <p role="status" className="text-green-700 dark:text-green-400">
-          {gruppe.name}: {status.erledigt} {status.erledigt === 1 ? "Abrechnung" : "Abrechnungen"} erledigt.
+          {t.erledigt(gruppe.name, status.erledigt)}
         </p>
         {status.hinweis && <p className="mt-1 text-amber-700 dark:text-amber-400">{status.hinweis}</p>}
       </li>
@@ -97,9 +99,9 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                 <span className="min-w-0">
                   <span className="block truncate">{r.begruendung}</span>
                   <span className="block truncate text-xs text-neutral-500">
-                    {r.reiseweg ? `${zeitraum(r)} · ${r.reiseweg}` : "Auslagen ohne Reise"}
+                    {r.reiseweg ? `${zeitraum(r)} · ${r.reiseweg}` : t.ohneReise}
                     {r.belegNr && ` · ${r.belegNr}`}
-                    {r.hinweise > 0 && <span className="text-amber-700 dark:text-amber-400"> · {r.hinweise} Hinweis{r.hinweise > 1 ? "e" : ""}</span>}
+                    {r.hinweise > 0 && <span className="text-amber-700 dark:text-amber-400">{t.hinweise(r.hinweise)}</span>}
                   </span>
                 </span>
                 <span className="shrink-0 tabular-nums">{formatEuro(r.betrag)}</span>
@@ -112,13 +114,13 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
             <input
               name="kommentar"
               maxLength={500}
-              placeholder="Kommentar für die Buchhaltung (optional)"
+              placeholder={t.kommentarPlatzhalter}
               className="min-w-48 flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
             />
           )}
           {art === "pruefen" && (
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-neutral-500">Buchungsmonat</span>
+              <span className="text-xs text-neutral-500">{t.buchungsmonat}</span>
               <input
                 type="month"
                 name="buchungsmonat"
@@ -133,7 +135,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
             disabled={laeuft || !auswahl.size}
             className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-neutral-950"
           >
-            {laeuft ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Abrechnung" : "Abrechnungen"} ${KNOPF[art]}`}
+            {laeuft ? "…" : t.knopf[art](auswahl.size)}
           </button>
         </div>
         {status.fehler && (
@@ -154,7 +156,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                 required
                 maxLength={500}
                 autoFocus
-                placeholder="Grund der Ablehnung, z. B. Hotelrechnung fehlt"
+                placeholder={t.grundPlatzhalter}
                 className="min-w-48 flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
               />
               <button
@@ -162,10 +164,10 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                 disabled={lehntAb || !auswahl.size}
                 className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               >
-                {lehntAb ? "…" : `${auswahl.size} ${auswahl.size === 1 ? "Abrechnung" : "Abrechnungen"} ablehnen`}
+                {lehntAb ? "…" : t.ablehnenKnopf(auswahl.size)}
               </button>
               <button type="button" onClick={() => setAblehnenOffen(false)} className="text-sm underline">
-                Abbrechen
+                {alle.allgemein.knopf.abbrechen}
               </button>
               {ablehnStatus.fehler && (
                 <p role="alert" className="w-full text-sm text-red-700 dark:text-red-400">
@@ -175,7 +177,7 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
             </form>
           ) : (
             <button type="button" onClick={() => setAblehnenOffen(true)} disabled={!auswahl.size} className="text-sm text-neutral-600 underline disabled:opacity-50 dark:text-neutral-400">
-              Auswahl ablehnen …
+              {t.auswahlAblehnen}
             </button>
           )}
         </div>

@@ -1,5 +1,9 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { formatEuro } from "@/lib/format";
+import type { Texte } from "@/lib/i18n/woerterbuch";
+
+type T = Texte["einfuehrung"];
 
 /** Ein Schritt der Einführung: Überschrift, kurzer Text, optional ein Link zur passenden Seite */
 function Schritt({ nr, titel, link, children }: { nr: number; titel: string; link?: { href: string; text: string }; children: React.ReactNode }) {
@@ -31,190 +35,128 @@ function Abschnitt({ id, titel, untertitel, children }: { id: string; titel: str
   );
 }
 
-export function FuerAlle({ kmSatzCent, kmSteuerfreiCent, monat }: { kmSatzCent: number; kmSteuerfreiCent: number; monat: string }) {
+/** Absätze aus dem Wörterbuch; ein leerer Zusatz (z. B. PDF-Hinweis auf Deutsch) wird nicht gerendert */
+function Absaetze({ texte, zusatz }: { texte: string[]; zusatz?: string }) {
   return (
-    <Abschnitt id="reisende" titel="Reisekosten abrechnen" untertitel="Für alle – so kommst du in wenigen Minuten pro Monat zu deinem Geld.">
-      <Schritt nr={1} titel="Als App aufs Handy holen" >
+    <>
+      {texte.map((text, i) => (
+        <p key={i}>{text}</p>
+      ))}
+      {zusatz && <p>{zusatz}</p>}
+    </>
+  );
+}
+
+export function FuerAlle({ t, kmSatzCent, kmSteuerfreiCent, monat }: { t: T; kmSatzCent: number; kmSteuerfreiCent: number; monat: string }) {
+  const a = t.alle;
+  return (
+    <Abschnitt id="reisende" titel={a.titel} untertitel={a.untertitel}>
+      <Schritt nr={1} titel={a.app.titel}>
         <p>
-          <span className="font-medium">iPhone:</span> Seite in Safari öffnen → Teilen-Symbol → „Zum Home-Bildschirm“.{" "}
-          <span className="font-medium">Android:</span> in Chrome Menü (⋮) → „App installieren“.
+          <span className="font-medium">{a.app.iphone}</span> {a.app.iphoneText}{" "}
+          <span className="font-medium">{a.app.android}</span> {a.app.androidText}
         </p>
-        <p>Danach startet das Tool wie eine App – ideal, um Belege direkt nach dem Bezahlen zu fotografieren.</p>
+        <p>{a.app.danach}</p>
       </Schritt>
-      <Schritt nr={2} titel="Unterwegs: Belege sofort fotografieren" link={{ href: "/belege", text: "Belege" }}>
-        <p>
-          Direkt nach dem Bezahlen „Beleg fotografieren“ – Händler, Datum, Betrag und MwSt werden automatisch ausgelesen. PDFs (z. B.
-          Bahn- oder Hotelrechnungen) kannst du ebenfalls hochladen.
-        </p>
-        <p>Die Belege warten im Eingang, bis du sie am Monatsende einer Reise zuordnest. Den Papierbeleg danach aufheben, bis die Reise ausgezahlt ist.</p>
-        <p>Mit der Firmenkarte bezahlte Ausgaben gehören nicht hierher – die laufen über Agicap.</p>
-        <p>
-          Damit jede Ausgabe für Dritte nachvollziehbar ist, fragt das Tool je Beleg nach: bei Hotels, wer übernachtet hat und
-          warum; bei Bewirtungen Anlass und Gäste; beim Tanken das Kennzeichen (auch beim Mietwagen); beim Mietwagen den Anlass
-          der Fahrt. Vieles ist aus der Reise vorbelegt.
-        </p>
+      <Schritt nr={2} titel={a.belege.titel} link={{ href: "/belege", text: a.belege.link }}>
+        <Absaetze texte={a.belege.absaetze} />
       </Schritt>
-      <Schritt nr={3} titel="Am Monatsende: Reisen anlegen" link={{ href: `/monat/${monat}`, text: "Monat abrechnen" }}>
-        <p>Unter „Monat abrechnen“ siehst du alles für den Monat. Eine Reise legst du am schnellsten an …</p>
+      <Schritt nr={3} titel={a.reisen.titel} link={{ href: `/monat/${monat}`, text: a.reisen.link }}>
+        <p>{a.reisen.einleitung}</p>
         <ul className="ml-4 list-disc">
-          <li>aus einem Beleg im Eingang (Datum und Ort sind vorbelegt),</li>
-          <li>aus einem Vorschlag aus deinem Outlook-Kalender (im Profil einschalten),</li>
-          <li>als Kopie einer früheren Reise („Als Vorlage“), z. B. für regelmäßige Kundentermine.</li>
+          {a.reisen.wege.map((weg, i) => (
+            <li key={i}>{weg}</li>
+          ))}
         </ul>
-        <p>
-          Beginn und Ende sind die Abfahrt und Rückkehr an Wohnung oder Büro. Daraus berechnet das Tool die Verpflegungspauschale. Hat
-          dir jemand eine Mahlzeit bezahlt (z. B. Frühstück im Hotel), hake sie ab – dann wird die Pauschale gesetzlich gekürzt.
-        </p>
-        <p>
-          Gehört die Reise zu einem Projekt oder Förderprojekt, wähle es aus. Bei Reisen ins Ausland das Land wählen – es gelten die
-          Auslandspauschalen; bei mehreren Staaten je Tag das Land, das vor 24 Uhr erreicht wurde.
-        </p>
-        <p>Belege aus dem Eingang werden der Reise anhand des Datums zugeordnet.</p>
+        <Absaetze texte={a.reisen.absaetze} />
       </Schritt>
-      <Schritt nr={4} titel="Fahrten mit dem eigenen Auto">
+      <Schritt nr={4} titel={a.fahrten.titel}>
+        <p>{a.fahrten.strecke}</p>
         <p>
-          Bei „Eigener PKW“ je Fahrt die Strecke eintragen, z. B. „Köln – Essen – Köln“, und auf „km berechnen“ tippen. Du kannst die km
-          anpassen; weicht deine Angabe deutlich von der Route ab, kurz im Zweck begründen (z. B. Umleitung).
-        </p>
-        <p>
-          Erstattet werden {formatEuro(kmSatzCent)} je km
-          {kmSatzCent > kmSteuerfreiCent
-            ? ` – davon sind ${formatEuro(kmSteuerfreiCent)} steuerfrei, der Rest wird als Arbeitslohn versteuert. `
-            : ", steuerfrei. "}
-          Tankbelege für den eigenen PKW nicht zusätzlich einreichen.
+          {a.fahrten.erstattet(formatEuro(kmSatzCent))}
+          {kmSatzCent > kmSteuerfreiCent ? a.fahrten.steueranteil(formatEuro(kmSteuerfreiCent)) : a.fahrten.steuerfrei}
+          {a.fahrten.tankbelege}
         </p>
       </Schritt>
-      <Schritt nr={5} titel="Auslagen ohne Reise" link={{ href: "/auslagen", text: "Meine Auslagen" }}>
-        <p>
-          Privat vorgestreckte Ausgaben ohne Reise (z. B. Baumarkt, Büromaterial, Porto oder ein Geschäftsessen am eigenen Standort) genauso fotografieren und im Eingang „Als
-          Auslage erfassen“ wählen. Je Monat gibt es eine Auslagenabrechnung; zu jedem Beleg den Zweck angeben.
-        </p>
-        <p>
-          Ab 250 € brutto muss die Rechnung auf Polycare Research Technology GmbH ausgestellt sein, sonst kann die Vorsteuer nicht
-          gezogen werden. Eingereicht wird zusammen mit den Reisen unter „Monat abrechnen“ – der Ablauf danach ist derselbe.
-        </p>
+      <Schritt nr={5} titel={a.auslagen.titel} link={{ href: "/auslagen", text: a.auslagen.link }}>
+        <Absaetze texte={a.auslagen.absaetze} />
       </Schritt>
-      <Schritt nr={6} titel="Gesammelt einreichen">
-        <p>
-          Auf „Monat abrechnen“ alle fertigen Reisen und Auslagen auswählen und einreichen. Gelbe Hinweise zeigen typische Fehler (fehlende
-          Hotelrechnung, Beleg außerhalb des Zeitraums …) – kurz prüfen, dann geht es ohne Rückfragen durch.
-        </p>
-        <p>
-          Danach: Genehmigung durch deine Führungskraft → Belegprüfung durch die Buchhaltung → Übergabe an DATEV → Überweisung auf dein
-          Konto. Bei jedem Schritt bekommst du eine Mail.
-        </p>
-        <p>
-          Solange noch nicht genehmigt ist, kannst du eine Reise zurückziehen und korrigieren. Wird sie abgelehnt, steht der Grund in
-          der Reise – korrigieren und erneut einreichen.
-        </p>
+      <Schritt nr={6} titel={a.einreichen.titel}>
+        <Absaetze texte={a.einreichen.absaetze} zusatz={a.einreichen.pdfHinweis} />
       </Schritt>
-      <Schritt nr={7} titel="Vorschuss für größere Ausgaben">
-        <p>
-          Stehen hohe Kosten an (z. B. Hotel oder Flug), kannst du in der geplanten Reise einen Vorschuss beantragen. Deine
-          Führungskraft genehmigt, die Buchhaltung zahlt aus – bei der Abrechnung wird er automatisch abgezogen.
-        </p>
+      <Schritt nr={7} titel={a.vorschuss.titel}>
+        <Absaetze texte={a.vorschuss.absaetze} />
       </Schritt>
-      <Schritt nr={8} titel="Erinnerung am Monatsende">
-        <p>
-          Am vorletzten Werktag des Monats bekommst du eine Mail, falls noch Entwürfe oder Belege im Eingang offen sind. Ist alles
-          eingereicht, kommt nichts.
-        </p>
+      <Schritt nr={8} titel={a.erinnerung.titel}>
+        <Absaetze texte={a.erinnerung.absaetze} />
       </Schritt>
     </Abschnitt>
   );
 }
 
-export function FuerFuehrungskraefte() {
+export function FuerFuehrungskraefte({ t }: { t: T }) {
+  const f = t.fuehrung;
   return (
-    <Abschnitt id="fuehrungskraefte" titel="Reisen genehmigen" untertitel="Für Führungskräfte – meist ein Klick pro Person und Monat.">
-      <Schritt nr={1} titel="Benachrichtigung und Freigaben" link={{ href: "/freigaben", text: "Freigaben" }}>
-        <p>
-          Reicht jemand aus deinem Team ein, bekommst du eine Mail. Unter „Freigaben“ sind die Reisen nach Person gruppiert und alle
-          vorausgewählt; die Zahl am Reiter zeigt, wie viel wartet.
-        </p>
+    <Abschnitt id="fuehrungskraefte" titel={f.titel} untertitel={f.untertitel}>
+      <Schritt nr={1} titel={f.benachrichtigung.titel} link={{ href: "/freigaben", text: f.benachrichtigung.link }}>
+        <Absaetze texte={f.benachrichtigung.absaetze} />
       </Schritt>
-      <Schritt nr={2} titel="Prüfen, worauf es ankommt">
-        <p>
-          Du bestätigst, dass die Reise dienstlich war und Zeitraum und Ziel stimmen. Die Belege prüft danach die Buchhaltung. Gelbe
-          Hinweise (z. B. km deutlich über der Route) lohnen einen Blick; mit einem Klick auf die Reise siehst du alle Details und
-          Belegfotos.
-        </p>
+      <Schritt nr={2} titel={f.pruefen.titel}>
+        <Absaetze texte={f.pruefen.absaetze} />
       </Schritt>
-      <Schritt nr={3} titel="Genehmigen oder ablehnen">
-        <p>
-          Gesammelt genehmigen, optional mit Kommentar für die Buchhaltung. Ablehnen geht in der einzelnen Reise mit kurzem Grund – sie
-          geht dann zur Korrektur zurück.
-        </p>
+      <Schritt nr={3} titel={f.genehmigen.titel}>
+        <Absaetze texte={f.genehmigen.absaetze} />
       </Schritt>
-      <Schritt nr={4} titel="Team im Blick" link={{ href: "/uebersicht", text: "Team-Übersicht" }}>
-        <p>
-          Die Übersicht zeigt je Monat, was dein Team eingereicht hat und wo es gerade steht. Vorschussanträge erscheinen ebenfalls unter
-          „Freigaben“. Montags erinnert eine Mail, falls noch etwas wartet.
-        </p>
-        <p>Deine eigenen Reisen genehmigt deine Führungskraft – niemand genehmigt sich selbst.</p>
+      <Schritt nr={4} titel={f.team.titel} link={{ href: "/uebersicht", text: f.team.link }}>
+        <Absaetze texte={f.team.absaetze} />
       </Schritt>
     </Abschnitt>
   );
 }
 
-export function FuerBuchhaltung() {
+export function FuerBuchhaltung({ t }: { t: T }) {
+  const b = t.buchhaltung;
   return (
-    <Abschnitt id="buchhaltung" titel="Prüfen, buchen, auszahlen" untertitel="Für die Buchhaltung – von der Belegprüfung bis zur Auszahlung.">
-      <Schritt nr={1} titel="Belegprüfung" link={{ href: "/freigaben", text: "Freigaben" }}>
-        <p>
-          Genehmigte Reisen erscheinen unter „Zur Belegprüfung“. In der Reise Beträge mit den Belegfotos abgleichen, ggf. Kategorie oder
-          MwSt korrigieren lassen (ablehnen mit Grund).
-        </p>
-        <p>Vier-Augen-Prinzip: Wer eine Reise genehmigt hat, kann sie nicht auch prüfen.</p>
+    <Abschnitt id="buchhaltung" titel={b.titel} untertitel={b.untertitel}>
+      <Schritt nr={1} titel={b.belegpruefung.titel} link={{ href: "/freigaben", text: b.belegpruefung.link }}>
+        <Absaetze texte={b.belegpruefung.absaetze} />
       </Schritt>
-      <Schritt nr={2} titel="Buchungsmonat und DATEV">
-        <p>
-          Beim Prüfen den Buchungsmonat wählen. Die Reise bekommt eine Beleg-Nr. (RK-Jahr-Nummer), und Abrechnung samt Belegen geht als
-          PDF automatisch an die DATEV-Upload-Adresse. Ob die Übertragung geklappt hat, steht in der Übersicht und im Versandprotokoll.
-        </p>
+      <Schritt nr={2} titel={b.datev.titel}>
+        <Absaetze texte={b.datev.absaetze} zusatz={b.datev.pdfHinweis} />
       </Schritt>
-      <Schritt nr={3} titel="Auszahlung">
-        <p>
-          Ausgezahlt wird als eigene Überweisung über DATEV: Die geprüfte Reise liegt mit Beleg-Nr. als PDF in DATEV, dort buchen und
-          die Zahlung anweisen – die Bankverbindungen sind hinterlegt. Danach im Tool unter „Zur Auszahlung“ als überwiesen markieren
-          (auch gesammelt); die Person bekommt eine Mail. Genehmigte Vorschüsse stehen oben unter „Vorschüsse“ und laufen genauso.
-        </p>
+      <Schritt nr={3} titel={b.auszahlung.titel}>
+        <Absaetze texte={b.auszahlung.absaetze} />
       </Schritt>
-      <Schritt nr={4} titel="Einstellungen" link={{ href: "/einstellungen", text: "Einstellungen" }}>
-        <p>
-          Kategorien mit Konto und MwSt-Satz, Km-Sätze, Projekte und Förderprojekte, Standorte (erste Tätigkeitsstätten) und die
-          DATEV-Upload-Adresse pflegst du hier. Unter „Freigaben → Projekte“ siehst du die Reisekosten je Projekt und Zeitraum.
-        </p>
+      <Schritt nr={4} titel={b.einstellungen.titel} link={{ href: "/einstellungen", text: b.einstellungen.link }}>
+        <Absaetze texte={b.einstellungen.absaetze} />
       </Schritt>
     </Abschnitt>
   );
 }
 
-export function FuerAdmins() {
+const ROLLEN_REIHENFOLGE = ["mitarbeiter", "freigeber", "buchhaltung", "admin"] as const;
+
+export function FuerAdmins({ t }: { t: T }) {
+  const a = t.admins;
   return (
-    <Abschnitt id="admins" titel="Verwalten" untertitel="Für Admins – neue Kolleg:innen einrichten und den Betrieb im Blick behalten.">
-      <Schritt nr={1} titel="Neue Kolleg:innen" link={{ href: "/einstellungen/personen", text: "Personen und Rollen" }}>
+    <Abschnitt id="admins" titel={a.titel} untertitel={a.untertitel}>
+      <Schritt nr={1} titel={a.neu.titel} link={{ href: "/einstellungen/personen", text: a.neu.link }}>
+        <p>{a.neu.absatz}</p>
         <p>
-          Wer sich zum ersten Mal mit dem Microsoft-Konto anmeldet, erscheint unter „Personen und Rollen“. Dort Rolle und genehmigende
-          Führungskraft eintragen – ohne Führungskraft kann jede Führungskraft oder ein Admin genehmigen.
-        </p>
-        <p>
-          Rollen: <span className="font-medium">Mitarbeiter/in</span> rechnet eigene Reisen ab · <span className="font-medium">Führungskraft</span>{" "}
-          genehmigt zusätzlich ihr Team · <span className="font-medium">Buchhaltung</span> prüft, übergibt an DATEV und zahlt aus ·{" "}
-          <span className="font-medium">Admin</span> darf alles und verwaltet Personen.
-        </p>
-      </Schritt>
-      <Schritt nr={2} titel="Diese Einführung weitergeben">
-        <p>
-          Schick neuen Kolleg:innen einfach den Link auf diese Seite: Jede Person sieht automatisch die Teile für ihre Rolle. Mit der
-          Auswahl oben siehst du, was eine bestimmte Rolle sieht.
+          {a.neu.rollenVor}{" "}
+          {ROLLEN_REIHENFOLGE.map((rolle, i) => (
+            <Fragment key={rolle}>
+              {i > 0 && " · "}
+              <span className="font-medium">{a.neu.rollen[rolle].name}</span> {a.neu.rollen[rolle].text}
+            </Fragment>
+          ))}
         </p>
       </Schritt>
-      <Schritt nr={3} titel="Betrieb prüfen" link={{ href: "/einstellungen", text: "Einstellungen" }}>
-        <p>
-          Unter Einstellungen findest du Testmail, „Erinnerung an mich testen“ und das Versandprotokoll aller Mails (Benachrichtigungen,
-          DATEV, Erinnerungen).
-        </p>
+      <Schritt nr={2} titel={a.weitergeben.titel}>
+        <Absaetze texte={a.weitergeben.absaetze} />
+      </Schritt>
+      <Schritt nr={3} titel={a.betrieb.titel} link={{ href: "/einstellungen", text: a.betrieb.link }}>
+        <Absaetze texte={a.betrieb.absaetze} />
       </Schritt>
     </Abschnitt>
   );

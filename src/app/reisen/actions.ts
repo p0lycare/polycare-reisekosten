@@ -1,5 +1,6 @@
 "use server";
 
+import { uebersetzeMeldung } from "@/lib/i18n/meldungen";
 import { routeNachtragen } from "@/lib/routing/route-nachtragen";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -8,6 +9,7 @@ import { berechneVerpflegung, type Mahlzeiten } from "@/lib/reisekosten/verpfleg
 import { VERKEHRSMITTEL, type Verkehrsmittel } from "@/lib/reisekosten/reise";
 import { eingangZuordnen } from "@/app/belege/actions";
 import { z } from "zod";
+import { ladeSprache, ladeTexte } from "@/lib/i18n/server";
 
 // Nur Tage (YYYY-MM-DD) mit optionalen Ja/Nein-Werten – alles andere würde Seiten zum Absturz bringen
 const MahlzeitenSchema = z.record(
@@ -47,26 +49,28 @@ export async function reiseSpeichern(
     ? text(formData, "kfz_kennzeichen").toUpperCase() || null
     : null;
   const mitfahrtBei = verkehrsmittel.includes("mitfahrt") ? text(formData, "mitfahrt_bei") || null : null;
+  const alle = await ladeTexte();
+  const f = alle.reisen.fehler;
 
   if (!begruendung || !reiseweg || !beginn || !ende) {
-    return { fehler: "Bitte Begründung, Reiseweg, Beginn und Ende ausfüllen." };
+    return { fehler: f.pflichtfelder };
   }
   if (!verkehrsmittel.length) {
-    return { fehler: "Bitte mindestens ein Verkehrsmittel auswählen." };
+    return { fehler: f.verkehrsmittel };
   }
   if (verkehrsmittel.includes("eigener_pkw") && !kfzKennzeichen) {
-    return { fehler: "Bitte das Kennzeichen des eigenen PKW angeben." };
+    return { fehler: f.kennzeichen };
   }
   // km der Fahrt mit eigenem PKW (nur beim Anlegen, optional)
   const kmEingabe = text(formData, "pkw_km").replace(",", ".");
   const pkwKm = !id && verkehrsmittel.includes("eigener_pkw") && kmEingabe ? Math.round(Number(kmEingabe) * 10) / 10 : null;
-  if (pkwKm !== null && !(pkwKm > 0 && pkwKm < 10000)) return { fehler: "Bitte die gefahrenen Kilometer als Zahl angeben, z. B. 494,2." };
+  if (pkwKm !== null && !(pkwKm > 0 && pkwKm < 10000)) return { fehler: f.km };
 
   let mahlzeiten: Record<string, Mahlzeiten>;
   try {
     mahlzeiten = MahlzeitenSchema.parse(JSON.parse(text(formData, "mahlzeiten") || "{}"));
   } catch {
-    return { fehler: "Mahlzeiten konnten nicht gelesen werden." };
+    return { fehler: f.mahlzeiten };
   }
 
   let tage: string[];
@@ -75,7 +79,7 @@ export async function reiseSpeichern(
       (t) => t.datum,
     );
   } catch (e) {
-    return { fehler: e instanceof Error ? e.message : "Reisedaten sind ungültig." };
+    return { fehler: e instanceof Error ? uebersetzeMeldung(e.message, await ladeSprache()) : f.reisedaten };
   }
   // Nur Mahlzeiten für Tage innerhalb der Reise speichern
   mahlzeiten = Object.fromEntries(Object.entries(mahlzeiten).filter(([d]) => tage.includes(d)));
@@ -109,7 +113,7 @@ export async function reiseSpeichern(
     // RLS lässt nicht bearbeitbare Reisen still aus – daher die geänderten Zeilen prüfen
     // Auslagenabrechnungen haben keine Reisedaten (die Datenbank sperrt den Monat zusätzlich)
     const { data, error } = await supabase.from("reise").update(daten).eq("id", id).eq("art", "reise").select("id");
-    if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Ist die Reise noch bearbeitbar?" };
+    if (error || !data?.length) return { fehler: f.nichtBearbeitbar };
     revalidatePath(`/reisen/${id}`);
     revalidatePath("/");
     redirect(`/reisen/${id}?gespeichert=reise`);
@@ -120,7 +124,7 @@ export async function reiseSpeichern(
     .insert({ ...daten, mitarbeiter_id: user.id })
     .select("id")
     .single();
-  if (error || !data) return { fehler: "Speichern fehlgeschlagen." };
+  if (error || !data) return { fehler: alle.allgemein.fehler.speichern };
 
   // Eigener PKW mit km in der Maske: die Fahrt gleich mit anlegen (weitere Fahrten in der Reise)
   if (pkwKm !== null) {

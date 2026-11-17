@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { benachrichtige } from "@/lib/mail/benachrichtigen";
 import { sendeAnDatev } from "@/lib/datev/senden";
 import { verpflegungFestschreiben } from "@/lib/reisekosten/verpflegung-fest";
+import { ladeTexte } from "@/lib/i18n/server";
 
 export type WorkflowStatus = { fehler?: string };
 
@@ -16,11 +17,11 @@ function text(formData: FormData, feld: string): string {
  * Eigene Fehlermeldungen der Workflow-Funktionen (raise exception, Code P0001) sind für Menschen
  * formuliert; technische Fehler (Constraints usw.) werden nicht ungefiltert angezeigt.
  */
-function meldung(error: { message: string; code?: string } | null): WorkflowStatus {
+async function meldung(error: { message: string; code?: string } | null): Promise<WorkflowStatus> {
   if (!error) return {};
   if (error.code === "P0001") return { fehler: error.message };
   console.error("Workflow-Fehler", error);
-  return { fehler: "Das hat nicht geklappt. Bitte Seite neu laden und erneut versuchen." };
+  return { fehler: (await ladeTexte()).workflow.fehler.allgemein };
 }
 
 function aktualisieren(reiseId: string) {
@@ -32,7 +33,7 @@ function aktualisieren(reiseId: string) {
 export async function einreichen(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus> {
   const id = text(formData, "id");
   if (formData.get("richtigkeit") !== "on") {
-    return { fehler: "Bitte bestätige die Richtigkeit deiner Angaben." };
+    return { fehler: (await ladeTexte()).workflow.fehler.richtigkeit };
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_einreichen", { p_id: id });
@@ -65,7 +66,7 @@ export async function zurueckziehen(_vorher: WorkflowStatus, formData: FormData)
 export async function ablehnen(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus> {
   const id = text(formData, "id");
   const grund = text(formData, "grund");
-  if (!grund) return { fehler: "Bitte einen Grund für die Ablehnung angeben." };
+  if (!grund) return { fehler: (await ladeTexte()).workflow.fehler.grund };
   const supabase = await createClient();
   const { error } = await supabase.rpc("reise_ablehnen", { p_id: id, p_grund: grund });
   if (!error) await benachrichtige(supabase, id, "abgelehnt", { grund });
@@ -76,7 +77,7 @@ export async function ablehnen(_vorher: WorkflowStatus, formData: FormData): Pro
 export async function pruefen(_vorher: WorkflowStatus, formData: FormData): Promise<WorkflowStatus> {
   const id = text(formData, "id");
   const monat = text(formData, "buchungsmonat");
-  if (!/^\d{4}-\d{2}$/.test(monat)) return { fehler: "Bitte den Buchungsmonat angeben." };
+  if (!/^\d{4}-\d{2}$/.test(monat)) return { fehler: (await ladeTexte()).workflow.fehler.buchungsmonat };
   const supabase = await createClient();
   // Die Beleg-Nr. vergibt die Datenbank fortlaufend
   const { error } = await supabase.rpc("reise_pruefen", { p_id: id, p_buchungsmonat: `${monat}-01` });

@@ -1,3 +1,5 @@
+import { ladeTexte } from "@/lib/i18n/server";
+import { SprachUmschalter } from "@/app/sprache/sprach-umschalter";
 import { mitMicrosoftAnmelden } from "./actions";
 import { Logo } from "../logo";
 
@@ -7,20 +9,24 @@ export default async function LoginPage({
   searchParams: Promise<{ fehler?: string }>;
 }) {
   const { fehler } = await searchParams;
+  const t = (await ladeTexte()).rahmen.login;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6 font-sans">
       <div>
         <Logo className="mb-8 h-8 text-marke-dunkel dark:text-white" />
-        <h1 className="text-2xl font-semibold">Reisekosten</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl font-semibold">{t.titel}</h1>
+          <SprachUmschalter />
+        </div>
         <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-          Melde dich mit deinem Polycare-Microsoft-Konto an.
+          {t.text}
         </p>
       </div>
 
       {fehler && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-          Die Anmeldung hat nicht geklappt. Bitte versuche es erneut.
+          {t.fehler}
         </p>
       )}
 
@@ -35,7 +41,7 @@ export default async function LoginPage({
             <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
             <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
           </svg>
-          Mit Microsoft anmelden
+          {t.knopf}
         </button>
       </form>
     </main>

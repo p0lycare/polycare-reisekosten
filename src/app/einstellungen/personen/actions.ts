@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { ladeTexte } from "@/lib/i18n/server";
 
 type Rolle = Database["public"]["Enums"]["rolle"];
 const ROLLEN: Rolle[] = ["mitarbeiter", "freigeber", "buchhaltung", "admin"];
@@ -13,30 +14,31 @@ export async function personSpeichern(_vorher: PersonStatus, formData: FormData)
   const id = String(formData.get("id") ?? "");
   const rolle = String(formData.get("rolle") ?? "") as Rolle;
   const vorgesetzter = String(formData.get("vorgesetzter_id") ?? "") || null;
+  const t = (await ladeTexte()).einstellungen.personen;
 
-  if (!ROLLEN.includes(rolle)) return { fehler: "Ungültige Rolle." };
-  if (vorgesetzter === id) return { fehler: "Niemand kann sich selbst genehmigen." };
+  if (!ROLLEN.includes(rolle)) return { fehler: t.ungueltigeRolle };
+  if (vorgesetzter === id) return { fehler: t.selbstGenehmigen };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (id === user?.id && rolle !== "admin") {
-    return { fehler: "Du kannst dir die Admin-Rolle nicht selbst entziehen." };
+    return { fehler: t.adminSelbst };
   }
 
   // Wer genehmigt, braucht eine genehmigende Rolle – sonst kommen Mails, aber keine Freigaben-Seite
   if (vorgesetzter) {
     const { data: genehmigend } = await supabase.from("profile").select("name, rolle").eq("id", vorgesetzter).maybeSingle();
     if (genehmigend?.rolle === "mitarbeiter") {
-      return { fehler: `${genehmigend.name} hat die Rolle Mitarbeiter/in und kann nicht genehmigen – erst die Rolle ändern.` };
+      return { fehler: t.kannNichtGenehmigen(genehmigend.name) };
     }
   }
   if (rolle === "mitarbeiter") {
     const { data: abhaengig } = await supabase.from("profile").select("name").eq("vorgesetzter_id", id);
     if (abhaengig?.length) {
       return {
-        fehler: `Diese Person genehmigt noch für ${abhaengig.map((p) => p.name).join(", ")} – dort erst eine andere genehmigende Person eintragen.`,
+        fehler: t.genehmigtNoch(abhaengig.map((p) => p.name).join(", ")),
       };
     }
   }
@@ -51,7 +53,7 @@ export async function personSpeichern(_vorher: PersonStatus, formData: FormData)
     })
     .eq("id", id)
     .select("id");
-  if (error || !data?.length) return { fehler: "Speichern fehlgeschlagen. Fehlt die Admin-Berechtigung?" };
+  if (error || !data?.length) return { fehler: t.speichernFehlgeschlagen };
 
   revalidatePath("/einstellungen/personen");
   return { gespeichert: true };

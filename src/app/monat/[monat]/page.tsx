@@ -1,9 +1,12 @@
+import { kategorieName } from "@/lib/i18n/woerterbuch";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
-import { monatsgrenzen, monatsname } from "@/lib/reisekosten/monat";
+import { monatsgrenzen } from "@/lib/reisekosten/monat";
+import { ladeSprache } from "@/lib/i18n/server";
+import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
 import type { AusgelesenerBeleg } from "@/lib/ki/beleg-auslesen";
@@ -28,6 +31,9 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const sprache = await ladeSprache();
+  const alleTexte = texte(sprache);
+  const t = alleTexte.monat.seite;
 
   const [{ data: reisen }, { data: eingang }] = await Promise.all([
     supabase
@@ -73,14 +79,15 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
         },
         eigeneBelege.map((b) => ({
           kategorieId: b.kategorie_id,
-          bezeichnung: b.kategorie?.bezeichnung ?? b.kategorie_id,
+          bezeichnung: kategorieName(sprache, b.kategorie_id, b.kategorie?.bezeichnung ?? b.kategorie_id),
           datum: b.datum,
           betragCent: b.betrag_cent,
           hatDatei: !!b.datei_pfad,
           beschreibung: b.beschreibung,
-          fehlendeAngaben: fehlendeAngabenText(b),
+          fehlendeAngaben: fehlendeAngabenText(b, sprache),
         })),
         (fahrten ?? []).filter((f) => f.reise_id === r.id),
+        sprache,
       ),
     };
   });
@@ -92,22 +99,22 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
     const datum = (e.ki_ergebnis as AusgelesenerBeleg | null)?.datum;
     return !datum || (datum >= grenzen.von && datum < grenzen.bis);
   }).length;
-  const titel = monatsname(monat);
+  const titel = monatsnameIn(monat, sprache);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 font-sans sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <Link href={`/monat/${verschiebe(monat, -1)}`} aria-label="Vormonat" className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
+        <Link href={`/monat/${verschiebe(monat, -1)}`} aria-label={t.vormonat} className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
           ‹
         </Link>
         <div className="text-center">
           <h1 className="text-xl font-semibold">{titel}</h1>
           <p className="text-sm text-neutral-500 tabular-nums">
-            {anzahlReisen} {anzahlReisen === 1 ? "Reise" : "Reisen"}
-            {hatAuslagen && " + Auslagen"} · {formatEuro(gesamt)}
+            {t.anzahlReisen(anzahlReisen)}
+            {hatAuslagen && t.plusAuslagen} · {formatEuro(gesamt)}
           </p>
         </div>
-        <Link href={`/monat/${verschiebe(monat, 1)}`} aria-label="Folgemonat" className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
+        <Link href={`/monat/${verschiebe(monat, 1)}`} aria-label={t.folgemonat} className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">
           ›
         </Link>
       </div>
@@ -115,20 +122,20 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
       {/* Anleitung nur aufgeklappt, solange im Monat noch nichts erfasst ist – sonst schiebt sie am Handy alles nach unten */}
       <details open={!liste.length} className="group flex flex-col gap-2 bg-flaeche p-4 text-sm">
         <summary className="cursor-pointer list-none font-medium">
-          So rechnest du den Monat ab – am besten einmal am Monatsende
+          {t.anleitungTitel}
           <span className="ml-1 inline-block text-neutral-400 transition-transform group-open:rotate-90" aria-hidden>
             ›
           </span>
         </summary>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-neutral-700 dark:text-neutral-300">
-          <li>Belege aus dem Eingang den Reisen zuordnen – Einkäufe ohne Reise als Auslage erfassen.</li>
-          <li>Fehlende Reisen anlegen – gern direkt aus den Vorschlägen aus deinem Kalender unten.</li>
-          <li>Alle fertigen Reisen und Auslagen auswählen und gesammelt einreichen. Deine Führungskraft bekommt eine Mail und genehmigt alles in einem Schritt.</li>
+          {t.anleitung.map((schritt) => (
+            <li key={schritt}>{schritt}</li>
+          ))}
         </ol>
         <p className="mt-2 text-neutral-500">
-          Einzelne Reisen kannst du auch sofort in der Reise einreichen.{" "}
+          {t.einzeln}{" "}
           <Link href="/einfuehrung#reisende" className="underline">
-            Mehr in der Hilfe
+            {alleTexte.rahmen.seitenHilfe.mehr}
           </Link>
         </p>
       </details>
@@ -140,9 +147,9 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
         >
           <span>
             <span className="font-medium">
-              {eingangImMonat} {eingangImMonat === 1 ? "Beleg" : "Belege"}
+              {t.eingangAnzahl(eingangImMonat)}
             </span>{" "}
-            aus diesem Monat {eingangImMonat === 1 ? "liegt" : "liegen"} noch im Eingang – erst zuordnen, dann einreichen.
+            {t.eingangRest(eingangImMonat)}
           </span>
           <span aria-hidden>→</span>
         </Link>
@@ -150,25 +157,25 @@ export default async function MonatPage({ params }: { params: Promise<{ monat: s
 
       <div className="flex flex-wrap gap-2">
         <Link href="/belege" className="rounded-md bg-primaer hover:bg-primaer-hover px-4 py-2 text-sm font-medium text-white dark:text-neutral-950">
-          Beleg fotografieren
+          {t.belegFotografieren}
         </Link>
         <Link href="/reisen/neu" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">
-          Reise hinzufügen
+          {t.reiseHinzufuegen}
         </Link>
         <Link href="/auslagen" className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">
-          Auslage erfassen
+          {t.auslageErfassen}
         </Link>
       </div>
 
       {!liste.length ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          In diesem Monat sind noch keine Reisen oder Auslagen erfasst.
+          {t.leer}
         </p>
       ) : (
         <MonatsListe monat={monat} reisen={liste} />
       )}
 
-      <Suspense fallback={<p className="text-sm text-neutral-500">Kalender wird gelesen …</p>}>
+      <Suspense fallback={<p className="text-sm text-neutral-500">{t.kalenderLaedt}</p>}>
         <KalenderVorschlaege von={grenzen.von} bis={grenzen.bis} />
       </Suspense>
     </main>

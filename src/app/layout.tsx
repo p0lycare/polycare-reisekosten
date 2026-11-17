@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { ladeSprache } from "@/lib/i18n/server";
+import { SpracheProvider } from "@/lib/i18n/client";
+import { texte } from "@/lib/i18n/woerterbuch";
 import { Geist_Mono, Inter } from "next/font/google";
 import { Kopfzeile } from "./kopfzeile";
 import { BereichProvider } from "./bereich";
@@ -18,11 +21,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Polycare Reisekosten",
-  description: "Dienstreisen erfassen, Belege hochladen, Pauschalen berechnen",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { app } = texte(await ladeSprache()).allgemein;
+  return { title: app.titel, description: app.beschreibung, robots: { index: false, follow: false } };
+}
 
 export default async function RootLayout({
   children,
@@ -50,30 +52,34 @@ export default async function RootLayout({
         supabase.from("beleg_eingang").select("id", { count: "exact", head: true }).eq("mitarbeiter_id", user.id),
       ])
     : [null, { data: [] }, { count: 0 }];
+  const sprache = await ladeSprache();
   const vorschussAufgaben = user ? verteileVorschuesse(vorschuesse ?? [], user.id, profil?.rolle) : null;
   const offen =
     (aufgaben ? aufgaben.genehmigen.length + aufgaben.pruefen.length + aufgaben.auszahlen.length : 0) +
     (vorschussAufgaben ? vorschussAufgaben.genehmigen.length + vorschussAufgaben.auszahlen.length : 0);
 
   return (
-    <html lang="de">
+    <html lang={sprache}>
       <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
-        <BereichProvider>
-          {user && (
-            <Kopfzeile
-              daten={{
-                name: profil?.name ?? user.email ?? "",
-                rolle: profil?.rolle ?? null,
-                offen,
-                eingang: eingang ?? 0,
-                zeigeFreigaben: istFreigebend(profil?.rolle),
-                zeigeEinstellungen: profil?.rolle === "admin" || profil?.rolle === "buchhaltung",
-              }}
-            />
-          )}
-          {children}
-        </BereichProvider>
-        {user && <ServiceWorker />}
+        <SpracheProvider sprache={sprache}>
+          <BereichProvider>
+            {user && (
+              <Kopfzeile
+                sprache={sprache}
+                daten={{
+                  name: profil?.name ?? user.email ?? "",
+                  rolle: profil?.rolle ?? null,
+                  offen,
+                  eingang: eingang ?? 0,
+                  zeigeFreigaben: istFreigebend(profil?.rolle),
+                  zeigeEinstellungen: profil?.rolle === "admin" || profil?.rolle === "buchhaltung",
+                }}
+              />
+            )}
+            {children}
+          </BereichProvider>
+          {user && <ServiceWorker />}
+        </SpracheProvider>
       </body>
     </html>
   );

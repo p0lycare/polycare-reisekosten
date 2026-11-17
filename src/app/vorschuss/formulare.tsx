@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { ohneZuruecksetzen } from "@/lib/formular";
 import { formatDatum, formatEuro } from "@/lib/format";
+import { useTexte } from "@/lib/i18n/client";
 import { vorschussBeantragen, vorschussEntscheiden, vorschussZurueckziehen, type VorschussStatus } from "./actions";
 
 const feld = "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -20,11 +21,13 @@ function Meldung({ status }: { status: VorschussStatus }) {
 export function VorschussBeantragen({ reiseId }: { reiseId: string }) {
   const [offen, setOffen] = useState(false);
   const [status, absenden, laeuft] = useActionState(vorschussBeantragen, {});
+  const alle = useTexte();
+  const t = alle.vorschuss;
 
   if (!offen) {
     return (
       <button type="button" onClick={() => setOffen(true)} className={knopf}>
-        Vorschuss beantragen …
+        {t.beantragenOeffnen}
       </button>
     );
   }
@@ -33,20 +36,20 @@ export function VorschussBeantragen({ reiseId }: { reiseId: string }) {
       <input type="hidden" name="reise_id" value={reiseId} />
       <div className="grid gap-3 sm:grid-cols-[9rem_1fr]">
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">Betrag (€)</span>
-          <input name="betrag" required inputMode="decimal" placeholder="300,00" className={`${feld} tabular-nums`} />
+          <span className="text-xs text-neutral-500">{t.betrag}</span>
+          <input name="betrag" required inputMode="decimal" placeholder={t.betragPlatzhalter} className={`${feld} tabular-nums`} />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">Wofür? (optional)</span>
-          <input name="grund" maxLength={300} placeholder="z. B. Hotel und Verpflegung Messe" className={feld} />
+          <span className="text-xs text-neutral-500">{t.wofuer}</span>
+          <input name="grund" maxLength={300} placeholder={t.wofuerPlatzhalter} className={feld} />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={laeuft} className={hauptknopf}>
-          {laeuft ? "…" : "Beantragen"}
+          {laeuft ? "…" : t.beantragen}
         </button>
         <button type="button" onClick={() => setOffen(false)} className="text-sm underline">
-          Abbrechen
+          {alle.allgemein.knopf.abbrechen}
         </button>
         <Meldung status={status} />
       </div>
@@ -56,12 +59,13 @@ export function VorschussBeantragen({ reiseId }: { reiseId: string }) {
 
 export function VorschussZurueckziehen({ id, reiseId }: { id: string; reiseId: string }) {
   const [status, absenden, laeuft] = useActionState(vorschussZurueckziehen, {});
+  const t = useTexte().vorschuss;
   return (
     <form action={absenden} className="flex items-center gap-3">
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="reise_id" value={reiseId} />
       <button type="submit" disabled={laeuft} className="text-sm underline">
-        Antrag zurückziehen
+        {t.zurueckziehen}
       </button>
       <Meldung status={status} />
     </form>
@@ -82,6 +86,8 @@ export type OffenerVorschuss = {
 export function VorschussEntscheiden({ v, art }: { v: OffenerVorschuss; art: "genehmigen" | "auszahlen" }) {
   const [status, absenden, laeuft] = useActionState(vorschussEntscheiden, {});
   const [ablehnen, setAblehnen] = useState(false);
+  const alle = useTexte();
+  const t = alle.vorschuss;
 
   if (status.erledigt) {
     return (
@@ -96,7 +102,7 @@ export function VorschussEntscheiden({ v, art }: { v: OffenerVorschuss; art: "ge
         <span className="min-w-0">
           <span className="font-medium">{v.name}</span>{" "}
           <span className="text-sm text-neutral-600 dark:text-neutral-400">
-            {v.reise} · ab {formatDatum(v.beginn)}
+            {v.reise} · {t.ab(formatDatum(v.beginn))}
           </span>
           {v.grund && <span className="block text-sm text-neutral-500">{v.grund}</span>}
         </span>
@@ -108,22 +114,22 @@ export function VorschussEntscheiden({ v, art }: { v: OffenerVorschuss; art: "ge
         {ablehnen ? (
           <>
             <input type="hidden" name="aktion" value="ablehnen" />
-            <input name="grund" required maxLength={300} placeholder="Grund der Ablehnung" className={`${feld} min-w-48 flex-1`} />
+            <input name="grund" required maxLength={300} placeholder={t.grundPlatzhalter} className={`${feld} min-w-48 flex-1`} />
             <button type="submit" disabled={laeuft} className={knopf}>
-              {laeuft ? "…" : "Ablehnen"}
+              {laeuft ? "…" : t.ablehnen}
             </button>
             <button type="button" onClick={() => setAblehnen(false)} className="text-sm underline">
-              Abbrechen
+              {alle.allgemein.knopf.abbrechen}
             </button>
           </>
         ) : (
           <>
             <input type="hidden" name="aktion" value={art} />
             <button type="submit" disabled={laeuft} className={hauptknopf}>
-              {laeuft ? "…" : art === "genehmigen" ? "Genehmigen" : "In DATEV überwiesen – als ausgezahlt markieren"}
+              {laeuft ? "…" : art === "genehmigen" ? t.genehmigen : t.auszahlen}
             </button>
             <button type="button" onClick={() => setAblehnen(true)} className="text-sm underline">
-              Ablehnen …
+              {t.ablehnenOeffnen}
             </button>
           </>
         )}
