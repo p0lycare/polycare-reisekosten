@@ -20,6 +20,10 @@ export const de = {
   },
   /** "1 Abrechnung" / "3 Abrechnungen" */
   abrechnungen: (n: number) => `${n} ${n === 1 ? "Abrechnung" : "Abrechnungen"}`,
+  /** Hinweis an Reisen und Vorschüssen, die man nur als Vertretung genehmigen darf */
+  inVertretungFuer: (name: string) => `in Vertretung für ${name}`,
+  vertretungHinweis: (namen: string) =>
+    `Du vertrittst gerade ${namen}: Deren Freigaben stehen hier mit dem Hinweis „in Vertretung für …“. Deine eigenen Abrechnungen genehmigst du nicht.`,
   liste: {
     abgelehnt: (name: string, n: number) =>
       `${name}: ${n} ${n === 1 ? "Abrechnung" : "Abrechnungen"} abgelehnt – die Person wurde per Mail informiert.`,
@@ -65,6 +69,9 @@ export const en: Uebersetzung<typeof de> = {
     leerAuszahlen: "Nothing to pay out.",
   },
   abrechnungen: (n) => `${n} ${n === 1 ? "expense report" : "expense reports"}`,
+  inVertretungFuer: (name) => `on behalf of ${name}`,
+  vertretungHinweis: (namen) =>
+    `You are currently standing in for ${namen}: their approvals are listed here marked “on behalf of …”. You don't approve your own expense reports.`,
   liste: {
     abgelehnt: (name, n) =>
       `${name}: ${n} ${n === 1 ? "expense report" : "expense reports"} rejected – the person has been informed by email.`,

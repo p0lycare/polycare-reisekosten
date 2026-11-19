@@ -53,7 +53,7 @@ export default async function RootLayout({
       ])
     : [null, { data: [] }, { count: 0 }];
   const sprache = await ladeSprache();
-  const vorschussAufgaben = user ? verteileVorschuesse(vorschuesse ?? [], user.id, profil?.rolle) : null;
+  const vorschussAufgaben = user ? verteileVorschuesse(vorschuesse ?? [], user.id, profil?.rolle, aufgaben?.vertretene) : null;
   const offen =
     (aufgaben ? aufgaben.genehmigen.length + aufgaben.pruefen.length + aufgaben.auszahlen.length : 0) +
     (vorschussAufgaben ? vorschussAufgaben.genehmigen.length + vorschussAufgaben.auszahlen.length : 0);

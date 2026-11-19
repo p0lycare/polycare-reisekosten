@@ -17,6 +17,8 @@ export type SammelReise = {
   betrag: number;
   belegNr: string | null;
   hinweise: number;
+  /** Name der vertretenen Person, wenn man diese Reise nur in Vertretung genehmigt */
+  inVertretungFuer?: string | null;
 };
 
 export type PersonGruppe = {
@@ -103,6 +105,9 @@ function Gruppe({ gruppe, art }: { gruppe: PersonGruppe; art: Art }) {
                     {r.belegNr && ` · ${r.belegNr}`}
                     {r.hinweise > 0 && <span className="text-amber-700 dark:text-amber-400">{t.hinweise(r.hinweise)}</span>}
                   </span>
+                  {r.inVertretungFuer && (
+                    <span className="block truncate text-xs text-blue-700 dark:text-blue-300">{alle.freigaben.inVertretungFuer(r.inVertretungFuer)}</span>
+                  )}
                 </span>
                 <span className="shrink-0 tabular-nums">{formatEuro(r.betrag)}</span>
               </Link>

@@ -3,6 +3,7 @@ import { createAdminClient, protokolliereMail } from "@/lib/supabase/admin";
 import { mailKonfiguration, sendeMail } from "@/lib/mail/graph";
 import { alsErinnerung } from "@/lib/mail/vorlagen";
 import { verteileAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
+import { heuteBerlin, vertreteneHeute, type Vertretung } from "@/lib/reisekosten/vertretung";
 import { istLeereAuslage } from "@/lib/reisekosten/auslagen";
 import { freigabeText, istFreigabeErinnerung, istMonatserinnerung, monatsText } from "./plan";
 import { monatsnameIn, texte } from "@/lib/i18n/woerterbuch";
@@ -56,10 +57,14 @@ export async function erinnerungenSenden({
       .in("status", ["entwurf", "abgelehnt", "eingereicht", "freigegeben", "geprueft"]),
     db.from("beleg_eingang").select("mitarbeiter_id"),
   ]);
-  const { data: vorschuesse } = await db
-    .from("vorschuss")
-    .select("status, mitarbeiter_id, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(vorgesetzter_id)")
-    .in("status", ["beantragt", "genehmigt"]);
+  const [{ data: vorschuesse }, { data: vertretungen }] = await Promise.all([
+    db
+      .from("vorschuss")
+      .select("status, mitarbeiter_id, mitarbeiter:profile!vorschuss_mitarbeiter_id_fkey(vorgesetzter_id)")
+      .in("status", ["beantragt", "genehmigt"]),
+    db.from("vertretung").select("vertretene_id, vertreter_id, von, bis, bis_auf_weiteres"),
+  ]);
+  const tag = heuteBerlin();
 
   async function senden(
     person: { id: string; email: string },
@@ -101,8 +106,10 @@ export async function erinnerungenSenden({
     }
 
     if (freigaben) {
-      const a = verteileAufgaben(reisen ?? [], person.id, person.rolle);
-      const v = verteileVorschuesse(vorschuesse ?? [], person.id, person.rolle);
+      // Vertretungen: wer heute jemanden vertritt, wird auch an dessen offene Genehmigungen erinnert
+      const vertretene = vertreteneHeute((vertretungen ?? []) as Vertretung[], person.id, tag);
+      const a = verteileAufgaben(reisen ?? [], person.id, person.rolle, vertretene);
+      const v = verteileVorschuesse(vorschuesse ?? [], person.id, person.rolle, vertretene);
       const text = freigabeText(
         {
           genehmigen: a.genehmigen.length + v.genehmigen.length,

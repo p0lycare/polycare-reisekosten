@@ -80,6 +80,8 @@ export type OffenerVorschuss = {
   beginn: string;
   betrag: number;
   grund: string | null;
+  /** Name der vertretenen Person, wenn man diesen Vorschuss nur in Vertretung genehmigt */
+  inVertretungFuer?: string | null;
 };
 
 /** Ein offener Vorschuss in den Freigaben: genehmigen bzw. auszahlen, oder mit Grund ablehnen */
@@ -105,6 +107,7 @@ export function VorschussEntscheiden({ v, art }: { v: OffenerVorschuss; art: "ge
             {v.reise} · {t.ab(formatDatum(v.beginn))}
           </span>
           {v.grund && <span className="block text-sm text-neutral-500">{v.grund}</span>}
+          {v.inVertretungFuer && <span className="block text-xs text-blue-700 dark:text-blue-300">{alle.freigaben.inVertretungFuer(v.inVertretungFuer)}</span>}
         </span>
         <span className="font-semibold tabular-nums">{formatEuro(v.betrag)}</span>
       </div>
