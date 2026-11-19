@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatEuro } from "@/lib/format";
 import { ladeAbrechnung } from "@/lib/reisekosten/abrechnung-laden";
 import { istFreigebend, ladeAufgaben, verteileVorschuesse } from "@/lib/reisekosten/freigaben";
+import { genehmigungsrecht } from "@/lib/reisekosten/vertretung";
 import { pruefePlausibilitaet } from "@/lib/reisekosten/plausibilitaet";
 import type { Reise } from "@/lib/reisekosten/reise";
 import type { Mahlzeiten } from "@/lib/reisekosten/verpflegung";
@@ -17,11 +18,11 @@ import { fehlendeAngabenText } from "@/lib/reisekosten/pflichtangaben";
 import { ladeTexte } from "@/lib/i18n/server";
 import type { Texte } from "@/lib/i18n/woerterbuch";
 
-type Eintrag = Reise & { mitarbeiter: { name: string } | null };
+type Eintrag = Reise & { mitarbeiter: { name: string } | null; inVertretungFuer?: string | null };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /** Reisen je Person bündeln, mit Beträgen und Zahl der Plausibilitäts-Hinweise */
-async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<PersonGruppe[]> {
+async function gruppieren(supabase: Supabase, reisen: Eintrag[], namen: Map<string, string> = new Map()): Promise<PersonGruppe[]> {
   if (!reisen.length) return [];
   const ids = reisen.map((r) => r.id);
   const [abrechnungen, { data: belege }, { data: fahrten }] = await Promise.all([
@@ -69,6 +70,7 @@ async function gruppieren(supabase: Supabase, reisen: Eintrag[]): Promise<Person
       betrag: abrechnungen[i].auszuzahlen,
       belegNr: r.beleg_nr,
       hinweise,
+      inVertretungFuer: r.inVertretungFuer ? (namen.get(r.inVertretungFuer) ?? "") : null,
     });
     gruppen.set(r.mitarbeiter_id, g);
   });
@@ -112,19 +114,36 @@ export default async function FreigabenPage() {
     .in("status", ["beantragt", "genehmigt"])
     .neq("mitarbeiter_id", user!.id)
     .order("beantragt_am");
-  const { genehmigen: vGenehmigen, auszahlen: vAuszahlen } = verteileVorschuesse(vorschuesse ?? [], user!.id, profil?.rolle);
-  const alsOffen = (v: NonNullable<typeof vorschuesse>[number]): OffenerVorschuss => ({
-    id: v.id,
-    reiseId: v.reise_id,
-    name: v.mitarbeiter?.name ?? "",
-    reise: `${v.reise_anlass} (${v.reise_weg})`,
-    beginn: v.reise_beginn,
-    betrag: v.betrag_cent,
-    grund: v.grund,
-  });
+  const { genehmigen: vGenehmigen, auszahlen: vAuszahlen } = verteileVorschuesse(vorschuesse ?? [], user!.id, profil?.rolle, aufgaben.vertretene);
+
+  // Namen der Personen, die ich gerade vertrete (für „in Vertretung für …“)
+  const { data: vertreteneProfile } = aufgaben.vertretene.length
+    ? await supabase.from("profile").select("id, name").in("id", aufgaben.vertretene).order("name")
+    : { data: [] };
+  const vertreteneNamen = new Map((vertreteneProfile ?? []).map((p) => [p.id, p.name]));
+  const alsOffen = (v: NonNullable<typeof vorschuesse>[number], art: "genehmigen" | "auszahlen"): OffenerVorschuss => {
+    const recht =
+      art === "genehmigen"
+        ? genehmigungsrecht(
+            { id: user!.id, rolle: profil?.rolle },
+            { id: v.mitarbeiter_id, vorgesetzter_id: v.mitarbeiter?.vorgesetzter_id ?? null },
+            aufgaben.vertretene,
+          )
+        : null;
+    return {
+      id: v.id,
+      reiseId: v.reise_id,
+      name: v.mitarbeiter?.name ?? "",
+      reise: `${v.reise_anlass} (${v.reise_weg})`,
+      beginn: v.reise_beginn,
+      betrag: v.betrag_cent,
+      grund: v.grund,
+      inVertretungFuer: recht?.darf && recht.inVertretungFuer ? (vertreteneNamen.get(recht.inVertretungFuer) ?? "") : null,
+    };
+  };
 
   const [genehmigen, pruefen, auszahlen] = await Promise.all([
-    gruppieren(supabase, aufgaben.genehmigen),
+    gruppieren(supabase, aufgaben.genehmigen, vertreteneNamen),
     gruppieren(supabase, aufgaben.pruefen),
     gruppieren(supabase, aufgaben.auszahlen),
   ]);
@@ -149,16 +168,21 @@ export default async function FreigabenPage() {
           ? t.seite.hilfeBuchhaltung
           : t.seite.hilfeFreigeber}
       </SeitenHilfe>
+      {vertreteneNamen.size > 0 && (
+        <p role="note" className="rounded-md bg-blue-50 p-3 text-sm text-blue-950 dark:bg-blue-950 dark:text-blue-50">
+          {t.vertretungHinweis([...vertreteneNamen.values()].join(", "))}
+        </p>
+      )}
 
       {(vGenehmigen.length > 0 || vAuszahlen.length > 0) && (
         <section className="flex flex-col gap-3">
           <h2 className="font-medium">{t.seite.vorschuesse}</h2>
           <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
             {vGenehmigen.map((v) => (
-              <VorschussEntscheiden key={v.id} v={alsOffen(v)} art="genehmigen" />
+              <VorschussEntscheiden key={v.id} v={alsOffen(v, "genehmigen")} art="genehmigen" />
             ))}
             {vAuszahlen.map((v) => (
-              <VorschussEntscheiden key={v.id} v={alsOffen(v)} art="auszahlen" />
+              <VorschussEntscheiden key={v.id} v={alsOffen(v, "auszahlen")} art="auszahlen" />
             ))}
           </ul>
         </section>

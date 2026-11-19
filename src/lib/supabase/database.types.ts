@@ -657,31 +657,44 @@ export type Database = {
         Row: {
           aktion: string
           id: number
+          in_vertretung_fuer: string | null
           kommentar: string | null
           person_id: string
           person_name: string | null
           reise_id: string
+          vertreten_name: string | null
           zeit: string
         }
         Insert: {
           aktion: string
           id?: never
+          in_vertretung_fuer?: string | null
           kommentar?: string | null
           person_id: string
           person_name?: string | null
           reise_id: string
+          vertreten_name?: string | null
           zeit?: string
         }
         Update: {
           aktion?: string
           id?: never
+          in_vertretung_fuer?: string | null
           kommentar?: string | null
           person_id?: string
           person_name?: string | null
           reise_id?: string
+          vertreten_name?: string | null
           zeit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reise_ereignis_in_vertretung_fuer_fkey"
+            columns: ["in_vertretung_fuer"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reise_ereignis_person_id_fkey"
             columns: ["person_id"]
@@ -724,6 +737,58 @@ export type Database = {
           sortierung?: number
         }
         Relationships: []
+      }
+      vertretung: {
+        Row: {
+          bis: string | null
+          bis_auf_weiteres: boolean
+          geaendert_am: string
+          geaendert_von: string | null
+          vertretene_id: string
+          vertreter_id: string
+          von: string
+        }
+        Insert: {
+          bis?: string | null
+          bis_auf_weiteres?: boolean
+          geaendert_am?: string
+          geaendert_von?: string | null
+          vertretene_id: string
+          vertreter_id: string
+          von: string
+        }
+        Update: {
+          bis?: string | null
+          bis_auf_weiteres?: boolean
+          geaendert_am?: string
+          geaendert_von?: string | null
+          vertretene_id?: string
+          vertreter_id?: string
+          von?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertretung_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertretung_vertretene_id_fkey"
+            columns: ["vertretene_id"]
+            isOneToOne: true
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertretung_vertreter_id_fkey"
+            columns: ["vertreter_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vorschuss: {
         Row: {
@@ -816,6 +881,11 @@ export type Database = {
       darf_genehmigen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_pruefen: { Args: { p_mitarbeiter: string }; Returns: boolean }
       darf_reise_sehen: { Args: { p_reise: string }; Returns: boolean }
+      genehmigt_in_vertretung_fuer: {
+        Args: { p_mitarbeiter: string }
+        Returns: string
+      }
+      heute_berlin: { Args: never; Returns: string }
       ist_admin: { Args: never; Returns: boolean }
       ist_buchhaltung: { Args: never; Returns: boolean }
       ist_freigeber: { Args: never; Returns: boolean }
@@ -910,6 +980,10 @@ export type Database = {
       reisen_pruefen: {
         Args: { p_buchungsmonat: string; p_ids: string[] }
         Returns: number
+      }
+      vertritt: {
+        Args: { p_vertretene: string; p_vertreter: string }
+        Returns: boolean
       }
       vorschuss_ablehnen: {
         Args: { p_grund: string; p_id: string }

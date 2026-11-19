@@ -119,6 +119,34 @@ export const de = {
       `Diese Person genehmigt noch für ${namen} – dort erst eine andere genehmigende Person eintragen.`,
     speichernFehlgeschlagen: "Speichern fehlgeschlagen. Fehlt die Admin-Berechtigung?",
   },
+  vertretung: {
+    titel: "Vertretung",
+    profilTitel: "Meine Vertretung",
+    profilText:
+      "Bist du im Urlaub, genehmigt deine Vertretung in dieser Zeit die Abrechnungen und Vorschüsse der Personen, die du genehmigst. Du behältst dein Recht; niemand genehmigt die eigene Abrechnung.",
+    personenText:
+      "Gilt für alle Personen, bei denen diese Person unter „Genehmigt durch“ steht. Reicht die Vertretung selbst ein, genehmigen die vertretene Person oder ein Admin.",
+    ohne: "keine Vertretung",
+    zusammenfassungOhne: "Vertretung: keine",
+    zusammenfassung: (name: string, zeitraum: string, zustand: string) => `Vertretung: ${name}, ${zeitraum} (${zustand})`,
+    zeitraum: (von: string, bis: string | null) => (bis ? `${von} – ${bis}` : `ab ${von}, bis auf Weiteres`),
+    zustand: { aktiv: "aktiv", geplant: "geplant", abgelaufen: "abgelaufen" },
+    vertretung: "Vertreten durch",
+    von: "Von",
+    bis: "Bis",
+    bisAufWeiteres: "Aktiv bis auf Weiteres",
+    ichVertrete: (name: string, zeitraum: string) => `Du vertrittst ${name}: ${zeitraum}.`,
+    fehler: {
+      selbst: "Niemand kann sich selbst vertreten.",
+      von: "Bitte ein Startdatum angeben.",
+      bis: "Bitte ein Enddatum angeben oder „Aktiv bis auf Weiteres“ wählen.",
+      reihenfolge: "Das Enddatum liegt vor dem Startdatum.",
+      rolle: (name: string) => `${name} hat die Rolle Mitarbeiter/in und kann nicht vertreten – erst die Rolle ändern.`,
+      speichern: "Speichern fehlgeschlagen. Fehlt die Berechtigung?",
+    },
+    istVertretung: (namen: string) =>
+      `Diese Person ist als Vertretung für ${namen} eingetragen – dort erst eine andere Vertretung eintragen.`,
+  },
   meldungen: {
     titel: "Meldungen",
     nurOffene: "Nur offene",
@@ -240,6 +268,33 @@ export const en: Uebersetzung<typeof de> = {
     kannNichtGenehmigen: (name) => `${name} has the employee role and cannot approve – change the role first.`,
     genehmigtNoch: (namen) => `This person still approves for ${namen} – assign a different approver there first.`,
     speichernFehlgeschlagen: "Saving failed. Missing admin permission?",
+  },
+  vertretung: {
+    titel: "Deputy",
+    profilTitel: "My deputy",
+    profilText:
+      "While you're on holiday, your deputy approves the expense reports and advances of the people you approve. You keep your own right to approve; nobody approves their own expense report.",
+    personenText:
+      "Applies to everyone who has this person as “Approved by”. If the deputy submits a report themselves, the person they stand in for or an admin approves it.",
+    ohne: "no deputy",
+    zusammenfassungOhne: "Deputy: none",
+    zusammenfassung: (name, zeitraum, zustand) => `Deputy: ${name}, ${zeitraum} (${zustand})`,
+    zeitraum: (von, bis) => (bis ? `${von} – ${bis}` : `from ${von}, until further notice`),
+    zustand: { aktiv: "active", geplant: "planned", abgelaufen: "expired" },
+    vertretung: "Deputy",
+    von: "From",
+    bis: "Until",
+    bisAufWeiteres: "Active until further notice",
+    ichVertrete: (name, zeitraum) => `You are standing in for ${name}: ${zeitraum}.`,
+    fehler: {
+      selbst: "Nobody can be their own deputy.",
+      von: "Please enter a start date.",
+      bis: "Please enter an end date or choose “Active until further notice”.",
+      reihenfolge: "The end date is before the start date.",
+      rolle: (name) => `${name} has the employee role and cannot act as deputy – change the role first.`,
+      speichern: "Saving failed. Missing permission?",
+    },
+    istVertretung: (namen) => `This person is the deputy for ${namen} – assign a different deputy there first.`,
   },
   meldungen: {
     titel: "Feedback",

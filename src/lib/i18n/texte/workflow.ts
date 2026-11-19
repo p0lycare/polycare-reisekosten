@@ -92,6 +92,7 @@ export const de = {
       ausgezahlt: "Ausgezahlt",
     } as Record<string, string>,
     belegNr: (nr: string) => `Beleg-Nr. ${nr}`,
+    inVertretungFuer: (name: string) => `(in Vertretung für ${name})`,
     kommentar: (text: string) => `„${text}“`,
   },
   fehler: {
@@ -189,6 +190,7 @@ export const en: Uebersetzung<typeof de> = {
       ausgezahlt: "Paid out",
     },
     belegNr: (nr) => `Receipt no. ${nr}`,
+    inVertretungFuer: (name) => `(on behalf of ${name})`,
     kommentar: (text) => `“${text}”`,
   },
   fehler: {

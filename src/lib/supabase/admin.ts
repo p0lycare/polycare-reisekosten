@@ -52,7 +52,9 @@ export async function mailEmpfaenger(reiseId: string, art: string, ohne?: string
   const { data, error } = await createAdminClient().rpc("mail_empfaenger", { p_reise: reiseId, p_art: art });
   if (error) console.error("Mail-Empfänger konnten nicht ermittelt werden", error.message);
   const selbst = ohne?.toLowerCase();
-  return (data ?? []).map((e) => e.email).filter((e) => e && e.toLowerCase() !== selbst);
+  // Doppelte Adressen (z. B. Admin, der zugleich Vertretung ist) nur einmal
+  const adressen = (data ?? []).map((e) => e.email).filter((e) => e && e.toLowerCase() !== selbst);
+  return [...new Map(adressen.map((e) => [e.toLowerCase(), e])).values()];
 }
 
 /**

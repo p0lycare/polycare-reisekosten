@@ -42,7 +42,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
       .eq("reise_id", reiseId)
       .order("datum")
       .order("created_at"),
-    supabase.from("reise_ereignis").select("zeit, aktion, person_name, kommentar").eq("reise_id", reiseId).order("zeit"),
+    supabase.from("reise_ereignis").select("zeit, aktion, person_name, vertreten_name, kommentar").eq("reise_id", reiseId).order("zeit"),
   ]);
 
   const { data: projekt } = reise.projekt_id
@@ -124,7 +124,7 @@ export async function ladeDokument(supabase: SupabaseClient<Database>, reiseId: 
     verlauf: (verlauf ?? []).map((v) => ({
       zeit: zeit.format(new Date(v.zeit)),
       aktion: AKTION[v.aktion] ?? v.aktion,
-      person: v.person_name ?? "",
+      person: v.vertreten_name ? `${v.person_name ?? ""} (in Vertretung für ${v.vertreten_name})` : (v.person_name ?? ""),
       kommentar: v.aktion === "geprueft" ? `Beleg-Nr. ${v.kommentar}` : v.kommentar,
     })),
   };

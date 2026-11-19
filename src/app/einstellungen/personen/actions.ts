@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import { ladeTexte } from "@/lib/i18n/server";
+import { heuteBerlin } from "@/lib/reisekosten/vertretung";
 
 type Rolle = Database["public"]["Enums"]["rolle"];
 const ROLLEN: Rolle[] = ["mitarbeiter", "freigeber", "buchhaltung", "admin"];
@@ -40,6 +41,16 @@ export async function personSpeichern(_vorher: PersonStatus, formData: FormData)
       return {
         fehler: t.genehmigtNoch(abhaengig.map((p) => p.name).join(", ")),
       };
+    }
+    // Als Vertretung eingetragen (laufend oder geplant)? Dann erst dort ändern
+    const { data: vertritt } = await supabase
+      .from("vertretung")
+      .select("bis, bis_auf_weiteres, vertretene:profile!vertretung_vertretene_id_fkey(name)")
+      .eq("vertreter_id", id);
+    const heute = heuteBerlin();
+    const offen = (vertritt ?? []).filter((v) => v.bis_auf_weiteres || (v.bis !== null && v.bis >= heute));
+    if (offen.length) {
+      return { fehler: (await ladeTexte()).einstellungen.vertretung.istVertretung(offen.map((v) => v.vertretene?.name ?? "").join(", ")) };
     }
   }
 
