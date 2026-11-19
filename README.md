@@ -44,7 +44,7 @@ npm run dev
 
 - Supabase-Projekt `polycare-reisekosten` (Ref `xddhklgaayjfukrednso`, Region Frankfurt `eu-central-1`)
 - Vercel-Projekt `polycare-reisekosten`, Env-Variablen für Production, Preview und Development gesetzt
-- Neue Migrationen unter `supabase/migrations/` anlegen und mit `npx supabase db push --linked` einspielen
+- Neue Migrationen unter `supabase/migrations/` anlegen und mit `npx supabase db push --remote` einspielen (fragt vor dem Einspielen nach; ohne `--remote` zielt die CLI ab v3 auf die lokale Datenbank)
 
 Tests: `npm test` · Typen: `npm run typecheck` · Lint: `npm run lint`
 
