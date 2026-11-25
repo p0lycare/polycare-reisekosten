@@ -135,6 +135,9 @@ export const de = {
     von: "Von",
     bis: "Bis",
     bisAufWeiteres: "Aktiv bis auf Weiteres",
+    beenden: "Vertretung beenden",
+    beendenFrage: (name: string) => `Vertretung durch ${name} jetzt beenden? Sie gilt dann ab sofort nicht mehr.`,
+    beendet: "Vertretung beendet",
     ichVertrete: (name: string, zeitraum: string) => `Du vertrittst ${name}: ${zeitraum}.`,
     fehler: {
       selbst: "Niemand kann sich selbst vertreten.",
@@ -285,6 +288,9 @@ export const en: Uebersetzung<typeof de> = {
     von: "From",
     bis: "Until",
     bisAufWeiteres: "Active until further notice",
+    beenden: "End deputy",
+    beendenFrage: (name) => `End ${name}'s deputyship now? It stops applying immediately.`,
+    beendet: "Deputy ended",
     ichVertrete: (name, zeitraum) => `You are standing in for ${name}: ${zeitraum}.`,
     fehler: {
       selbst: "Nobody can be their own deputy.",

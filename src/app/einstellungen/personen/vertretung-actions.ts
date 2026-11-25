@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ladeTexte } from "@/lib/i18n/server";
 import { pruefeVertretung } from "@/lib/reisekosten/vertretung";
 
-export type VertretungStatus = { fehler?: string; gespeichert?: boolean };
+export type VertretungStatus = { fehler?: string; gespeichert?: boolean; beendet?: boolean };
 
 function aktualisieren() {
   revalidatePath("/einstellungen/personen");
@@ -15,7 +15,8 @@ function aktualisieren() {
 }
 
 /**
- * Legt die Vertretung einer genehmigenden Person fest, ändert oder entfernt sie (leere Auswahl).
+ * Legt die Vertretung einer genehmigenden Person fest, ändert oder entfernt sie
+ * (Knopf „Vertretung beenden“ oder leere Auswahl).
  * Wer das darf, entscheidet RLS: Admins für alle (Personen und Rollen), sonst nur für sich selbst (Profil).
  */
 export async function vertretungSpeichern(_vorher: VertretungStatus, formData: FormData): Promise<VertretungStatus> {
@@ -26,11 +27,11 @@ export async function vertretungSpeichern(_vorher: VertretungStatus, formData: F
 
   const supabase = await createClient();
 
-  if (!vertreterId) {
+  if (!vertreterId || formData.get("aktion") === "beenden") {
     const { error } = await supabase.from("vertretung").delete().eq("vertretene_id", vertreteneId);
     if (error) return { fehler: t.fehler.speichern };
     aktualisieren();
-    return { gespeichert: true };
+    return { gespeichert: true, beendet: true };
   }
 
   const bisAufWeiteres = formData.get("bis_auf_weiteres") === "on";

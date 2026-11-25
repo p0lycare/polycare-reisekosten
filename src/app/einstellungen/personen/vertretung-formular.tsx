@@ -50,7 +50,11 @@ export function VertretungFormular({
   return (
     <details open={aufgeklappt} className="group pb-3 text-sm">
       <summary className="cursor-pointer text-neutral-600 marker:text-neutral-400 dark:text-neutral-400">{zusammenfassung}</summary>
-      <form onSubmit={ohneZuruecksetzen(absenden)} className="mt-2 grid gap-2 sm:grid-cols-[1fr_9rem_9rem] sm:items-end">
+      {/* key: nach dem Beenden oder Ändern zeigt das Formular den neuen Stand statt der alten Eingaben */}
+      <form
+        key={vertretung ? `${vertretung.vertreter_id}|${vertretung.von}|${vertretung.bis ?? ""}|${vertretung.bis_auf_weiteres}` : "ohne"}
+        onSubmit={ohneZuruecksetzen(absenden)}
+        className="mt-2 grid gap-2 sm:grid-cols-[1fr_9rem_9rem] sm:items-end">
         <input type="hidden" name="vertretene_id" value={vertreteneId} />
         <label className="flex flex-col gap-1">
           <span className="text-xs text-neutral-500">{t.vertretung}</span>
@@ -91,9 +95,23 @@ export function VertretungFormular({
           >
             {laeuft ? "…" : alle.einstellungen.formular.speichern}
           </button>
+          {vertretung && (
+            <button
+              type="submit"
+              name="aktion"
+              value="beenden"
+              disabled={laeuft}
+              onClick={(e) => {
+                if (!window.confirm(t.beendenFrage(name))) e.preventDefault();
+              }}
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+            >
+              {t.beenden}
+            </button>
+          )}
           {status.gespeichert && !status.fehler && (
             <span role="status" className="text-sm text-green-700 dark:text-green-400">
-              {alle.einstellungen.formular.gespeichert}
+              {status.beendet ? t.beendet : alle.einstellungen.formular.gespeichert}
             </span>
           )}
         </div>
